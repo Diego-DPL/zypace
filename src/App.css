@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import 'react-big-calendar/lib/css/react-big-calendar.css';
+
+/* Estilos personalizados para react-big-calendar */
+.rbc-calendar {
+  font-family: 'Inter', sans-serif;
+  border: none;
+}
+
+.rbc-toolbar {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 20px;
+  border-radius: 8px 8px 0 0;
+}
+
+.rbc-toolbar button {
+  background-color: transparent;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 5px 15px;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
+}
+
+.rbc-toolbar button:hover, .rbc-toolbar button:focus {
+  background-color: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.rbc-btn-group > button:first-child {
+  border-top-left-radius: 6px;
+  border-bottom-left-radius: 6px;
+}
+
+.rbc-btn-group > button:last-child {
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.rbc-toolbar .rbc-active button {
+  background-color: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+}
+
+.rbc-header {
+  background-color: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 10px 0;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.rbc-day-bg {
+  border-left: 1px solid #e5e7eb;
+}
+
+.rbc-day-bg:first-child {
+  border-left: none;
+}
+
+.rbc-today {
+  background-color: #eff6ff;
+}
+
+.rbc-event {
+  padding: 4px 8px;
+  font-size: 0.875rem;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
