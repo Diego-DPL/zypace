@@ -47,8 +47,8 @@ serve(async (req: Request) => {
     } catch {
       throw new Error('JSON inválido');
     }
-    const { race, goal } = body as { race?: RacePayload; goal?: string };
-    console.log(`[${requestId}] Payload`, { race, goal });
+  const { race, goal, config } = body as { race?: RacePayload; goal?: string; config?: any };
+  console.log(`[${requestId}] Payload`, { race, goal, config });
 
     if (!race || !goal) throw new Error('Faltan detalles de la carrera o el objetivo.');
     if (!race.date) throw new Error('La carrera no tiene fecha.');
@@ -71,8 +71,28 @@ serve(async (req: Request) => {
 
   // Prompt principal se reparte en developerInstructions + userPrompt
 
-  const developerInstructions = `Eres un entrenador experto de running. Devuelve SOLO JSON válido con estructura {"plan":[{"date":"YYYY-MM-DD","description":"...","explanation":{"type":"series|tempo|largo|descanso|suave|otro","purpose":"...","details":"...","intensity":"opcional"}}]}. Reglas: 4-5 sesiones por semana desde ${startISO} hasta ${raceISO}. Marca días de descanso con description="Descanso" y type="descanso". Progresión de carga. Descripciones concisas. explanation.purpose explica el objetivo fisiológico (ej: mejorar VO2max, umbral, base aeróbica, recuperación). details dice cómo ejecutarlo (estructura series, ritmos relativos: fácil, tempo, 5k, etc.). SIEMPRE incluye explanation incluso en descanso (purpose="recuperación" y details breve). Nada de texto fuera del JSON.`;
-    const userPrompt = `Carrera: ${race.name}\nDistancia: ${race.distance || 'No especificada'} km\nFecha: ${raceISO}\nObjetivo: ${goal}`;
+  // Derivar variables de configuración
+  const runDays = Math.min(Math.max(Number(config?.run_days_per_week) || 4, 2), 7);
+  const includeStrength = !!config?.include_strength;
+  const strengthDays = includeStrength ? Math.min(Math.max(Number(config?.strength_days_per_week) || 1, 1), 3) : 0;
+  const lastRace = config?.last_race;
+  const targetTimeSec = Number(config?.target_time_seconds) || null;
+
+  // Calcular ritmo objetivo aproximado si se tiene targetTimeSec y race.distance
+  let targetPace: string | null = null;
+  if (targetTimeSec && race.distance) {
+    const distKm = Number(race.distance) || 0;
+    if (distKm > 0) {
+      const paceSec = targetTimeSec / distKm;
+      const mm = Math.floor(paceSec / 60);
+      const ss = Math.round(paceSec % 60).toString().padStart(2, '0');
+      targetPace = `${mm}:${ss}/km`;
+    }
+  }
+
+  const developerInstructions = `Eres un entrenador experto de running. Devuelve SOLO JSON válido con estructura {"plan":[{"date":"YYYY-MM-DD","description":"...","explanation":{"type":"series|tempo|largo|descanso|suave|otro","purpose":"...","details":"...","intensity":"opcional"}}]}. Reglas: ${runDays} días de running por semana desde ${startISO} hasta ${raceISO}. Si hace falta descanso usa description="Descanso". Incluir progresión de carga y descarga cada 3-4 semanas. Si include_strength=true añade sesiones de fuerza (type="otro" o description "Fuerza") en días libres sin saturar (hasta ${strengthDays} por semana). Ajusta intensidades según objetivo y ritmo objetivo ${targetPace || '(estimar con base aeróbica)'}.
+Si hay last_race y marca previa, utiliza eso para calibrar ritmos (VO2max, tempo). Descripciones concisas. Explicaciones SIEMPRE presentes incluso en descanso (purpose="recuperación"). Nada de texto fuera del JSON.`;
+    const userPrompt = `Carrera: ${race.name}\nDistancia: ${race.distance || 'No especificada'} km\nFecha: ${raceISO}\nObjetivo: ${goal}\nRunDays: ${runDays}\nStrength: ${includeStrength ? strengthDays+' dias/sem' : 'no'}\nMarca previa: ${lastRace?.distance_km ? lastRace.distance_km+'km en '+(lastRace?.time || '-') : 'no'}\nRitmo objetivo: ${targetPace || 'no definido'}`;
 
     async function callResponsesAPI(activeModel: string) {
       const payload = {
@@ -123,35 +143,62 @@ serve(async (req: Request) => {
       return 'otro';
     }
 
-    function buildFallbackPlan(): PlanResponse {
+  function buildFallbackPlan(): PlanResponse {
       // Plan progresivo básico (8 semanas) con incremento en distancia del rodaje largo
       const days: PlanDay[] = [];
       const start = new Date(startISO + 'T00:00:00Z');
       const end = new Date(raceISO + 'T00:00:00Z');
       const totalDays = Math.round((end.getTime() - start.getTime()) / 86400000) + 1;
       const weeks = Math.ceil(totalDays / 7);
-      // Ajuste del objetivo para variar intensidad
       const goalLower = (goal || '').toLowerCase();
-      const speedFocus = /sub|menos de|bajar/.test(goalLower);
+      const speedFocus = /sub|menos de|bajar/.test(goalLower) || (targetPace !== null);
+      // Distribución semanal dinámica según runDays y fuerza
+      // Generar slots de la semana (0..6) priorizando: largo (domingo), series (martes), tempo (jueves), fuerza en huecos
+      const weekdayOrder = [1,3,5,0,2,4,6]; // orden preferencia para rellenar rodajes suaves
       for (let w = 0; w < weeks; w++) {
         const weekStart = new Date(start.getTime() + w * 7 * 86400000);
-        const longRunKm = 10 + w * 1.5; // incrementa 1.5km por semana
-        const tempoKm = 5 + Math.min(w, 4); // sube hasta +4 km
-        const easyKm = 5 + Math.min(w, 3);
-        const qualitySeries = speedFocus ? `Series: ${4 + w}x800m ritmo 5k` : `Fartlek ${30 + w * 5}min variando ritmos`;
-        const pattern: string[] = [
-          `Rodaje suave ${easyKm}km`,
-          qualitySeries,
-          'Descanso',
-          `Tempo ${tempoKm}km ritmo controlado`,
-          `Rodaje suave ${(easyKm + 1).toFixed(0)}km`,
-          `Rodaje largo ${longRunKm.toFixed(0)}km`,
-          'Descanso'
-        ];
-        for (let d = 0; d < 7; d++) {
-          const date = new Date(weekStart.getTime() + d * 86400000);
+        const baseLong = 10;
+        const longRunKm = baseLong + w * (runDays >=5 ? 1.5 : 1.2);
+        const tempoKm = 4 + Math.min(w, 6);
+        const easyKm = 5 + Math.min(w, 4);
+        const seriesPattern = speedFocus ? `${4 + w}x800m` : `${5 + w}x400m`;
+        const qualitySeries = `Series ${seriesPattern} ritmo 5k rec 90s trote`;
+        const tempoDesc = `Tempo ${tempoKm}km ritmo controlado`;
+
+        // Determinar qué días se usan para running
+        const selectedRunDays: number[] = [];
+        // Siempre intentar: Martes(2) series, Jueves(4) tempo, Domingo(0) largo (usando getUTCDay adaptado más abajo)
+        const canonical = [2,4,0];
+        for (const c of canonical) { if (selectedRunDays.length < runDays && !selectedRunDays.includes(c)) selectedRunDays.push(c); }
+        for (const wd of weekdayOrder) { if (selectedRunDays.length < runDays && !selectedRunDays.includes(wd)) selectedRunDays.push(wd); }
+        selectedRunDays.sort();
+
+        // Asignar tipos
+        const dayPlans: Record<number,string> = {};
+        for (const dIdx of selectedRunDays) {
+          // Map dIdx (0..6) to actual weekday of this week start: weekStart.getUTCDay() returns 0..6 for that date
+          // We'll assume weekStart is Monday? Actually start may vary; simpler: interpret dIdx as weekday (0=Dom ... 6=Sab) and compute date accordingly later.
+          if (dIdx === 0) dayPlans[dIdx] = `Rodaje largo ${longRunKm.toFixed(0)}km`;
+          else if (dIdx === 2) dayPlans[dIdx] = qualitySeries;
+          else if (dIdx === 4) dayPlans[dIdx] = tempoDesc;
+          else dayPlans[dIdx] = `Rodaje suave ${easyKm}km`;
+        }
+        // Añadir fuerza en huecos si corresponde
+        if (includeStrength && strengthDays > 0) {
+          let added = 0;
+            for (let wd = 0; wd < 7 && added < strengthDays; wd++) {
+              if (!dayPlans[wd]) { dayPlans[wd] = 'Fuerza (core, estabilidad, fuerza general 30-40min)'; added++; }
+            }
+        }
+        // Rellenar resto como descanso
+        for (let wd = 0; wd < 7; wd++) {
+          if (!dayPlans[wd]) dayPlans[wd] = 'Descanso';
+        }
+
+        for (let wd = 0; wd < 7; wd++) {
+          const date = new Date(weekStart.getTime() + wd * 86400000);
           if (date > end) break;
-            const description = pattern[d];
+          const description = dayPlans[wd];
             const type = classify(description);
             let purpose: string = 'base aeróbica';
             let details: string = 'Rodaje cómodo en zona fácil.';
@@ -160,6 +207,7 @@ serve(async (req: Request) => {
             else if (type === 'tempo') { purpose = 'Umbral / resistencia tempo'; details = 'Ritmo controlado mantenido, conversación entrecortada. Calienta y enfría 10min.'; intensity = 'Ritmo 10k-HM'; }
             else if (type === 'largo') { purpose = 'Resistencia aeróbica y eficiencia'; details = 'Ritmo cómodo estable, hidrata cada 20-25min.'; intensity = 'Z2 baja'; }
             else if (type === 'descanso') { purpose = 'Recuperación'; details = 'Sin carrera o actividad muy ligera (ej: paseo, movilidad).'; intensity = null; }
+          else if (description.toLowerCase().includes('fuerza')) { purpose = 'Prevención lesiones y potencia'; details = 'Trabajo de fuerza general: core, glúteos, piernas, estabilización.'; intensity = null; }
             else if (type === 'suave') { purpose = 'Desarrollo base y recuperación activa'; details = 'Ritmo conversacional relajado.'; intensity = 'Z2'; }
             days.push({ date: date.toISOString().split('T')[0], description, explanation: { type, purpose, details, intensity: intensity ?? undefined } });
         }
@@ -217,7 +265,7 @@ serve(async (req: Request) => {
       }
     });
 
-  console.log(`[${requestId}] Plan listo. Días: ${parsedPlan.plan.length}, intentos: ${attempts}, fallback: ${rawContent ? 'no' : 'sí'}`);
+  console.log(`[${requestId}] Plan listo. Días: ${parsedPlan.plan.length}, intentos: ${attempts}, fallback: ${rawContent ? 'no' : 'sí'}, runDays=${runDays}, strength=${includeStrength?'si':'no'}`);
 
   // Adjuntamos metadatos (el front sigue usando .plan)
   const responsePayload = { ...parsedPlan, meta: { attempts, fallback: !rawContent || usedModel === 'fallback-generated', openAiError, model: usedModel } };

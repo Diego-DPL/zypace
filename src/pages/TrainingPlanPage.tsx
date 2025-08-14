@@ -29,6 +29,14 @@ const TrainingPlanPage = () => {
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState('');
   const [goal, setGoal] = useState('');
+  // Config avanzada
+  const [runDays, setRunDays] = useState<number>(4);
+  const [includeStrength, setIncludeStrength] = useState<boolean>(false);
+  const [strengthDays, setStrengthDays] = useState<number>(1);
+  const [hasPreviousMark, setHasPreviousMark] = useState<boolean>(false);
+  const [lastRaceDistance, setLastRaceDistance] = useState<string>('');
+  const [lastRaceTime, setLastRaceTime] = useState<string>(''); // formato HH:MM:SS o MM:SS
+  const [targetRaceTime, setTargetRaceTime] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
@@ -37,6 +45,18 @@ const TrainingPlanPage = () => {
   const [versionPreview, setVersionPreview] = useState<any | null>(null);
   const [modalWorkout, setModalWorkout] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
+  // Mostrar/ocultar configuración avanzada al crear nuevo plan
+  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+
+  function parseTimeToSeconds(input: string): number | null {
+    if (!input) return null;
+    const parts = input.trim().split(':').map(p => parseInt(p,10));
+    if (parts.some(isNaN)) return null;
+    if (parts.length === 3) return parts[0]*3600 + parts[1]*60 + parts[2];
+    if (parts.length === 2) return parts[0]*60 + parts[1];
+    if (parts.length === 1) return parts[0];
+    return null;
+  }
 
   useEffect(() => {
     const fetchRaces = async () => {
@@ -134,6 +154,18 @@ const TrainingPlanPage = () => {
         body: {
           race: selectedRaceDetails,
           goal: goal,
+          config: {
+            run_days_per_week: runDays,
+            include_strength: includeStrength,
+            strength_days_per_week: includeStrength ? strengthDays : 0,
+            last_race: hasPreviousMark ? {
+              distance_km: parseFloat(lastRaceDistance) || null,
+              time: lastRaceTime || null,
+              time_seconds: parseTimeToSeconds(lastRaceTime)
+            } : null,
+            target_time: targetRaceTime || null,
+            target_time_seconds: parseTimeToSeconds(targetRaceTime)
+          }
         },
       });
 
@@ -168,6 +200,12 @@ const TrainingPlanPage = () => {
           used_fallback: meta.fallback ?? null,
           attempts: meta.attempts ?? null,
           openai_error: meta.openAiError || meta.openaiError || null,
+          run_days_per_week: runDays,
+          include_strength: includeStrength,
+          strength_days_per_week: includeStrength ? strengthDays : null,
+          last_race_distance_km: hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
+          last_race_time_sec: hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
+          target_race_time_sec: parseTimeToSeconds(targetRaceTime)
         })
         .select()
         .single();
@@ -486,6 +524,67 @@ const TrainingPlanPage = () => {
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Crea tu plan personalizado</h2>
             <form onSubmit={handleGeneratePlan}>
+              <div className="mb-4">
+                <button
+                  type="button"
+                  onClick={() => setShowAdvancedConfig(s => !s)}
+                  className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+                >
+                  {showAdvancedConfig ? 'Ocultar configuración avanzada' : 'Mostrar configuración avanzada'}
+                </button>
+              </div>
+
+              {showAdvancedConfig && (
+                <div className="space-y-6 mb-8">
+                  <fieldset className="border border-gray-200 rounded-lg p-4">
+                    <legend className="text-sm font-semibold text-gray-600 px-2">Disponibilidad Running</legend>
+                    <label className="block text-sm text-gray-700 mb-1">Días por semana que puedes correr</label>
+                    <input type="number" min={2} max={7} value={runDays} onChange={e=>setRunDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded" />
+                  </fieldset>
+
+                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3">
+                    <legend className="text-sm font-semibold text-gray-600 px-2">Fuerza</legend>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={includeStrength} onChange={e=>setIncludeStrength(e.target.checked)} /> Incluir entrenos de fuerza
+                    </label>
+                    {includeStrength && (
+                      <div>
+                        <label className="block text-sm text-gray-700 mb-1">Días de fuerza por semana</label>
+                        <input type="number" min={1} max={3} value={strengthDays} onChange={e=>setStrengthDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded" />
+                      </div>
+                    )}
+                  </fieldset>
+
+                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-4">
+                    <legend className="text-sm font-semibold text-gray-600 px-2">Marca Anterior</legend>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input type="checkbox" checked={hasPreviousMark} onChange={e=>setHasPreviousMark(e.target.checked)} /> Tengo una marca previa
+                    </label>
+                    {hasPreviousMark && (
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Distancia (km)</label>
+                          <input type="number" step="0.1" className="w-full p-2 border rounded" value={lastRaceDistance} onChange={e=>setLastRaceDistance(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Tiempo (HH:MM:SS)</label>
+                          <input type="text" placeholder="0:45:30" className="w-full p-2 border rounded" value={lastRaceTime} onChange={e=>setLastRaceTime(e.target.value)} />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Objetivo Próxima (HH:MM:SS)</label>
+                          <input type="text" placeholder="0:42:00" className="w-full p-2 border rounded" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
+                        </div>
+                      </div>
+                    )}
+                    {!hasPreviousMark && (
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Objetivo Próxima (HH:MM:SS)</label>
+                        <input type="text" placeholder="0:45:00" className="w-full sm:w-60 p-2 border rounded" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
+                      </div>
+                    )}
+                  </fieldset>
+                </div>
+              )}
               <div className="mb-6">
                 <label htmlFor="goal" className="block text-lg font-medium text-gray-700 mb-2">
                   ¿Cuál es tu objetivo?

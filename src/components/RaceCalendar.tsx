@@ -146,19 +146,6 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
     }
   };
 
-  const syncStravaDebug = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-strava', { body: { debug: true, noAfter: true, full: true } });
-      if (error) throw error;
-      console.log('Debug sync result', data);
-  await loadActivities();
-      alert(`Debug: fetched ${data.fetchedTotal} sampleIds=${(data.sampleActivityIds||[]).join(',')}`);
-    } catch (e:any) {
-      alert(`Error debug sync: ${e.message || e}`);
-    }
-  };
-
   const events: Event[] = [
     ...(showRaces ? races.map(race => ({
       title: `🏁 ${race.name}`,
@@ -245,10 +232,9 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <span className="text-gray-900 font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={syncStrava} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600">Sync</button>
+            <button onClick={syncStrava} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Strava</button>
             <button onClick={syncStravaFull} className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-700">Full</button>
             <button onClick={syncStravaReset} className="px-2 py-1 bg-orange-700 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
-            <button onClick={syncStravaDebug} className="px-2 py-1 bg-gray-600 text-white rounded text-[10px] sm:text-xs hover:bg-gray-700">Dbg</button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs">
