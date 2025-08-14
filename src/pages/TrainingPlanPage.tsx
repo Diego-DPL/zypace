@@ -47,6 +47,28 @@ const TrainingPlanPage = () => {
   const [showModal, setShowModal] = useState(false);
   // Mostrar/ocultar configuración avanzada al crear nuevo plan
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+  // Estados para modales de feedback
+  const [progressModal, setProgressModal] = useState(false);
+  const [progressMessageIndex, setProgressMessageIndex] = useState(0);
+  const progressMessages = [
+    'Analizando tu carrera y objetivo…',
+    'Calculando distribución semanal óptima…',
+    'Ajustando cargas y descansos…',
+    'Seleccionando intensidades adecuadas…',
+    'Generando explicaciones de cada sesión…',
+    'Validando coherencia de progression…',
+    'Casi listo, preparando tu plan…'
+  ];
+  const [resultModal, setResultModal] = useState<{ success: boolean; message: string } | null>(null);
+
+  // Rotar mensajes mientras se genera
+  useEffect(() => {
+    if (!progressModal) return;
+    const id = setInterval(() => {
+      setProgressMessageIndex(i => (i + 1) % progressMessages.length);
+    }, 2500);
+    return () => clearInterval(id);
+  }, [progressModal]);
 
   function parseTimeToSeconds(input: string): number | null {
     if (!input) return null;
@@ -141,7 +163,9 @@ const TrainingPlanPage = () => {
     e.preventDefault();
     if (!user || !selectedRace) return;
 
-    setLoading(true);
+  setLoading(true);
+  setProgressModal(true);
+  setProgressMessageIndex(0);
 
     try {
       const selectedRaceDetails = races.find(r => r.id === parseInt(selectedRace, 10));
@@ -264,13 +288,14 @@ const TrainingPlanPage = () => {
   // 4. Notificar al calendario que hay nuevos workouts
   window.dispatchEvent(new Event('workouts-changed'));
 
-      alert('¡Plan de entrenamiento generado exitosamente!');
+  setResultModal({ success: true, message: '¡Plan de entrenamiento generado exitosamente!' });
 
     } catch (error) {
-      console.error('Error generating plan:', error);
-      alert(`Error al generar el plan: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+  console.error('Error generating plan:', error);
+  setResultModal({ success: false, message: `Error al generar el plan: ${error instanceof Error ? error.message : 'Error desconocido'}` });
     } finally {
-      setLoading(false);
+  setLoading(false);
+  setProgressModal(false);
     }
   };
 
@@ -332,9 +357,9 @@ const TrainingPlanPage = () => {
       }
       await fetchPlanForRace(selectedRace);
       window.dispatchEvent(new Event('workouts-changed'));
-      alert('Plan regenerado desde hoy preservando histórico.');
+  setResultModal({ success: true, message: 'Plan regenerado desde hoy preservando histórico.' });
     } catch (err:any) {
-      alert(`Error regenerando: ${err.message || err}`);
+  setResultModal({ success: false, message: `Error regenerando: ${err.message || err}` });
     } finally {
       setLoading(false);
     }
@@ -474,6 +499,37 @@ const TrainingPlanPage = () => {
                   {!modalWorkout.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
                   <div className="mt-6 text-right">
                     <button onClick={()=>setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
+                  </div>
+                </div>
+              </div>
+            )}
+            {/* Modal progreso generación plan */}
+            {progressModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50/60 to-white pointer-events-none" />
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin mb-4" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Generando tu plan</h3>
+                  <p className="text-sm text-gray-600 min-h-[40px] transition-opacity duration-500">{progressMessages[progressMessageIndex]}</p>
+                  <p className="mt-4 text-[11px] text-gray-400">Esto puede tardar unos minutos mientras calculamos la mejor progresión para ti.</p>
+                  <button onClick={()=>{ /* opcionalmente permitir cancelar */ }} disabled className="mt-6 px-4 py-2 rounded-md bg-gray-200 text-gray-500 text-xs font-medium cursor-not-allowed">Procesando…</button>
+                </div>
+              </div>
+            )}
+            {/* Modal resultado */}
+            {resultModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative">
+                  <button onClick={()=>setResultModal(null)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center ${resultModal.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}> 
+                      {resultModal.success ? '✓' : '!' }
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
+                    <p className="text-sm text-gray-600 whitespace-pre-line">{resultModal.message}</p>
+                    <button onClick={()=>setResultModal(null)} className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
                   </div>
                 </div>
               </div>
