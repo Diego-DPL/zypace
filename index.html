@@ -1,12 +1,79 @@
 <!doctype html>
-<html lang="en">
+<html lang="es" dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React</title>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Zypace | Planes de entrenamiento inteligentes para runners</title>
+    <meta name="description" content="Zypace genera planes de entrenamiento personalizados con IA, sincroniza tus actividades de Strava y te ayuda a preparar tu próxima carrera con métricas claras y progreso visual." />
+    <meta name="keywords" content="running, plan de entrenamiento, inteligencia artificial, generar plan, carreras, runners, strava, calendario de entrenos, progreso, zypace" />
+    <meta name="author" content="Zypace" />
+    <meta name="copyright" content="Zypace" />
+    <meta name="application-name" content="Zypace" />
+    <meta name="theme-color" content="#f97316" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="index,follow" />
+    <meta http-equiv="content-language" content="es-ES" />
+
+    <!-- Open Graph -->
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Zypace" />
+    <meta property="og:title" content="Zypace | Planes de entrenamiento inteligentes para runners" />
+    <meta property="og:description" content="Genera un plan personalizado con IA, sincroniza Strava y optimiza tu preparación para la próxima carrera." />
+  <meta property="og:url" content="https://www.zypace.com/" />
+    <meta property="og:image" content="/og-image.png" />
+    <meta property="og:image:alt" content="Vista previa del panel de entrenamiento Zypace" />
+    <meta property="og:image:type" content="image/png" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@zypace" />
+    <meta name="twitter:title" content="Zypace | Planes de entrenamiento inteligentes para runners" />
+    <meta name="twitter:description" content="Planes con IA, sincronización Strava y seguimiento claro de tu progreso." />
+    <meta name="twitter:image" content="/og-image.png" />
+    <meta name="twitter:image:alt" content="Panel Zypace" />
+
+    <!-- Icons & Manifest -->
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="canonical" href="https://www.zypace.com/" />
+
+    <!-- Preconnect (actualiza dominio Supabase si procede) -->
+    <!-- <link rel="preconnect" href="https://YOUR-SUPABASE-PROJECT.supabase.co" crossorigin> -->
+
+    <!-- Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Zypace",
+      "applicationCategory": "FitnessApplication",
+      "operatingSystem": "Web",
+  "url": "https://www.zypace.com/",
+      "description": "Planes de entrenamiento personalizados con IA, sincronización Strava y gestión de preparación para carreras.",
+      "features": [
+        "Generación de plan con IA",
+        "Sincronización Strava",
+        "Calendario de entrenos",
+        "Seguimiento de progreso",
+        "Análisis de carga semanal"
+      ],
+      "publisher": {
+        "@type": "Organization",
+        "name": "Zypace"
+      }
+    }
+    </script>
   </head>
   <body>
+    <noscript>
+      Necesitas habilitar JavaScript para utilizar Zypace correctamente.
+    </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

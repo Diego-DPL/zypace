@@ -1,0 +1,4 @@
+Contact: mailto:security@zypace.com
+Expires: 2026-08-14T00:00:00Z
+Preferred-Languages: en, es
+Policy: https://www.zypace.com/security

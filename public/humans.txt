@@ -1,0 +1,12 @@
+/* TEAM */
+Developer: Zypace Team
+Contact: contact@zypace.com
+Website: https://www.zypace.com/
+
+/* THANKS */
+Thanks to the open source community, Supabase, React, Vite, Tailwind.
+
+/* SITE */
+Last update: 2025-08-14
+Language: es
+Technology: React, Vite, Supabase, Tailwind CSS
