@@ -215,12 +215,14 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
       setModalWorkout(w);
       setShowModal(true);
     } else if (event.resource?.type === 'activity') {
-      // futuro: detalle de actividad
+  const a = event.resource.activity as any;
+  const url = `https://www.strava.com/activities/${a.activity_id}`;
+  window.open(url, '_blank', 'noopener');
     }
   };
 
   return (
-    <div className="h-[650px] p-3 bg-gray-50 rounded-lg flex flex-col">
+    <div className="h-[650px] p-3 bg-gray-50 rounded-lg flex flex-col text-gray-800">
       <div className="flex flex-col gap-2 mb-2 text-xs sm:text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-3">
@@ -232,7 +234,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <span className="text-gray-900 font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={syncStrava} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Strava</button>
+            <button onClick={syncStrava} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Sync</button>
             <button onClick={syncStravaFull} className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-700">Full</button>
             <button onClick={syncStravaReset} className="px-2 py-1 bg-orange-700 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
           </div>
@@ -276,7 +278,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
         eventPropGetter={eventStyleGetter}
   />
   </div>
-  <p className="text-xs text-gray-400 mt-2">Filtros arriba. Click en un workout para marcar completado.</p>
+  <p className="text-xs text-gray-400 mt-2">Filtros arriba. Click en un workout para ver detalle. Las actividades abren "Ver en Strava".</p>
       {showModal && modalWorkout && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">

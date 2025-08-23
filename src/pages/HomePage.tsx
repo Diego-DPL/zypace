@@ -277,6 +277,15 @@ const HomePage = () => {
                           <div className="pr-3">
                             <p className="font-medium text-gray-700 leading-snug line-clamp-1" title={a.name}>{a.name || 'Actividad'}</p>
                             <p className="text-[11px] text-gray-500">{new Date(a.start_date).toLocaleDateString()} • {a.sport_type || 'Run'}</p>
+                            <a
+                              href={`https://www.strava.com/activities/${a.activity_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-semibold underline"
+                              style={{ color: '#FC5200' }}
+                            >
+                              Ver en Strava
+                            </a>
                           </div>
                           <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">{a.distance_m ? (a.distance_m/1000).toFixed(1) : '—'} km</span>
                         </li>

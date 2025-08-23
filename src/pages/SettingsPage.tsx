@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { supabase } from '../lib/supabaseClient';
 import { useAuth } from '../context/AuthContext';
+// Strava assets (oficiales de la guía)
+import connectWithStrava from '../assets/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange_x2.svg';
+import compatibleWithStrava from '../assets/1.2-Strava-API-Logos/Compatible with Strava/cptblWith_strava_black/api_logo_cptblWith_strava_horiz_black.svg';
 
 const SettingsPage = () => {
   const { user } = useAuth();
@@ -47,16 +50,17 @@ const SettingsPage = () => {
     verifyStravaConnection();
   }, [verifyStravaConnection]);
 
-  const handleConnectToStrava = () => {
+  // URL OAuth oficial (sin modificar el botón)
+  const authUrl = useMemo(() => {
     const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
     const redirectUri = 'http://localhost:5173/strava-callback';
     const responseType = 'code';
-  const approvalPrompt = 'force'; // forzar pantalla de consentimiento para asegurar scopes
-  // Incluir ambos scopes explícitos (Strava documenta activity:read y activity:read_all)
-  const scope = 'read,activity:read,activity:read_all';
-    
-    const authUrl = `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&response_type=${responseType}&approval_prompt=${approvalPrompt}&scope=${scope}`;
-    
+    const approvalPrompt = 'force';
+    const scope = 'read,activity:read,activity:read_all';
+    return `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=${responseType}&approval_prompt=${approvalPrompt}&scope=${encodeURIComponent(scope)}`;
+  }, []);
+
+  const handleConnectToStrava = () => {
     const popup = window.open(authUrl, 'stravaAuth', 'width=600,height=700');
     const interval = setInterval(() => {
       if (popup && popup.closed) {
@@ -96,26 +100,31 @@ const SettingsPage = () => {
       <h1 className="text-4xl font-bold text-gray-800 mb-8">Ajustes</h1>
   <div className="bg-white p-6 rounded-xl shadow-lg">
         <h2 className="text-2xl font-bold text-gray-800 mb-4">Integraciones</h2>
-  <div className="flex justify-between items-center">
-          <div className="flex items-center">
-            <img src="https://1000logos.net/wp-content/uploads/2020/09/Strava-Logo.png" alt="Strava Logo" className="w-20 h-auto mr-4"/>
-            <p className="text-lg font-medium text-gray-700">
-              {isStravaConnected ? 'Conectado a Strava' : 'Conectar con Strava para sincronizar actividades.'}
+  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <img src={compatibleWithStrava} alt="Compatible with Strava" className="h-6 w-auto" />
+            <p className="text-sm sm:text-base font-medium text-gray-700">
+              {isStravaConnected ? 'Conectado a Strava' : 'Conecta tu cuenta de Strava para sincronizar actividades.'}
             </p>
           </div>
           {loading ? (
-            <p>Cargando...</p>
+            <p className="text-sm text-gray-500">Cargando…</p>
           ) : isStravaConnected ? (
             <button onClick={handleDisconnectFromStrava} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
               Desconectar
             </button>
           ) : (
-            <button onClick={handleConnectToStrava} className="bg-orange-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors">
-              Conectar con Strava
-            </button>
+            <>
+              {/* Botón oficial: "Connect with Strava" (SVG, sin modificaciones) */}
+              <button onClick={handleConnectToStrava} className="p-0 bg-transparent border-0" aria-label="Connect with Strava">
+                <img src={connectWithStrava} alt="Connect with Strava" style={{ height: 48 }} />
+              </button>
+              {/* Opción alternativa como enlace directo requerido por la guía */}
+              <a href={authUrl} target="_blank" rel="noopener noreferrer" className="sr-only">Connect with Strava</a>
+            </>
           )}
   </div>
-  <p className="text-xs text-gray-400 mt-4">Si no ves actividades al sincronizar, desconecta y vuelve a conectar (se fuerza re-consent) y luego usa el botón Dbg en el calendario.</p>
+  <p className="text-xs text-gray-400 mt-4">Siguiendo las Strava API Brand Guidelines: se usa el botón oficial para OAuth y los logos aprobados.</p>
       </div>
     </main>
   );

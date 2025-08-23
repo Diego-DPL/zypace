@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import poweredByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_black/api_logo_pwrdBy_strava_horiz_black.svg';
 
 const year = new Date().getFullYear();
 
@@ -48,6 +49,9 @@ const AppFooter: React.FC = () => {
             <a href="#" className="hover:text-orange-600">Twitter</a>
             <a href="#" className="hover:text-orange-600">GitHub</a>
             <a href="#" className="hover:text-orange-600">Blog</a>
+          </div>
+          <div className="flex items-center gap-2">
+            <img src={poweredByStrava} alt="Powered by Strava" className="h-5 w-auto" />
           </div>
         </div>
       </div>

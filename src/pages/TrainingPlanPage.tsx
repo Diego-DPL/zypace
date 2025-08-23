@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { Race } from './RacesPage';
@@ -69,6 +70,44 @@ const TrainingPlanPage = () => {
     }, 2500);
     return () => clearInterval(id);
   }, [progressModal]);
+
+  // Bloquear scroll del body mientras el modal de progreso está activo
+  useEffect(() => {
+    if (progressModal) {
+      const prev = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+      return () => { document.body.style.overflow = prev; };
+    }
+  }, [progressModal]);
+
+  const ProgressPortal = ({ message }: { message: string }) => {
+    const content = (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 select-none">
+        <div className="bg-white relative rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-100/60 via-white to-white pointer-events-none z-0" />
+          <div className="relative z-10 flex flex-col items-center w-full">
+            <div className="w-16 h-16 mb-4 relative">
+              <div className="absolute inset-0 rounded-full border-4 border-orange-200" />
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 animate-spin" />
+              <div className="absolute inset-2 rounded-full bg-orange-50 animate-pulse" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Generando tu plan</h3>
+            <p className="text-sm text-gray-700 font-medium min-h-[44px] leading-relaxed transition-opacity duration-700 px-1">{message}</p>
+            <p className="mt-3 text-[11px] text-gray-500">Puede tardar varios minutos. No cierres esta pestaña.</p>
+            <div className="mt-5 flex gap-3">
+              <button disabled className="px-4 py-2 rounded-md bg-orange-500/10 text-orange-600 text-xs font-semibold cursor-wait">Procesando…</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+    const target = document.body;
+    try {
+      return target ? createPortal(content, target) : content;
+    } catch {
+      return content; // fallback render directo
+    }
+  };
 
   function parseTimeToSeconds(input: string): number | null {
     if (!input) return null;
@@ -159,13 +198,9 @@ const TrainingPlanPage = () => {
     }
   }, [selectedRace, fetchPlanForRace]);
 
-  const handleGeneratePlan = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleGeneratePlan = async () => {
     if (!user || !selectedRace) return;
-
-  setLoading(true);
-  setProgressModal(true);
-  setProgressMessageIndex(0);
+    console.log('[Plan] handleGeneratePlan iniciado');
 
     try {
       const selectedRaceDetails = races.find(r => r.id === parseInt(selectedRace, 10));
@@ -302,6 +337,10 @@ const TrainingPlanPage = () => {
   const handleRegenerateFromToday = async () => {
     if (!user || !plan || !selectedRace) return;
     setLoading(true);
+    setProgressModal(true);
+    setProgressMessageIndex(0);
+  setProgressModal(true);
+  setProgressMessageIndex(0);
     try {
       // Llamar nuevamente a la función IA para nueva versión completa
       const race = races.find(r => r.id === parseInt(selectedRace,10));
@@ -361,7 +400,8 @@ const TrainingPlanPage = () => {
     } catch (err:any) {
   setResultModal({ success: false, message: `Error regenerando: ${err.message || err}` });
     } finally {
-      setLoading(false);
+  setLoading(false);
+  setProgressModal(false);
     }
   };
 
@@ -406,8 +446,17 @@ const TrainingPlanPage = () => {
 
   const selectedRaceDetails = races.find(r => r.id === parseInt(selectedRace, 10));
 
+  const startGeneration = () => {
+    if (!user || !selectedRace || loading) return;
+    console.log('[Plan] startGeneration -> mostrar modal progreso');
+    setProgressMessageIndex(0);
+    setProgressModal(true);
+    setLoading(true);
+    void handleGeneratePlan();
+  };
+
   return (
-    <main className="container mx-auto p-8">
+  <main className="container mx-auto p-8 text-gray-800">
       <h1 className="text-4xl font-bold text-gray-800 mb-8">Mi Plan de Entrenamiento</h1>
       
       <div className="bg-white p-8 rounded-xl shadow-lg mb-12">
@@ -419,7 +468,7 @@ const TrainingPlanPage = () => {
             id="race"
             value={selectedRace}
             onChange={(e) => setSelectedRace(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-800"
           >
             <option value="">-- Elige una carrera --</option>
             {races.map(race => (
@@ -481,7 +530,7 @@ const TrainingPlanPage = () => {
                 </li>
               ))}
             </ul>
-            {showModal && modalWorkout && (
+  {showModal && modalWorkout && (
               <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
                 <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">
                   <button onClick={()=>setShowModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
@@ -499,37 +548,6 @@ const TrainingPlanPage = () => {
                   {!modalWorkout.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
                   <div className="mt-6 text-right">
                     <button onClick={()=>setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
-                  </div>
-                </div>
-              </div>
-            )}
-            {/* Modal progreso generación plan */}
-            {progressModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center relative overflow-hidden">
-                  <div className="absolute inset-0 bg-gradient-to-br from-orange-50/60 to-white pointer-events-none" />
-                  <div className="relative">
-                    <div className="w-16 h-16 rounded-full border-4 border-orange-200 border-t-orange-500 animate-spin mb-4" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-gray-800 mb-2">Generando tu plan</h3>
-                  <p className="text-sm text-gray-600 min-h-[40px] transition-opacity duration-500">{progressMessages[progressMessageIndex]}</p>
-                  <p className="mt-4 text-[11px] text-gray-400">Esto puede tardar unos minutos mientras calculamos la mejor progresión para ti.</p>
-                  <button onClick={()=>{ /* opcionalmente permitir cancelar */ }} disabled className="mt-6 px-4 py-2 rounded-md bg-gray-200 text-gray-500 text-xs font-medium cursor-not-allowed">Procesando…</button>
-                </div>
-              </div>
-            )}
-            {/* Modal resultado */}
-            {resultModal && (
-              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative">
-                  <button onClick={()=>setResultModal(null)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
-                  <div className="flex flex-col items-center text-center">
-                    <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center ${resultModal.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}> 
-                      {resultModal.success ? '✓' : '!' }
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-800 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
-                    <p className="text-sm text-gray-600 whitespace-pre-line">{resultModal.message}</p>
-                    <button onClick={()=>setResultModal(null)} className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
                   </div>
                 </div>
               </div>
@@ -576,10 +594,10 @@ const TrainingPlanPage = () => {
           </div>
         )}
 
-        {!loadingPlan && selectedRace && !plan && (
+  {!loadingPlan && selectedRace && !plan && (
           <div>
             <h2 className="text-2xl font-bold text-gray-800 mb-6">Crea tu plan personalizado</h2>
-            <form onSubmit={handleGeneratePlan}>
+            <form onSubmit={(e)=>{ e.preventDefault(); startGeneration(); }}>
               <div className="mb-4">
                 <button
                   type="button"
@@ -595,7 +613,7 @@ const TrainingPlanPage = () => {
                   <fieldset className="border border-gray-200 rounded-lg p-4">
                     <legend className="text-sm font-semibold text-gray-600 px-2">Disponibilidad Running</legend>
                     <label className="block text-sm text-gray-700 mb-1">Días por semana que puedes correr</label>
-                    <input type="number" min={2} max={7} value={runDays} onChange={e=>setRunDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded" />
+                    <input type="number" min={2} max={7} value={runDays} onChange={e=>setRunDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded bg-white text-gray-800" />
                   </fieldset>
 
                   <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3">
@@ -606,7 +624,7 @@ const TrainingPlanPage = () => {
                     {includeStrength && (
                       <div>
                         <label className="block text-sm text-gray-700 mb-1">Días de fuerza por semana</label>
-                        <input type="number" min={1} max={3} value={strengthDays} onChange={e=>setStrengthDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded" />
+                        <input type="number" min={1} max={3} value={strengthDays} onChange={e=>setStrengthDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded bg-white text-gray-800" />
                       </div>
                     )}
                   </fieldset>
@@ -620,22 +638,22 @@ const TrainingPlanPage = () => {
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Distancia (km)</label>
-                          <input type="number" step="0.1" className="w-full p-2 border rounded" value={lastRaceDistance} onChange={e=>setLastRaceDistance(e.target.value)} />
+                          <input type="number" step="0.1" className="w-full p-2 border rounded bg-white text-gray-800" value={lastRaceDistance} onChange={e=>setLastRaceDistance(e.target.value)} />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Tiempo (HH:MM:SS)</label>
-                          <input type="text" placeholder="0:45:30" className="w-full p-2 border rounded" value={lastRaceTime} onChange={e=>setLastRaceTime(e.target.value)} />
+                          <input type="text" placeholder="0:45:30" className="w-full p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={lastRaceTime} onChange={e=>setLastRaceTime(e.target.value)} />
                         </div>
                         <div>
                           <label className="block text-xs text-gray-600 mb-1">Objetivo Próxima (HH:MM:SS)</label>
-                          <input type="text" placeholder="0:42:00" className="w-full p-2 border rounded" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
+                          <input type="text" placeholder="0:42:00" className="w-full p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
                         </div>
                       </div>
                     )}
                     {!hasPreviousMark && (
                       <div>
                         <label className="block text-xs text-gray-600 mb-1">Objetivo Próxima (HH:MM:SS)</label>
-                        <input type="text" placeholder="0:45:00" className="w-full sm:w-60 p-2 border rounded" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
+                        <input type="text" placeholder="0:45:00" className="w-full sm:w-60 p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={targetRaceTime} onChange={e=>setTargetRaceTime(e.target.value)} />
                       </div>
                     )}
                   </fieldset>
@@ -650,7 +668,7 @@ const TrainingPlanPage = () => {
                   id="goal"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-800 placeholder-gray-400"
                   placeholder="Ej: Terminar la carrera, hacerla en menos de 4 horas..."
                   required
                 />
@@ -661,12 +679,38 @@ const TrainingPlanPage = () => {
                 disabled={loading}
                 className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-400"
               >
-                {loading ? 'Generando...' : 'Generar Plan con IA'}
+                {loading ? 'Generando…' : 'Generar Plan con IA'}
               </button>
             </form>
           </div>
         )}
       </div>
+      {/* Modales globales fuera de condicionales para que siempre se monten */}
+      {progressModal && <ProgressPortal message={progressMessages[progressMessageIndex]} />}
+      {progressModal && (
+        <div className="md:hidden fixed inset-0 z-[90] flex items-center justify-center bg-black/40">
+          <div className="bg-white px-4 py-6 rounded-xl shadow-lg text-center w-72">
+            <div className="w-10 h-10 mx-auto mb-3 border-4 border-orange-200 border-t-orange-500 rounded-full animate-spin" />
+            <p className="text-xs text-gray-600">{progressMessages[progressMessageIndex]}</p>
+          </div>
+        </div>
+      )}
+      {showModal && modalWorkout && null /* (el modal de workout ya está renderizado dentro de la rama con plan) */}
+      {resultModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative">
+            <button onClick={()=>setResultModal(null)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
+            <div className="flex flex-col items-center text-center">
+              <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center ${resultModal.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}> 
+                {resultModal.success ? '✓' : '!' }
+              </div>
+              <h3 className="text-lg font-semibold text-gray-800 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
+              <p className="text-sm text-gray-600 whitespace-pre-line">{resultModal.message}</p>
+              <button onClick={()=>setResultModal(null)} className="mt-6 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };
