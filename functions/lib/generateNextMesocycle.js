@@ -1,0 +1,272 @@
+"use strict";
+// generateNextMesocycle — Generates the next mesocycle for an existing training plan.
+// Reads plan config from Firestore, analyses previous performance, and generates
+// the next 4-6 week block. Appends workouts and updates plan metadata.
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.generateNextMesocycle = void 0;
+const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("firebase-functions/params");
+const firestore_1 = require("firebase-admin/firestore");
+const planHelpers_1 = require("./planHelpers");
+const openAiApiKey = (0, params_1.defineSecret)('OPENAI_API_KEY');
+const openAiModel = (0, params_1.defineSecret)('OPENAI_MODEL');
+exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [openAiApiKey, openAiModel], timeoutSeconds: 300, memory: '512MiB' }, async (request) => {
+    var _a, _b;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid)
+        throw new https_1.HttpsError('unauthenticated', 'No autenticado');
+    const { plan_id: planId } = ((_b = request.data) !== null && _b !== void 0 ? _b : {});
+    if (!planId)
+        throw new https_1.HttpsError('invalid-argument', 'Falta plan_id');
+    const db = (0, firestore_1.getFirestore)();
+    // ── 1. Load plan ────────────────────────────────────────────
+    const planDoc = await db.collection('users').doc(uid).collection('training_plans').doc(planId).get();
+    if (!planDoc.exists)
+        throw new https_1.HttpsError('not-found', 'Plan no encontrado');
+    const plan = planDoc.data();
+    // ── 2. Load race ────────────────────────────────────────────
+    const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+    if (!raceDoc.exists)
+        throw new https_1.HttpsError('not-found', 'Carrera no encontrada');
+    const race = raceDoc.data();
+    const raceDate = new Date(race.date);
+    const today = new Date();
+    const todayISO = today.toISOString().split('T')[0];
+    if (raceDate < today)
+        throw new https_1.HttpsError('failed-precondition', 'La carrera ya pasó');
+    // ── 3. Current mesocycle state ──────────────────────────────
+    const prevMesoNumber = plan.mesocycle_number || 1;
+    const prevMesoEnd = plan.mesocycle_end_date || todayISO;
+    const mesoLenWeeks = plan.mesocycle_length_weeks || 5;
+    const totalWeeks = plan.total_weeks || 1;
+    const planStartISO = plan.mesocycle_start_date || todayISO; // start of plan
+    // Next mesocycle starts the day after current one ends
+    const nextStart = new Date(prevMesoEnd + 'T00:00:00Z');
+    nextStart.setUTCDate(nextStart.getUTCDate() + 1);
+    if (nextStart > raceDate) {
+        throw new https_1.HttpsError('failed-precondition', 'El plan ya cubre hasta la fecha de la carrera');
+    }
+    const nextStartISO = nextStart.toISOString().split('T')[0];
+    // End of next mesocycle
+    const nextEndMs = Math.min(nextStart.getTime() + mesoLenWeeks * 7 * 86400000 - 86400000, raceDate.getTime());
+    const nextEndDate = new Date(nextEndMs);
+    const nextEndISO = nextEndDate.toISOString().split('T')[0];
+    const nextMesoNumber = prevMesoNumber + 1;
+    // Which week of the full plan does the next mesocycle start on?
+    const planStartDate = new Date(planStartISO + 'T00:00:00Z');
+    const weeksElapsed = Math.floor((nextStart.getTime() - planStartDate.getTime()) / (7 * 86400000));
+    const mesoStartWeek = weeksElapsed + 1;
+    // ── 4. Plan config ──────────────────────────────────────────
+    const goal = plan.goal || '';
+    const runDays = Math.min(Math.max(Number(plan.run_days_per_week) || 4, 2), 7);
+    const includeStrength = !!plan.include_strength;
+    const strengthDaysOfWeek = Array.isArray(plan.strength_days_of_week)
+        ? plan.strength_days_of_week
+        : null;
+    const strengthDaysCount = includeStrength
+        ? Math.min(Math.max(Number(plan.strength_days_per_week) || 1, 1), 3)
+        : 0;
+    const targetTimeSec = Number(plan.target_race_time_sec) || null;
+    const methodology = (plan.methodology || 'polarized');
+    const distKm = Number(race.distance) || 0;
+    const phases = (0, planHelpers_1.computePhases)(totalWeeks);
+    const taperWeeks = totalWeeks >= 8 ? 2 : 1;
+    const totalMesocycles = Math.ceil(totalWeeks / mesoLenWeeks);
+    // ── 5. Zones ────────────────────────────────────────────────
+    let zones = null;
+    let targetPace = null;
+    if (targetTimeSec && distKm > 0) {
+        zones = (0, planHelpers_1.estimateZones)(targetTimeSec, distKm);
+        const pSec = targetTimeSec / distKm;
+        targetPace = `${Math.floor(pSec / 60)}:${Math.round(pSec % 60).toString().padStart(2, '0')}/km`;
+    }
+    else if (plan.z1_sec_km && plan.z4_sec_km && plan.z5_sec_km) {
+        zones = {
+            z1: (0, planHelpers_1.secToMinStr)(plan.z1_sec_km),
+            z4: (0, planHelpers_1.secToMinStr)(plan.z4_sec_km),
+            z5: (0, planHelpers_1.secToMinStr)(plan.z5_sec_km),
+            race: (0, planHelpers_1.secToMinStr)(plan.z4_sec_km),
+        };
+    }
+    // ── 6. Previous mesocycle performance summary ───────────────
+    const since14 = new Date(today.getTime() - 14 * 86400000).toISOString().split('T')[0];
+    const recentWorkoutsSnap = await db
+        .collection('users').doc(uid)
+        .collection('workouts')
+        .where('plan_id', '==', planId)
+        .where('workout_date', '>=', since14)
+        .where('workout_date', '<', todayISO)
+        .get();
+    const recentWorkouts = recentWorkoutsSnap.docs.map(d => d.data());
+    const runWorkouts = recentWorkouts.filter(w => !/descanso|rest|fuerza/i.test(w.description || ''));
+    const adherence = runWorkouts.length > 0
+        ? runWorkouts.filter(w => w.is_completed).length / runWorkouts.length
+        : 1;
+    const performanceNote = adherence < 0.60
+        ? `ATENCIÓN: adherencia baja (${Math.round(adherence * 100)}%) — reducir ligeramente la carga del próximo mesociclo.`
+        : adherence >= 0.90
+            ? `Excelente adherencia (${Math.round(adherence * 100)}%) — se puede mantener o aumentar levemente la carga.`
+            : `Adherencia normal (${Math.round(adherence * 100)}%) — mantener carga planificada.`;
+    // ── 7. OpenAI call ──────────────────────────────────────────
+    const apiKey = openAiApiKey.value();
+    if (!apiKey)
+        throw new https_1.HttpsError('internal', 'OPENAI_API_KEY no configurada');
+    const model = openAiModel.value() || 'gpt-4o-mini';
+    const phasesBlock = phases.map(p => `  • ${p.name.toUpperCase()} (sem ${p.startWeek}→${p.endWeek}): ${p.rule}`).join('\n');
+    const zonesBlock = zones
+        ? `ZONAS: Z1=${zones.z1} · Z4=${zones.z4} · Z5=${zones.z5} · Objetivo=${zones.race}`
+        : 'Sin zonas calibradas. Usar RPE: Z1=5/10, Z4=8/10, Z5=9-10/10.';
+    const strengthNote = includeStrength
+        ? `Fuerza: ${(strengthDaysOfWeek === null || strengthDaysOfWeek === void 0 ? void 0 : strengthDaysOfWeek.length) || strengthDaysCount} sesión/es semana.`
+        : 'Sin fuerza.';
+    const developerInstructions = `Eres un entrenador de running científico. Devuelve SOLO JSON válido.
+
+FORMATO:
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso|fuerza","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+
+PLAN: ${race.name} · ${distKm || '?'}km · ${race.date} · ${totalWeeks} semanas totales
+MESOCICLO A GENERAR: ${nextMesoNumber} de ${totalMesocycles} — SOLO desde ${nextStartISO} hasta ${nextEndISO} (semanas ${mesoStartWeek}-${mesoStartWeek + mesoLenWeeks - 1} del plan completo)
+Días running/sem: ${runDays} · ${strengthNote}
+Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
+
+${zonesBlock}
+
+FASES DEL PLAN COMPLETO:
+${phasesBlock}
+
+RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
+
+METODOLOGÍA: ${methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)'}
+
+REGLAS:
+1. Descarga cada 4ª semana del plan (semana ${mesoStartWeek + 3} si aplica)
+2. Sin calidad en días consecutivos
+3. Fase BASE: cero calidad, solo Z1
+4. Adaptar carga según rendimiento anterior
+
+Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
+    async function callResponsesAPI(activeModel) {
+        var _a;
+        const res = await fetch('https://api.openai.com/v1/responses', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: activeModel,
+                input: [
+                    { role: 'developer', content: developerInstructions },
+                    { role: 'user', content: `Genera el mesociclo ${nextMesoNumber} (${nextStartISO} → ${nextEndISO}) del plan para ${race.name}.` },
+                ],
+            }),
+            signal: AbortSignal.timeout(90000),
+        });
+        const raw = await res.text();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        let data = null;
+        try {
+            data = JSON.parse(raw);
+        }
+        catch ( /* keep raw */_b) { /* keep raw */ }
+        if (!res.ok)
+            throw new Error(((_a = data === null || data === void 0 ? void 0 : data.error) === null || _a === void 0 ? void 0 : _a.message) || `OpenAI error ${res.status}`);
+        const outputs = [];
+        if (Array.isArray(data === null || data === void 0 ? void 0 : data.output)) {
+            for (const item of data.output) {
+                if ((item === null || item === void 0 ? void 0 : item.content) && Array.isArray(item.content)) {
+                    for (const c of item.content) {
+                        if (c.type === 'output_text' && typeof c.text === 'string')
+                            outputs.push(c.text);
+                    }
+                }
+            }
+        }
+        const combined = outputs.join('\n').trim();
+        if (!combined)
+            throw new Error('Respuesta OpenAI vacía');
+        return combined;
+    }
+    let rawContent = null;
+    let openAiError = null;
+    let usedModel = null;
+    for (const m of [model, 'gpt-4o-mini']) {
+        try {
+            rawContent = await callResponsesAPI(m);
+            usedModel = m;
+            break;
+        }
+        catch (err) {
+            openAiError = err.message;
+        }
+    }
+    let parsedPlan = null;
+    if (rawContent) {
+        const first = rawContent.indexOf('{');
+        const last = rawContent.lastIndexOf('}');
+        if (first !== -1 && last !== -1 && last > first) {
+            try {
+                parsedPlan = JSON.parse(rawContent.slice(first, last + 1).trim());
+            }
+            catch ( /* ignore */_c) { /* ignore */ }
+        }
+    }
+    if (!parsedPlan || !parsedPlan.plan || !Array.isArray(parsedPlan.plan)) {
+        parsedPlan = (0, planHelpers_1.buildFallbackMesocycle)({
+            startISO: nextStartISO,
+            endISO: nextEndISO,
+            totalWeeks,
+            mesocycleStartWeek: mesoStartWeek,
+            phases,
+            taperWeeks,
+            runDays,
+            includeStrength,
+            strengthDaysOfWeek: strengthDaysOfWeek !== null && strengthDaysOfWeek !== void 0 ? strengthDaysOfWeek : null,
+            strengthDaysCount,
+            distKm,
+            methodology,
+            zones,
+        });
+        if (!usedModel)
+            usedModel = `fallback-${methodology}`;
+    }
+    // ── 8. Save workouts ────────────────────────────────────────
+    const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
+    const durRegex = /(\d{1,3})\s?(?:min|mins|m)\b/i;
+    const batch = db.batch();
+    for (const w of parsedPlan.plan) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(w.date))
+            continue;
+        const desc = w.description || '';
+        const dMatch = desc.match(distRegex);
+        const tMatch = desc.match(durRegex);
+        const wRef = db.collection('users').doc(uid).collection('workouts').doc();
+        batch.set(wRef, {
+            plan_id: planId,
+            workout_date: w.date,
+            description: desc,
+            distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+            duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+            explanation_json: w.explanation || null,
+            is_completed: false,
+            created_at: firestore_1.FieldValue.serverTimestamp(),
+        });
+    }
+    await batch.commit();
+    // ── 9. Update plan metadata ─────────────────────────────────
+    await planDoc.ref.update({
+        mesocycle_number: nextMesoNumber,
+        mesocycle_start_date: nextStartISO,
+        mesocycle_end_date: nextEndISO,
+        updated_at: firestore_1.FieldValue.serverTimestamp(),
+    });
+    return {
+        success: true,
+        mesocycle_number: nextMesoNumber,
+        mesocycle_start: nextStartISO,
+        mesocycle_end: nextEndISO,
+        workouts_added: parsedPlan.plan.length,
+        model: usedModel,
+        fallback: !rawContent || (usedModel === null || usedModel === void 0 ? void 0 : usedModel.startsWith('fallback')),
+        openAiError,
+        performance_note: performanceNote,
+    };
+});
+//# sourceMappingURL=generateNextMesocycle.js.map
