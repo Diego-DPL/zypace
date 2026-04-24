@@ -36,12 +36,12 @@ const LoginPage = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">Email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required />
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500" required />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700">Contraseña</label>
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required />
+              className="w-full px-3 py-2 mt-1 border border-gray-300 rounded-md shadow-sm bg-white text-gray-900 focus:ring-blue-500 focus:border-blue-500" required />
           </div>
           <button type="submit" disabled={loading}
             className="w-full py-2 px-4 text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50">

@@ -102,12 +102,12 @@ const RegisterPage = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-600">Email</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600">Contraseña</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
             </fieldset>
 
@@ -118,18 +118,18 @@ const RegisterPage = () => {
                 <div key={field}>
                   <label className="block text-xs font-medium text-gray-600">{label}</label>
                   <input value={(profile as any)[field]} onChange={e => setProfile(p => ({...p, [field]: e.target.value}))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
                 </div>
               ))}
               <div>
                 <label className="block text-xs font-medium text-gray-600">Fecha nacimiento</label>
                 <input type="date" value={profile.birth_date} onChange={e => setProfile(p => ({...p, birth_date: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600">Género</label>
                 <select value={profile.gender} onChange={e => setProfile(p => ({...p, gender: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900">
                   <option value="">-</option>
                   <option value="male">Masculino</option>
                   <option value="female">Femenino</option>
@@ -140,12 +140,12 @@ const RegisterPage = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-600">País</label>
                 <input value={profile.country} onChange={e => setProfile(p => ({...p, country: e.target.value}))} placeholder="España"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600">Nivel</label>
                 <select value={profile.experience_level} onChange={e => setProfile(p => ({...p, experience_level: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white">
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900">
                   <option value="beginner">Principiante</option>
                   <option value="intermedio">Intermedio</option>
                   <option value="avanzado">Avanzado</option>
@@ -156,13 +156,13 @@ const RegisterPage = () => {
                 <label className="block text-xs font-medium text-gray-600">Objetivo principal</label>
                 <input value={profile.primary_goal} onChange={e => setProfile(p => ({...p, primary_goal: e.target.value}))}
                   placeholder="Acabar mi primer 10K, bajar de 45', etc"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
               <div>
                 <label className="block text-xs font-medium text-gray-600">Marca 10K (mm:ss)</label>
                 <input value={profile.last_10k_time} onChange={e => setProfile(p => ({...p, last_10k_time: e.target.value}))}
                   placeholder="45:30" pattern="^[0-9]{1,2}:[0-5][0-9]$"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm" />
+                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
               </div>
             </fieldset>
 
