@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { collection, getDocs, query, orderBy } from 'firebase/firestore';
+import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 import RaceCalendar from '../components/RaceCalendar';
 import AddRaceForm from '../components/AddRaceForm';
 
 export interface Race {
-  id: number;
+  id: string;
   name: string;
   date: string;
   distance?: string;
@@ -22,25 +23,20 @@ const RacesPage = () => {
       if (!user) return;
       setLoading(true);
       try {
-        const { data, error } = await supabase
-          .from('races')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('date', { ascending: true });
-        if (error) throw error;
-        setRaces(data || []);
+        const q = query(collection(db, 'users', user.uid, 'races'), orderBy('date', 'asc'));
+        const snap = await getDocs(q);
+        setRaces(snap.docs.map(d => ({ id: d.id, ...d.data() } as Race)));
       } catch (error) {
         console.error('Error fetching races:', error);
       } finally {
         setLoading(false);
       }
     };
-
     fetchRaces();
   }, [user]);
 
   const addRace = (race: Race) => {
-    setRaces([...races, race].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
+    setRaces(prev => [...prev, race].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()));
   };
 
   return (

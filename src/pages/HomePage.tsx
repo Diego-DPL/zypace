@@ -1,12 +1,15 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabaseClient';
+import {
+  collection, getDocs, doc, query, where, orderBy, limit, updateDoc,
+} from 'firebase/firestore';
+import { db } from '../lib/firebaseClient';
 
-interface Race { id: number; name: string; date: string; }
-interface Workout { id: number; workout_date: string; description: string; is_completed: boolean; distance_km?: number | null; plan_id?: number; }
+interface Race     { id: string; name: string; date: string; }
+interface Workout  { id: string; workout_date: string; description: string; is_completed: boolean; distance_km?: number | null; plan_id?: string; }
 interface Activity { activity_id: string; start_date: string; name: string; distance_m?: number | null; sport_type?: string; }
 interface IntensityWeek { label: string; kmZ1: number; kmZ4: number; kmZ5: number; total: number; }
-interface FitnessData { ctl: number; atl: number; tsb: number; history: { ctl: number; atl: number }[]; }
+interface FitnessData   { ctl: number; atl: number; tsb: number; history: { ctl: number; atl: number }[]; }
 
 function FitnessChart({ data }: { data: { ctl: number; atl: number }[] }) {
   if (data.length < 2) return null;
@@ -34,17 +37,17 @@ const HomePage = () => {
   const [weeklyKm, setWeeklyKm] = useState<{ plan: number; activities: number; total: number }>({ plan: 0, activities: 0, total: 0 });
   const [last28Km, setLast28Km] = useState<{ activities: number; workouts: number; total: number }>({ activities: 0, workouts: 0, total: 0 });
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
-  const [marking, setMarking] = useState<number | null>(null);
+  const [marking, setMarking] = useState<string | null>(null);
   const [weeklyTrend, setWeeklyTrend] = useState<number[]>([]);
   const [intensityWeeks, setIntensityWeeks] = useState<IntensityWeek[]>([]);
   const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
 
-  const iso = (d: Date) => d.toISOString().substring(0,10);
+  const iso = (d: Date) => d.toISOString().substring(0, 10);
   const weekStartISO = () => {
     const d = new Date();
-    const day = d.getDay() || 7; // 1=Mon .. 7=Sun
+    const day = d.getDay() || 7;
     if (day !== 1) d.setDate(d.getDate() - (day - 1));
-    d.setHours(0,0,0,0);
+    d.setHours(0, 0, 0, 0);
     return iso(d);
   };
   const weekEndISO = () => {
@@ -57,64 +60,103 @@ const HomePage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const todayISO = iso(new Date());
-      const { data: races } = await supabase.from('races').select('*').eq('user_id', user.id).gte('date', todayISO).order('date', { ascending: true }).limit(1);
-      const nr = races?.[0] || null;
+      const todayISO  = iso(new Date());
+      const wStart    = weekStartISO();
+      const wEnd      = weekEndISO();
+      const since7    = iso(new Date(Date.now() - 7  * 86400000));
+      const since28   = iso(new Date(Date.now() - 28 * 86400000));
+      const since90   = iso(new Date(Date.now() - 90 * 86400000));
+      const uid       = user.uid;
+
+      // ── Next race ──────────────────────────────────────────────
+      const racesSnap = await getDocs(
+        query(collection(db, 'users', uid, 'races'),
+          where('date', '>=', todayISO),
+          orderBy('date', 'asc'),
+          limit(1),
+        )
+      );
+      const nr: Race | null = racesSnap.empty ? null : { id: racesSnap.docs[0].id, ...racesSnap.docs[0].data() } as Race;
       setNextRace(nr);
 
-      let planId: number | null = null;
+      // ── Active plan for next race ──────────────────────────────
+      let planId: string | null = null;
       if (nr) {
-        const { data: planRow } = await supabase.from('training_plans').select('id').eq('user_id', user.id).eq('race_id', nr.id).maybeSingle();
-        planId = planRow?.id || null;
+        const planSnap = await getDocs(
+          query(collection(db, 'users', uid, 'training_plans'), where('race_id', '==', nr.id))
+        );
+        planId = planSnap.empty ? null : planSnap.docs[0].id;
       }
 
-      const wStart = weekStartISO();
-      const wEnd = weekEndISO();
-      const { data: workoutsWeek } = await supabase.from('workouts').select('id, workout_date, description, is_completed, distance_km, plan_id').eq('user_id', user.id).gte('workout_date', wStart).lte('workout_date', wEnd).order('workout_date');
-      setWeekWorkouts(workoutsWeek || []);
+      // ── This week's workouts ───────────────────────────────────
+      const wwSnap = await getDocs(
+        query(collection(db, 'users', uid, 'workouts'),
+          where('workout_date', '>=', wStart),
+          where('workout_date', '<=', wEnd),
+          orderBy('workout_date', 'asc'),
+        )
+      );
+      const workoutsWeek = wwSnap.docs.map(d => ({ id: d.id, ...d.data() } as Workout));
+      setWeekWorkouts(workoutsWeek);
 
-      const since7 = iso(new Date(Date.now()-7*86400000));
-      const since28 = iso(new Date(Date.now()-28*86400000));
-      const { data: activities7 } = await supabase.from('strava_activities').select('activity_id, start_date, name, distance_m, sport_type').eq('user_id', user.id).gte('start_date', since7).order('start_date', { ascending: false }).limit(5);
-      setRecentActivities(activities7 || []);
-      const { data: activities28 } = await supabase.from('strava_activities').select('distance_m, start_date').eq('user_id', user.id).gte('start_date', since28);
-      const { data: workouts28 } = await supabase.from('workouts').select('distance_km, workout_date, explanation_json, is_completed').eq('user_id', user.id).gte('workout_date', since28);
+      // ── Recent activities (last 7 days, max 5) ─────────────────
+      const act7Snap = await getDocs(
+        query(collection(db, 'users', uid, 'strava_activities'),
+          where('start_date', '>=', since7),
+          orderBy('start_date', 'desc'),
+          limit(5),
+        )
+      );
+      const activities7 = act7Snap.docs.map(d => ({ ...d.data() } as Activity));
+      setRecentActivities(activities7);
 
-      const planKmWeek = (workoutsWeek||[]).reduce((a,w)=> a + (w.distance_km||0),0);
-      const actKmWeek = (activities7||[]).filter(a=>a.start_date>=wStart).reduce((a,a2)=> a + ((a2.distance_m||0)/1000),0);
+      // ── Activities 28 days ─────────────────────────────────────
+      const act28Snap = await getDocs(
+        query(collection(db, 'users', uid, 'strava_activities'), where('start_date', '>=', since28))
+      );
+      const activities28 = act28Snap.docs.map(d => d.data());
+
+      // ── Workouts 28 days ───────────────────────────────────────
+      const w28Snap = await getDocs(
+        query(collection(db, 'users', uid, 'workouts'), where('workout_date', '>=', since28))
+      );
+      const workouts28 = w28Snap.docs.map(d => d.data());
+
+      // ── Weekly km stats ────────────────────────────────────────
+      const planKmWeek = workoutsWeek.reduce((a, w) => a + (w.distance_km || 0), 0);
+      const actKmWeek  = activities7.filter(a => a.start_date >= wStart).reduce((a, a2) => a + ((a2.distance_m || 0) / 1000), 0);
       setWeeklyKm({ plan: planKmWeek, activities: actKmWeek, total: planKmWeek + actKmWeek });
 
-      const actKm28 = (activities28||[]).reduce((a,a2)=> a + ((a2.distance_m||0)/1000),0);
-      const wKm28 = (workouts28||[]).reduce((a,w)=> a + (w.distance_km||0),0);
+      const actKm28 = activities28.reduce((a, a2: any) => a + ((a2.distance_m || 0) / 1000), 0);
+      const wKm28   = workouts28.reduce((a, w: any) => a + (w.distance_km || 0), 0);
       setLast28Km({ activities: actKm28, workouts: wKm28, total: actKm28 + wKm28 });
 
-      const weekBlocks:number[] = [];
-      for (let i=3;i>=0;i--) {
-        const start = new Date(Date.now() - (i+1)*7*86400000);
-        const end = new Date(start.getTime()+7*86400000);
-        const sISO = iso(start); const eISO = iso(end);
-        const wkAct = (activities28||[]).filter(a=>a.start_date>=sISO && a.start_date<eISO).reduce((a,a2)=>a+((a2.distance_m||0)/1000),0);
-        const wkW = (workouts28||[]).filter(w=>w.workout_date>=sISO && w.workout_date<eISO).reduce((a,w2)=>a+(w2.distance_km||0),0);
-        weekBlocks.push(parseFloat((wkAct+wkW).toFixed(1)));
+      // ── Weekly trend (4 weeks) ─────────────────────────────────
+      const weekBlocks: number[] = [];
+      for (let i = 3; i >= 0; i--) {
+        const start = new Date(Date.now() - (i + 1) * 7 * 86400000);
+        const end   = new Date(start.getTime() + 7 * 86400000);
+        const sISO  = iso(start); const eISO = iso(end);
+        const wkAct = activities28.filter((a: any) => a.start_date >= sISO && a.start_date < eISO).reduce((a, a2: any) => a + ((a2.distance_m || 0) / 1000), 0);
+        const wkW   = workouts28.filter((w: any) => w.workout_date >= sISO && w.workout_date < eISO).reduce((a, w2: any) => a + (w2.distance_km || 0), 0);
+        weekBlocks.push(parseFloat((wkAct + wkW).toFixed(1)));
       }
       setWeeklyTrend(weekBlocks);
 
-      // Intensity distribution (completed workouts by zone)
-      const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      // ── Intensity distribution (4 weeks) ──────────────────────
+      const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
       const fmtD = (d: Date) => `${d.getDate()} ${months[d.getMonth()]}`;
       const iWeeks: IntensityWeek[] = [];
       for (let i = 3; i >= 0; i--) {
-        const start = new Date(Date.now() - (i+1)*7*86400000);
-        const end   = new Date(start.getTime() + 7*86400000);
+        const start = new Date(Date.now() - (i + 1) * 7 * 86400000);
+        const end   = new Date(start.getTime() + 7 * 86400000);
         const sISO  = iso(start); const eISO = iso(end);
-        const label = `${fmtD(start)}–${fmtD(new Date(end.getTime()-86400000))}`;
+        const label = `${fmtD(start)}–${fmtD(new Date(end.getTime() - 86400000))}`;
         let kmZ1 = 0, kmZ4 = 0, kmZ5 = 0;
-        for (const w of (workouts28 || [])) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        for (const w of workouts28) {
           if (!(w as any).is_completed) continue;
-          if (w.workout_date < sISO || w.workout_date >= eISO) continue;
-          const km = (w.distance_km || 0) as number;
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if ((w as any).workout_date < sISO || (w as any).workout_date >= eISO) continue;
+          const km    = ((w as any).distance_km || 0) as number;
           const type: string = (w as any).explanation_json?.type || '';
           if (type === 'suave' || type === 'largo') kmZ1 += km;
           else if (type === 'umbral' || type === 'tempo') kmZ4 += km;
@@ -124,30 +166,22 @@ const HomePage = () => {
       }
       setIntensityWeeks(iWeeks);
 
-      // ── Fitness model CTL/ATL/TSB (last 90 days) ───────────────
-      const since90 = iso(new Date(Date.now() - 90 * 86400000));
-      const { data: workouts90 } = await supabase
-        .from('workouts')
-        .select('distance_km, workout_date, explanation_json, is_completed')
-        .eq('user_id', user.id)
-        .gte('workout_date', since90);
+      // ── Fitness model CTL/ATL/TSB (90 days) ───────────────────
+      const w90Snap = await getDocs(
+        query(collection(db, 'users', uid, 'workouts'), where('workout_date', '>=', since90))
+      );
+      const workouts90 = w90Snap.docs.map(d => d.data());
 
-      // Daily TSS: km × intensity factor (Z1=1.0, Z4=2.5, Z5=3.5)
       const tssMap: Record<string, number> = {};
-      for (const w of (workouts90 || [])) {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const w of workouts90) {
         if (!(w as any).is_completed) continue;
-        const km = (w.distance_km || 0) as number;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const km    = ((w as any).distance_km || 0) as number;
         const type: string = (w as any).explanation_json?.type || '';
-        const factor = (type === 'umbral' || type === 'tempo') ? 2.5
-                     : type === 'series' ? 3.5
-                     : 1.0;
-        const d = w.workout_date as string;
+        const factor = (type === 'umbral' || type === 'tempo') ? 2.5 : type === 'series' ? 3.5 : 1.0;
+        const d = (w as any).workout_date as string;
         tssMap[d] = (tssMap[d] || 0) + km * factor;
       }
 
-      // EMA: CTL τ=42 days, ATL τ=7 days
       let ctl = 0, atl = 0;
       const kCtl = 1 / 42, kAtl = 1 / 7;
       const fitnessHistory: { ctl: number; atl: number }[] = [];
@@ -158,7 +192,6 @@ const HomePage = () => {
         atl = atl * (1 - kAtl) + tss * kAtl;
         fitnessHistory.push({ ctl: parseFloat(ctl.toFixed(2)), atl: parseFloat(atl.toFixed(2)) });
       }
-
       if (ctl >= 0.3) {
         setFitnessData({
           ctl:     parseFloat(ctl.toFixed(1)),
@@ -168,43 +201,49 @@ const HomePage = () => {
         });
       }
 
+      // ── Plan progress ──────────────────────────────────────────
       if (planId) {
-        const { data: planWorkouts } = await supabase.from('workouts').select('id,is_completed,workout_date,description,distance_km,plan_id').eq('plan_id', planId);
-        const total = planWorkouts?.length||0;
-        const done = (planWorkouts||[]).filter(w=>w.is_completed).length;
-        setPlanProgress({ total, done, percent: total? Math.round(done/total*100):0 });
-        const upcoming = (planWorkouts||[]).filter(w=> w.workout_date>=todayISO && !w.is_completed).sort((a,b)=>a.workout_date.localeCompare(b.workout_date)).slice(0,3) as Workout[];
+        const pwSnap = await getDocs(
+          query(collection(db, 'users', uid, 'workouts'), where('plan_id', '==', planId))
+        );
+        const planWorkouts = pwSnap.docs.map(d => ({ id: d.id, ...d.data() } as Workout));
+        const total = planWorkouts.length;
+        const done  = planWorkouts.filter(w => w.is_completed).length;
+        setPlanProgress({ total, done, percent: total ? Math.round(done / total * 100) : 0 });
+        const upcoming = planWorkouts
+          .filter(w => w.workout_date >= todayISO && !w.is_completed)
+          .sort((a, b) => a.workout_date.localeCompare(b.workout_date))
+          .slice(0, 3);
         setUpcomingWorkouts(upcoming);
       } else {
         setPlanProgress(null);
         setUpcomingWorkouts([]);
       }
-    } catch(e){
+    } catch (e) {
       console.warn('Error dashboard', e);
     } finally { setLoading(false); }
   }, [user]);
 
-  useEffect(()=>{ loadData(); },[loadData]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const daysToRace = nextRace ? Math.max(0, Math.ceil((new Date(nextRace.date).getTime()-Date.now())/86400000)) : null;
+  const daysToRace = nextRace ? Math.max(0, Math.ceil((new Date(nextRace.date).getTime() - Date.now()) / 86400000)) : null;
 
-  const sparklinePath = useMemo(()=>{
-    if(!weeklyTrend.length) return '';
-    const max = Math.max(...weeklyTrend,1); const w=100; const h=30;
-    return weeklyTrend.map((v,i)=>{ const x=(i/(weeklyTrend.length-1))*w; const y= h - (v/max)*h; return `${i?'L':'M'}${x},${y}`;}).join(' ');
-  },[weeklyTrend]);
-  const maxWeeklyTrend = useMemo(()=> weeklyTrend.length? Math.max(...weeklyTrend):0,[weeklyTrend]);
+  const sparklinePath = useMemo(() => {
+    if (!weeklyTrend.length) return '';
+    const max = Math.max(...weeklyTrend, 1); const w = 100; const h = 30;
+    return weeklyTrend.map((v, i) => { const x = (i / (weeklyTrend.length - 1)) * w; const y = h - (v / max) * h; return `${i ? 'L' : 'M'}${x},${y}`; }).join(' ');
+  }, [weeklyTrend]);
+  const maxWeeklyTrend = useMemo(() => weeklyTrend.length ? Math.max(...weeklyTrend) : 0, [weeklyTrend]);
 
-  const toggleWorkout = async (id:number, cur:boolean) => {
+  const toggleWorkout = async (id: string, cur: boolean) => {
     setMarking(id);
     try {
-      const { error } = await supabase.from('workouts').update({ is_completed: !cur }).eq('id', id);
-      if(!error){
-        setWeekWorkouts(ws=>ws.map(w=>w.id===id?{...w,is_completed:!cur}:w));
-        setUpcomingWorkouts(ws=>ws.map(w=>w.id===id?{...w,is_completed:!cur}:w));
-        loadData();
-      }
-    } finally { setMarking(null);} };
+      await updateDoc(doc(db, 'users', user!.uid, 'workouts', id), { is_completed: !cur });
+      setWeekWorkouts(ws => ws.map(w => w.id === id ? { ...w, is_completed: !cur } : w));
+      setUpcomingWorkouts(ws => ws.map(w => w.id === id ? { ...w, is_completed: !cur } : w));
+      loadData();
+    } finally { setMarking(null); }
+  };
 
   return (
     <main className="relative">
@@ -246,7 +285,7 @@ const HomePage = () => {
                           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 opacity-20 animate-pulse" />
                           <div className="absolute inset-0 rounded-full bg-white flex items-center justify-center font-bold text-gray-800 text-lg shadow-inner">{daysToRace}</div>
                         </div>
-                        <div className="text-xs font-medium text-gray-500 leading-tight">días para competir<br/><span className="text-orange-600 font-semibold">¡Vamos!</span></div>
+                        <div className="text-xs font-medium text-gray-500 leading-tight">días para competir<br /><span className="text-orange-600 font-semibold">¡Vamos!</span></div>
                       </div>}
                     </>
                   ) : <span className="text-gray-400 text-sm">Añade una carrera para iniciar</span>}
@@ -267,7 +306,7 @@ const HomePage = () => {
                         <linearGradient id="gradWeek" x1="0" x2="1" y1="0" y2="0"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient>
                       </defs>
                     </svg>
-                    <div className="flex justify-between text-[10px] text-gray-400 mt-1">{weeklyTrend.map((v,i)=>(<span key={i}>{v}</span>))}</div>
+                    <div className="flex justify-between text-[10px] text-gray-400 mt-1">{weeklyTrend.map((v, i) => (<span key={i}>{v}</span>))}</div>
                   </div>
                 </div>
               </div>
@@ -277,11 +316,12 @@ const HomePage = () => {
                   <div className="flex items-baseline gap-2"><span className="text-2xl font-bold text-gray-800">{last28Km.total.toFixed(1)}</span><span className="text-xs font-semibold text-violet-600">km</span></div>
                   <span className="text-[11px] text-gray-500 mt-1">Plan {last28Km.workouts.toFixed(1)} • Act {last28Km.activities.toFixed(1)}</span>
                   <div className="mt-3 grid grid-cols-4 gap-1">
-                    {weeklyTrend.map((v,i)=>{ const pct = maxWeeklyTrend? v/maxWeeklyTrend : 0; return (
+                    {weeklyTrend.map((v, i) => { const pct = maxWeeklyTrend ? v / maxWeeklyTrend : 0; return (
                       <div key={i} className="h-12 relative overflow-hidden rounded bg-gradient-to-b from-gray-100 to-gray-50">
-                        <div style={{height:`${pct*100}%`}} className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-fuchsia-500 to-violet-400 rounded-t transition-all" />
-                        <span className="absolute inset-x-0 top-0 text-[9px] text-center text-gray-400 pt-0.5">S{i+1}</span>
-                      </div>);})}
+                        <div style={{ height: `${pct * 100}%` }} className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-fuchsia-500 to-violet-400 rounded-t transition-all" />
+                        <span className="absolute inset-x-0 top-0 text-[9px] text-center text-gray-400 pt-0.5">S{i + 1}</span>
+                      </div>);
+                    })}
                   </div>
                 </div>
               </div>
@@ -295,14 +335,14 @@ const HomePage = () => {
                         <div className="absolute inset-0 rounded-full bg-white flex items-center justify-center text-xs font-semibold text-gray-600">{planProgress.percent}%</div>
                         <svg className="absolute inset-0" viewBox="0 0 36 36">
                           <path className="text-gray-200" stroke="currentColor" strokeWidth="3.5" fill="none" d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31Z" />
-                          <path strokeLinecap="round" stroke="url(#gradProg)" strokeWidth="3.5" fill="none" strokeDasharray="97" strokeDashoffset={97 - (97*planProgress.percent)/100} d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31Z" />
+                          <path strokeLinecap="round" stroke="url(#gradProg)" strokeWidth="3.5" fill="none" strokeDasharray="97" strokeDashoffset={97 - (97 * planProgress.percent) / 100} d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31Z" />
                           <defs><linearGradient id="gradProg" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stopColor="#f59e0b" /><stop offset="100%" stopColor="#ef4444" /></linearGradient></defs>
                         </svg>
                       </div>
                       <div className="flex-1">
                         <p className="text-xs text-gray-600">Entrenamientos completados</p>
                         <p className="text-sm font-semibold text-gray-800 mt-1">{planProgress.done} / {planProgress.total}</p>
-                        <div className="mt-2 h-1.5 w-full rounded bg-gray-200 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500" style={{width:`${planProgress.percent}%`}} /></div>
+                        <div className="mt-2 h-1.5 w-full rounded bg-gray-200 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500" style={{ width: `${planProgress.percent}%` }} /></div>
                       </div>
                     </div>
                   ) : <p className="text-gray-400 text-sm">No hay un plan activo.</p>}
@@ -320,12 +360,11 @@ const HomePage = () => {
                       <p className="text-xs text-gray-500 mt-0.5">Entrenamientos completados · últimas 4 semanas</p>
                     </div>
                     <div className="flex items-center gap-4 text-xs flex-wrap">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0"/><span className="text-gray-600">Z1 Fácil/Largo</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-400 inline-block shrink-0"/><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0"/><span className="text-gray-600">Z5 Series</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0" /><span className="text-gray-600">Z1 Fácil/Largo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-400 inline-block shrink-0" /><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0" /><span className="text-gray-600">Z5 Series</span></span>
                     </div>
                   </div>
-
                   <div className="space-y-4">
                     {intensityWeeks.map((week, idx) => {
                       if (week.total === 0) return (
@@ -336,19 +375,19 @@ const HomePage = () => {
                           <span className="text-[11px] text-gray-300 w-14 text-right shrink-0">sin datos</span>
                         </div>
                       );
-                      const tot = week.total;
-                      const pZ1 = Math.round(week.kmZ1 / tot * 100);
-                      const pZ4 = Math.round(week.kmZ4 / tot * 100);
-                      const pZ5 = Math.round(week.kmZ5 / tot * 100);
+                      const tot  = week.total;
+                      const pZ1  = Math.round(week.kmZ1 / tot * 100);
+                      const pZ4  = Math.round(week.kmZ4 / tot * 100);
+                      const pZ5  = Math.round(week.kmZ5 / tot * 100);
                       const onTarget = pZ1 >= 80;
                       return (
                         <div key={idx}>
                           <div className="flex items-center gap-3">
                             <span className="text-[11px] text-gray-500 w-24 text-right shrink-0">{week.label}</span>
                             <div className="flex-1 h-4 rounded-full overflow-hidden bg-gray-100 flex">
-                              {week.kmZ1 > 0 && <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(week.kmZ1/tot)*100}%` }} title={`Z1: ${week.kmZ1.toFixed(1)} km`} />}
-                              {week.kmZ4 > 0 && <div className="h-full bg-orange-400 transition-all" style={{ width: `${(week.kmZ4/tot)*100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
-                              {week.kmZ5 > 0 && <div className="h-full bg-red-400 transition-all"    style={{ width: `${(week.kmZ5/tot)*100}%` }} title={`Z5: ${week.kmZ5.toFixed(1)} km`} />}
+                              {week.kmZ1 > 0 && <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(week.kmZ1 / tot) * 100}%` }} title={`Z1: ${week.kmZ1.toFixed(1)} km`} />}
+                              {week.kmZ4 > 0 && <div className="h-full bg-orange-400 transition-all" style={{ width: `${(week.kmZ4 / tot) * 100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
+                              {week.kmZ5 > 0 && <div className="h-full bg-red-400 transition-all"    style={{ width: `${(week.kmZ5 / tot) * 100}%` }} title={`Z5: ${week.kmZ5.toFixed(1)} km`} />}
                             </div>
                             <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">{tot.toFixed(1)} km</span>
                             <span className={`text-[10px] font-bold w-14 text-right shrink-0 ${onTarget ? 'text-emerald-600' : 'text-amber-600'}`}>
@@ -364,7 +403,6 @@ const HomePage = () => {
                       );
                     })}
                   </div>
-
                   <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
@@ -387,10 +425,10 @@ const HomePage = () => {
                       <p className="text-xs text-gray-500 mt-0.5">Fitness crónico · fatiga aguda · balance — últimos 90 días</p>
                     </div>
                     <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full ${
-                      fitnessData.tsb >  10 ? 'bg-sky-100 text-sky-700'       :
+                      fitnessData.tsb >  10 ? 'bg-sky-100 text-sky-700'         :
                       fitnessData.tsb >   0 ? 'bg-emerald-100 text-emerald-700' :
-                      fitnessData.tsb > -15 ? 'bg-green-100 text-green-700'   :
-                      fitnessData.tsb > -30 ? 'bg-amber-100 text-amber-700'   :
+                      fitnessData.tsb > -15 ? 'bg-green-100 text-green-700'     :
+                      fitnessData.tsb > -30 ? 'bg-amber-100 text-amber-700'     :
                                               'bg-red-100 text-red-700'
                     }`}>
                       {fitnessData.tsb >  10 ? 'Fresco · listo para competir'    :
@@ -400,7 +438,6 @@ const HomePage = () => {
                                                'Riesgo sobreentrenamiento'}
                     </span>
                   </div>
-
                   <div className="grid grid-cols-3 gap-3 mb-4">
                     <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-center">
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500 mb-0.5">CTL</div>
@@ -412,33 +449,25 @@ const HomePage = () => {
                       <div className="text-2xl font-bold text-orange-600">{fitnessData.atl}</div>
                       <div className="text-[10px] text-orange-400 mt-0.5">fatiga aguda</div>
                     </div>
-                    <div className={`rounded-xl border p-3 text-center ${
-                      fitnessData.tsb >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'
-                    }`}>
-                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${
-                        fitnessData.tsb >= 0 ? 'text-emerald-500' : 'text-amber-500'
-                      }`}>TSB</div>
+                    <div className={`rounded-xl border p-3 text-center ${fitnessData.tsb >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
+                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-500' : 'text-amber-500'}`}>TSB</div>
                       <div className={`text-2xl font-bold ${fitnessData.tsb >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
                         {fitnessData.tsb > 0 ? '+' : ''}{fitnessData.tsb}
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
-                        balance
-                      </div>
+                      <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>balance</div>
                     </div>
                   </div>
-
                   <div className="bg-gray-50 rounded-xl px-3 pt-2 pb-1">
                     <div className="flex justify-between text-[9px] text-gray-400 mb-0.5">
                       <span>90 días atrás</span>
                       <span className="flex items-center gap-3">
-                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-indigo-400 inline-block"/>CTL</span>
-                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-orange-400 inline-block"/>ATL</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-indigo-400 inline-block" />CTL</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-orange-400 inline-block" />ATL</span>
                       </span>
                       <span>hoy</span>
                     </div>
                     <FitnessChart data={fitnessData.history} />
                   </div>
-
                   <p className="text-[10px] text-gray-400 mt-3">
                     CTL = media ponderada 42 días · ATL = media ponderada 7 días · TSB = CTL − ATL · basado en km × factor de zona (Z1×1 / Z4×2.5 / Z5×3.5)
                   </p>
@@ -460,11 +489,11 @@ const HomePage = () => {
                       {weekWorkouts.map(w => (
                         <li key={w.id} className="py-4 flex items-start justify-between gap-6">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' })}</p>
+                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
                             {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={()=>toggleWorkout(w.id, w.is_completed)} disabled={marking===w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{marking===w.id? '...' : (w.is_completed? 'Hecho':'Marcar')}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{marking === w.id ? '...' : (w.is_completed ? 'Hecho' : 'Marcar')}</button>
                         </li>
                       ))}
                     </ul>
@@ -479,11 +508,11 @@ const HomePage = () => {
                       {upcomingWorkouts.map(w => (
                         <li key={w.id} className="flex justify-between items-start border border-orange-100 rounded-xl p-4 bg-gradient-to-br from-orange-50 to-white shadow-sm">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday:'long', day:'numeric', month:'short' })}</p>
+                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
                             {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-orange-100/60 text-orange-600 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={()=>toggleWorkout(w.id, w.is_completed)} disabled={marking===w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-orange-200 text-gray-800 hover:bg-orange-300'}`}>{w.is_completed? 'Hecho':'Marcar'}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-orange-200 text-gray-800 hover:bg-orange-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
                         </li>
                       ))}
                     </ul>
@@ -502,17 +531,11 @@ const HomePage = () => {
                           <div className="pr-3">
                             <p className="font-medium text-gray-700 leading-snug line-clamp-1" title={a.name}>{a.name || 'Actividad'}</p>
                             <p className="text-[11px] text-gray-500">{new Date(a.start_date).toLocaleDateString()} • {a.sport_type || 'Run'}</p>
-                            <a
-                              href={`https://www.strava.com/activities/${a.activity_id}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-[11px] font-semibold underline"
-                              style={{ color: '#FC5200' }}
-                            >
+                            <a href={`https://www.strava.com/activities/${a.activity_id}`} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold underline" style={{ color: '#FC5200' }}>
                               Ver en Strava
                             </a>
                           </div>
-                          <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">{a.distance_m ? (a.distance_m/1000).toFixed(1) : '—'} km</span>
+                          <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">{a.distance_m ? (a.distance_m / 1000).toFixed(1) : '—'} km</span>
                         </li>
                       ))}
                     </ul>

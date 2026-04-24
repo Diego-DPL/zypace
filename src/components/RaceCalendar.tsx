@@ -4,15 +4,17 @@ import type { Event } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/es';
 import { Race } from '../pages/RacesPage';
-import { supabase } from '../lib/supabaseClient';
+import { collection, getDocs, doc, query, where, orderBy, updateDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
 moment.locale('es');
 const localizer = momentLocalizer(moment);
 
 interface WorkoutEvent {
-  id: number;
-  plan_id?: number;
+  id: string;
+  plan_id?: string;
   workout_date: string;
   description: string;
   is_completed: boolean;
@@ -51,11 +53,12 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
   const loadWorkouts = useCallback(async () => {
     if (!user) return;
     setLoadingWorkouts(true);
-    const { data, error } = await supabase
-      .from('workouts')
-      .select('id, plan_id, workout_date, description, is_completed, explanation_json')
-      .eq('user_id', user.id);
-    if (!error && data) setWorkouts(data as WorkoutEvent[]);
+    try {
+      const snap = await getDocs(collection(db, 'users', user.uid, 'workouts'));
+      setWorkouts(snap.docs.map(d => ({ id: d.id, ...d.data() } as WorkoutEvent)));
+    } catch (e) {
+      console.warn('Error loading workouts', e);
+    }
     setLoadingWorkouts(false);
   }, [user]);
 
@@ -65,14 +68,18 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
   const loadActivities = useCallback(async () => {
     if (!user) return;
     setLoadingActivities(true);
-    const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().substring(0,10);
-    const { data, error } = await supabase
-      .from('strava_activities')
-      .select('activity_id, start_date, name, distance_m, sport_type')
-      .eq('user_id', user.id)
-      .gte('start_date', since)
-      .order('start_date', { ascending: true });
-    if (!error && data) setActivities(data);
+    try {
+      const since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
+      const q = query(
+        collection(db, 'users', user.uid, 'strava_activities'),
+        where('start_date', '>=', since),
+        orderBy('start_date', 'asc'),
+      );
+      const snap = await getDocs(q);
+      setActivities(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    } catch (e) {
+      console.warn('Error loading activities', e);
+    }
     setLoadingActivities(false);
   }, [user]);
 
@@ -85,64 +92,31 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
     return () => window.removeEventListener('workouts-changed', handler);
   }, [loadWorkouts]);
 
-  const toggleCompleted = async (workoutId: number, current: boolean) => {
-    const { error } = await supabase
-      .from('workouts')
-      .update({ is_completed: !current })
-      .eq('id', workoutId);
-    if (!error) {
-      setWorkouts(ws => ws.map(w => w.id === workoutId ? { ...w, is_completed: !current } : w));
-    }
+  const toggleCompleted = async (workoutId: string, current: boolean) => {
+    if (!user) return;
+    await updateDoc(doc(db, 'users', user.uid, 'workouts', workoutId), {
+      is_completed: !current,
+    });
+    setWorkouts(ws => ws.map(w => w.id === workoutId ? { ...w, is_completed: !current } : w));
   };
 
-  const syncStrava = async () => {
+  const syncStrava = async (opts: { full?: boolean; reset?: boolean } = {}) => {
     if (!user) return;
     try {
-      const { data, error } = await supabase.functions.invoke('sync-strava', { body: {} });
-      if (error) throw error;
+      const syncStravaFn = httpsCallable(functions, 'syncStrava');
+      const res = await syncStravaFn(opts);
+      const data = res.data as any;
       await loadWorkouts();
-  await loadActivities();
+      await loadActivities();
       window.dispatchEvent(new Event('workouts-changed'));
       if (data) {
         alert(`Strava sync: nuevas ${data.importedNew}, fetched ${data.fetchedTotal}, matched ${data.matchedWorkouts}`);
       } else {
         alert('Sincronización completada');
       }
-    } catch (e:any) {
+    } catch (e: any) {
       console.warn('Error sync-strava', e);
       alert(`Error sincronizando Strava: ${e.message || e}`);
-    }
-  };
-
-  const syncStravaFull = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-strava', { body: { full: true } });
-      if (error) throw error;
-      await loadWorkouts();
-  await loadActivities();
-      window.dispatchEvent(new Event('workouts-changed'));
-      if (data) {
-        alert(`Full sync: nuevas ${data.importedNew}, fetched ${data.fetchedTotal}, matched ${data.matchedWorkouts}`);
-      }
-    } catch (e:any) {
-      alert(`Error full sync: ${e.message || e}`);
-    }
-  };
-
-  const syncStravaReset = async () => {
-    if (!user) return;
-    try {
-      const { data, error } = await supabase.functions.invoke('sync-strava', { body: { reset: true, full: true } });
-      if (error) throw error;
-      await loadWorkouts();
-  await loadActivities();
-      window.dispatchEvent(new Event('workouts-changed'));
-      if (data) {
-        alert(`Reset sync: nuevas ${data.importedNew}, fetched ${data.fetchedTotal}, matched ${data.matchedWorkouts}`);
-      }
-    } catch (e:any) {
-      alert(`Error reset sync: ${e.message || e}`);
     }
   };
 
@@ -162,7 +136,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
       resource: { type: 'workout', workout: w, workoutType: classifyWorkout(w.description) },
     })) : []),
     ...(showActivities ? activities.map(a => ({
-      title: `📊 ${(a.distance_m ? (a.distance_m/1000).toFixed(1)+'k ' : '')}${a.name || 'Actividad'}`,
+      title: `📊 ${(a.distance_m ? (a.distance_m / 1000).toFixed(1) + 'k ' : '')}${a.name || 'Actividad'}`,
       start: new Date(a.start_date),
       end: new Date(a.start_date),
       allDay: true,
@@ -180,11 +154,11 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
         backgroundColor = '#16a34a';
       } else {
         switch (wt) {
-          case 'series': backgroundColor = '#9333ea'; break; // púrpura
-          case 'tempo': backgroundColor = '#2563eb'; break; // azul
-          case 'largo': backgroundColor = '#0d9488'; break; // teal
-          case 'descanso': backgroundColor = '#6b7280'; break; // gris
-          default: backgroundColor = '#f59e0b'; // naranja
+          case 'series': backgroundColor = '#9333ea'; break;
+          case 'tempo': backgroundColor = '#2563eb'; break;
+          case 'largo': backgroundColor = '#0d9488'; break;
+          case 'descanso': backgroundColor = '#6b7280'; break;
+          default: backgroundColor = '#f59e0b';
         }
       }
     }
@@ -194,20 +168,19 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
   // Resumen semanal (kms totales)
   const weekStart = moment(date).startOf('isoWeek');
   const weekEnd = moment(date).endOf('isoWeek');
-  const workoutsWeekKm = workouts.reduce((acc, w:any) => {
+  const workoutsWeekKm = workouts.reduce((acc, w: any) => {
     if (moment(w.workout_date).isBetween(weekStart, weekEnd, undefined, '[]') && (w as any).distance_km) {
       return acc + ((w as any).distance_km || 0);
     }
     return acc;
   }, 0);
-  const activitiesWeekKm = activities.reduce((acc, a:any) => {
+  const activitiesWeekKm = activities.reduce((acc, a: any) => {
     if (moment(a.start_date).isBetween(weekStart, weekEnd, undefined, '[]')) {
       return acc + (a.distance_m ? a.distance_m / 1000 : 0);
     }
     return acc;
   }, 0);
-  const totalWeekKm = (workoutsWeekKm + activitiesWeekKm);
-  // (no cerrar componente aquí)
+  const totalWeekKm = workoutsWeekKm + activitiesWeekKm;
 
   const onSelectEvent = (event: any) => {
     if (event.resource?.type === 'workout') {
@@ -215,9 +188,8 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
       setModalWorkout(w);
       setShowModal(true);
     } else if (event.resource?.type === 'activity') {
-  const a = event.resource.activity as any;
-  const url = `https://www.strava.com/activities/${a.activity_id}`;
-  window.open(url, '_blank', 'noopener');
+      const a = event.resource.activity as any;
+      window.open(`https://www.strava.com/activities/${a.activity_id}`, '_blank', 'noopener');
     }
   };
 
@@ -234,55 +206,55 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <span className="text-gray-900 font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={syncStrava} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Sync</button>
-            <button onClick={syncStravaFull} className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-700">Full</button>
-            <button onClick={syncStravaReset} className="px-2 py-1 bg-orange-700 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
+            <button onClick={() => syncStrava()} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Sync</button>
+            <button onClick={() => syncStrava({ full: true })} className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-700">Full</button>
+            <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-orange-700 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs">
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showRaces} onChange={(e)=>setShowRaces(e.target.checked)} /> Carreras</label>
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showWorkouts} onChange={(e)=>setShowWorkouts(e.target.checked)} /> Plan</label>
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showActivities} onChange={(e)=>setShowActivities(e.target.checked)} /> Actividades</label>
+          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showRaces} onChange={(e) => setShowRaces(e.target.checked)} /> Carreras</label>
+          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showWorkouts} onChange={(e) => setShowWorkouts(e.target.checked)} /> Plan</label>
+          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showActivities} onChange={(e) => setShowActivities(e.target.checked)} /> Actividades</label>
           <div className="flex flex-wrap items-center gap-2 ml-auto">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#9333ea'}}></span>Series</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#2563eb'}}></span>Tempo</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#0d9488'}}></span>Largo</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#6b7280'}}></span>Descanso</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#f59e0b'}}></span>Otro</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{background:'#16a34a'}}></span>Completado</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#9333ea' }}></span>Series</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#2563eb' }}></span>Tempo</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#0d9488' }}></span>Largo</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#6b7280' }}></span>Descanso</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }}></span>Otro</span>
+            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#16a34a' }}></span>Completado</span>
           </div>
         </div>
       </div>
       <div className="flex-1 min-h-0">
-      <Calendar
-        localizer={localizer}
-        events={events}
-        startAccessor="start"
-        endAccessor="end"
-        style={{ height: '100%' }}
-        views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
-        date={date}
-        view={view}
-        onNavigate={(newDate) => setDate(newDate)}
-        onView={(newView) => setView(newView)}
-        onSelectEvent={onSelectEvent}
-        messages={{
-          next: "Siguiente",
-          previous: "Anterior",
-          today: "Hoy",
-          month: "Mes",
-          week: "Semana",
-          day: "Día",
-          agenda: "Agenda"
-        }}
-        eventPropGetter={eventStyleGetter}
-  />
-  </div>
-  <p className="text-xs text-gray-400 mt-2">Filtros arriba. Click en un workout para ver detalle. Las actividades abren "Ver en Strava".</p>
+        <Calendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          style={{ height: '100%' }}
+          views={[Views.MONTH, Views.WEEK, Views.DAY, Views.AGENDA]}
+          date={date}
+          view={view}
+          onNavigate={(newDate) => setDate(newDate)}
+          onView={(newView) => setView(newView)}
+          onSelectEvent={onSelectEvent}
+          messages={{
+            next: "Siguiente",
+            previous: "Anterior",
+            today: "Hoy",
+            month: "Mes",
+            week: "Semana",
+            day: "Día",
+            agenda: "Agenda"
+          }}
+          eventPropGetter={eventStyleGetter}
+        />
+      </div>
+      <p className="text-xs text-gray-400 mt-2">Filtros arriba. Click en un workout para ver detalle. Las actividades abren "Ver en Strava".</p>
       {showModal && modalWorkout && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">
-            <button onClick={()=>setShowModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
+            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
             <h3 className="text-xl font-bold text-gray-800 mb-2">Detalle Entrenamiento</h3>
             <p className="text-sm text-gray-500 mb-2">{new Date(modalWorkout.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             <p className="text-gray-800 font-medium mb-4">{modalWorkout.description}</p>
@@ -296,10 +268,13 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             )}
             {!modalWorkout.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
             <div className="mt-6 flex justify-between items-center">
-              <button onClick={()=>{toggleCompleted(modalWorkout.id, modalWorkout.is_completed); setModalWorkout({...modalWorkout, is_completed: !modalWorkout.is_completed});}} className="px-3 py-2 text-xs rounded bg-green-600 text-white hover:bg-green-700">
+              <button
+                onClick={() => { toggleCompleted(modalWorkout.id, modalWorkout.is_completed); setModalWorkout({ ...modalWorkout, is_completed: !modalWorkout.is_completed }); }}
+                className="px-3 py-2 text-xs rounded bg-green-600 text-white hover:bg-green-700"
+              >
                 {modalWorkout.is_completed ? 'Marcar incompleto' : 'Marcar completado'}
               </button>
-              <button onClick={()=>setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
             </div>
           </div>
         </div>

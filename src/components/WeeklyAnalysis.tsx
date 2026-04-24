@@ -1,5 +1,8 @@
 import { useState } from 'react'
-import { supabase } from '../lib/supabaseClient'
+import { doc, updateDoc } from 'firebase/firestore'
+import { httpsCallable } from 'firebase/functions'
+import { db, functions } from '../lib/firebaseClient'
+import { useAuth } from '../context/AuthContext'
 
 interface AnalysisData {
   week: string
@@ -34,7 +37,7 @@ interface AnalysisResult {
 }
 
 interface Props {
-  planId: number
+  planId: string
   onWorkoutsChanged: () => void
 }
 
@@ -59,11 +62,12 @@ function formatDate(iso: string) {
 }
 
 export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
-  const [loading, setLoading]             = useState(false)
-  const [result, setResult]               = useState<AnalysisResult | null>(null)
-  const [error, setError]                 = useState<string | null>(null)
-  const [applied, setApplied]             = useState<Set<string>>(new Set())
-  const [applyingId, setApplyingId]       = useState<string | null>(null)
+  const { user }                               = useAuth()
+  const [loading, setLoading]                  = useState(false)
+  const [result, setResult]                    = useState<AnalysisResult | null>(null)
+  const [error, setError]                      = useState<string | null>(null)
+  const [applied, setApplied]                  = useState<Set<string>>(new Set())
+  const [applyingId, setApplyingId]            = useState<string | null>(null)
 
   async function runAnalysis() {
     setLoading(true)
@@ -71,10 +75,9 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
     setResult(null)
     setApplied(new Set())
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke('analyze-week', {
-        body: { plan_id: planId },
-      })
-      if (fnErr) throw new Error(fnErr.message || 'Error en la función')
+      const analyzeWeek = httpsCallable(functions, 'analyzeWeek')
+      const res = await analyzeWeek({ plan_id: planId })
+      const data = res.data as any
       if (data?.error) throw new Error(data.error)
       setResult(data as AnalysisResult)
     } catch (e: unknown) {
@@ -85,13 +88,12 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
   }
 
   async function applyAdjustment(adj: Adjustment) {
+    if (!user) return
     setApplyingId(adj.workout_id)
     try {
-      const { error: upErr } = await supabase
-        .from('workouts')
-        .update({ description: adj.suggested })
-        .eq('id', adj.workout_id)
-      if (upErr) throw upErr
+      await updateDoc(doc(db, 'users', user.uid, 'workouts', adj.workout_id), {
+        description: adj.suggested,
+      })
       setApplied(prev => new Set([...prev, adj.workout_id]))
       onWorkoutsChanged()
     } catch (e: unknown) {

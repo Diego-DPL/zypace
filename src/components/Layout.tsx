@@ -5,10 +5,10 @@ import CookieConsentBanner from './CookieConsentBanner';
 import { useAuth } from '../context/AuthContext';
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
-  const { session } = useAuth();
+  const { user } = useAuth();
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
-      {session && <AppHeader />}
+      {user && <AppHeader />}
       <div className="flex-1">{children}</div>
   <AppFooter />
   <CookieConsentBanner />

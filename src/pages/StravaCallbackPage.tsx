@@ -1,92 +1,44 @@
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { supabase } from '../lib/supabaseClient';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
 const StravaCallbackPage = () => {
-  const location = useLocation();
-  const { user } = useAuth();
+  const location    = useLocation();
+  const { user }    = useAuth();
   const [status, setStatus] = useState('Procesando autenticación...');
 
   useEffect(() => {
-    const exchangeCodeForToken = async (code: string) => {
-      if (!user) {
-        setStatus('Error: Usuario no autenticado. Cierra esta ventana e inténtalo de nuevo.');
-        return;
-      }
-
-      try {
-        const response = await fetch('https://www.strava.com/api/v3/oauth/token', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            client_id: import.meta.env.VITE_STRAVA_CLIENT_ID,
-            client_secret: import.meta.env.VITE_STRAVA_CLIENT_SECRET,
-            code: code,
-            grant_type: 'authorization_code',
-          }),
-        });
-
-        const data = await response.json();
-
-        if (data.errors) {
-          throw new Error(data.message);
-        }
-
-  const { access_token, refresh_token, expires_at, athlete, scope } = data;
-
-        let upsertError = null;
-        {
-          const { error: dbError } = await supabase.from('strava_tokens').upsert({
-            user_id: user.id,
-            access_token,
-            refresh_token,
-            expires_at,
-            athlete_id: athlete?.id,
-            athlete: athlete ?? null,
-            scope: Array.isArray(scope) ? scope.join(',') : (scope || null)
-          }, { onConflict: 'user_id' });
-          upsertError = dbError;
-        }
-        if (upsertError) {
-          const msg = (upsertError as any).message || '';
-          const needsFallback = /column .* (athlete|scope)/i.test(msg) || /schema cache/i.test(msg);
-          if (needsFallback) {
-            // Reintentar sin columnas nuevas (migración aún no aplicada)
-            const { error: legacyErr } = await supabase.from('strava_tokens').upsert({
-              user_id: user.id,
-              access_token,
-              refresh_token,
-              expires_at
-            }, { onConflict: 'user_id' });
-            if (legacyErr) throw legacyErr;
-          } else {
-            throw upsertError;
-          }
-        }
-
-        setStatus('¡Conexión exitosa! Esta ventana se cerrará en breve.');
-        setTimeout(() => window.close(), 2000);
-
-      } catch (error: any) {
-        setStatus(`Error en la conexión: ${error.message}. Puedes cerrar esta ventana.`);
-      }
-    };
-
     const params = new URLSearchParams(location.search);
-    const code = params.get('code');
-    const error = params.get('error');
+    const code   = params.get('code');
+    const denied = params.get('error');
 
-    if (error) {
+    if (denied) {
       setStatus('Acceso denegado. Puedes cerrar esta ventana.');
       setTimeout(() => window.close(), 3000);
-    } else if (code) {
-      exchangeCodeForToken(code);
-    } else {
-      setStatus('No se recibió el código de autorización. Cierra esta ventana.');
+      return;
     }
+    if (!code) {
+      setStatus('No se recibió el código de autorización. Cierra esta ventana.');
+      return;
+    }
+    if (!user) {
+      setStatus('Error: usuario no autenticado. Cierra esta ventana e inténtalo de nuevo.');
+      return;
+    }
+
+    // El intercambio de código → tokens se hace en el servidor (Cloud Function)
+    // para que el client_secret nunca esté expuesto en el frontend.
+    const exchangeToken = httpsCallable(functions, 'stravaExchangeToken');
+    exchangeToken({ code })
+      .then(() => {
+        setStatus('¡Conexión exitosa! Esta ventana se cerrará en breve.');
+        setTimeout(() => window.close(), 2000);
+      })
+      .catch((err: any) => {
+        setStatus(`Error en la conexión: ${err.message}. Puedes cerrar esta ventana.`);
+      });
   }, [location, user]);
 
   return (

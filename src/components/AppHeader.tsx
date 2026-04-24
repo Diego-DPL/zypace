@@ -1,14 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { supabase } from '../lib/supabaseClient';
 import { useState } from 'react';
 
 const AppHeader = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    await signOut();
     navigate('/');
   };
 
@@ -48,7 +47,7 @@ const AppHeader = () => {
           <Link to="/settings" className="text-gray-600 hover:text-orange-500 transition-colors">Ajustes</Link>
         </nav>
         <div className="hidden md:flex items-center gap-4">
-          <span className="text-gray-700 max-w-[140px] truncate" title={user?.email}>Hola, {shortEmail}</span>
+          <span className="text-gray-700 max-w-[140px] truncate" title={user?.email ?? undefined}>Hola, {shortEmail}</span>
           <button
             onClick={handleLogout}
             className="bg-orange-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-orange-600 active:bg-orange-700 transition-colors text-sm"

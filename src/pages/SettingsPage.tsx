@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase } from '../lib/supabaseClient';
+import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 // Strava assets (oficiales de la guía)
 import connectWithStrava from '../assets/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange_x2.svg';
@@ -52,14 +54,11 @@ const SettingsPage = () => {
     if (!user) return;
     setLoading(true);
     try {
-      const { data: tokenData, error: tokenError } = await supabase
-        .from('strava_tokens')
-        .select('access_token')
-        .eq('user_id', user.id)
-        .single();
+      const tokenSnap = await getDoc(doc(db, 'users', user.uid, 'strava_tokens', 'default'));
 
-      if (tokenError || !tokenData) { setIsStravaConnected(false); return; }
+      if (!tokenSnap.exists()) { setIsStravaConnected(false); return; }
 
+      const tokenData = tokenSnap.data();
       const response = await fetch('https://www.strava.com/api/v3/athlete', {
         headers: { Authorization: `Bearer ${tokenData.access_token}` },
       });
@@ -67,11 +66,10 @@ const SettingsPage = () => {
       if (response.ok) {
         setIsStravaConnected(true);
       } else {
-        await supabase.from('strava_tokens').delete().eq('user_id', user.id);
+        await deleteDoc(doc(db, 'users', user.uid, 'strava_tokens', 'default'));
         setIsStravaConnected(false);
       }
     } catch {
-      await supabase.from('strava_tokens').delete().eq('user_id', user.id);
       setIsStravaConnected(false);
     } finally {
       setLoading(false);
@@ -80,12 +78,20 @@ const SettingsPage = () => {
 
   const loadZoneProfile = useCallback(async () => {
     if (!user) return;
-    const { data } = await supabase
-      .from('profiles')
-      .select('z1_pace_sec_km, z4_pace_sec_km, z5_pace_sec_km, estimated_5k_sec, estimated_10k_sec, zones_confidence, zones_activities, zones_calibrated_at')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (data) setZoneProfile(data as ZoneProfile);
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (snap.exists()) {
+      const d = snap.data();
+      setZoneProfile({
+        z1_pace_sec_km:    d.z1_pace_sec_km    ?? null,
+        z4_pace_sec_km:    d.z4_pace_sec_km    ?? null,
+        z5_pace_sec_km:    d.z5_pace_sec_km    ?? null,
+        estimated_5k_sec:  d.estimated_5k_sec  ?? null,
+        estimated_10k_sec: d.estimated_10k_sec ?? null,
+        zones_confidence:  d.zones_confidence  ?? null,
+        zones_activities:  d.zones_activities  ?? null,
+        zones_calibrated_at: d.zones_calibrated_at ?? null,
+      });
+    }
   }, [user]);
 
   useEffect(() => {
@@ -94,9 +100,9 @@ const SettingsPage = () => {
   }, [verifyStravaConnection, loadZoneProfile]);
 
   const authUrl = useMemo(() => {
-    const clientId = import.meta.env.VITE_STRAVA_CLIENT_ID;
-    const redirectUri = 'http://localhost:5173/strava-callback';
-    const scope = 'read,activity:read,activity:read_all';
+    const clientId   = import.meta.env.VITE_STRAVA_CLIENT_ID;
+    const redirectUri = `${window.location.origin}/strava-callback`;
+    const scope      = 'read,activity:read,activity:read_all';
     return `https://www.strava.com/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&response_type=code&approval_prompt=force&scope=${encodeURIComponent(scope)}`;
   }, []);
 
@@ -110,15 +116,16 @@ const SettingsPage = () => {
   const handleDisconnectFromStrava = async () => {
     if (!user) return;
     try {
-      const { data: tokenData } = await supabase
-        .from('strava_tokens').select('access_token').eq('user_id', user.id).single();
-      if (tokenData) {
+      const tokenSnap = await getDoc(doc(db, 'users', user.uid, 'strava_tokens', 'default'));
+      if (tokenSnap.exists()) {
+        const { access_token } = tokenSnap.data();
         await fetch('https://www.strava.com/oauth/deauthorize', {
-          method: 'POST', headers: { Authorization: `Bearer ${tokenData.access_token}` },
+          method: 'POST',
+          headers: { Authorization: `Bearer ${access_token}` },
         });
       }
     } catch { /* silencioso */ } finally {
-      await supabase.from('strava_tokens').delete().eq('user_id', user.id);
+      await deleteDoc(doc(db, 'users', user.uid, 'strava_tokens', 'default'));
       setIsStravaConnected(false);
     }
   };
@@ -127,17 +134,17 @@ const SettingsPage = () => {
     setCalibrating(true);
     setCalibrationMsg(null);
     try {
-      const { data, error } = await supabase.functions.invoke('calibrate-zones', { body: {} });
-      if (error) throw new Error(error.message);
+      const calibrateZones = httpsCallable(functions, 'calibrateZones');
+      const result = await calibrateZones({});
+      const data = result.data as any;
       if (!data.success) {
         setCalibrationMsg({ type: 'info', text: data.message || 'No hay suficientes datos.' });
         return;
       }
-      // Refresh zone profile from DB
       await loadZoneProfile();
       setCalibrationMsg({
         type: 'success',
-        text: `Zonas calibradas desde ${data.activities_analyzed} actividades. Confianza: ${data.confidence}.`
+        text: `Zonas calibradas desde ${data.activities_analyzed} actividades. Confianza: ${data.confidence}.`,
       });
     } catch (e: unknown) {
       setCalibrationMsg({ type: 'error', text: e instanceof Error ? e.message : 'Error desconocido' });

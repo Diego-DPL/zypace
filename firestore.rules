@@ -1,0 +1,44 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── User document (profile + zone calibration) ─────────────────
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // ── Races ─────────────────────────────────────────────────────
+      match /races/{raceId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ── Training plans ────────────────────────────────────────────
+      match /training_plans/{planId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ── Workouts ──────────────────────────────────────────────────
+      match /workouts/{workoutId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ── Training plan versions ────────────────────────────────────
+      match /training_plan_versions/{versionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+
+      // ── Strava tokens (write only via Cloud Function) ─────────────
+      // Read: user can read their own tokens (needed by SettingsPage to verify connection)
+      // Write: only Cloud Functions (via admin SDK, which bypasses rules)
+      match /strava_tokens/{tokenId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // only writable from Cloud Functions (admin SDK)
+      }
+
+      // ── Strava activities (write only via Cloud Function) ─────────
+      match /strava_activities/{activityId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false; // only writable from Cloud Functions (admin SDK)
+      }
+    }
+  }
+}

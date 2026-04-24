@@ -15,26 +15,26 @@ import CookiesPage from '../pages/CookiesPage';
 import { useAuth } from '../context/AuthContext';
 
 const AppRouter = () => {
-  const { session } = useAuth();
+  const { user } = useAuth();
 
   return (
     <Router>
       <Layout>
         <Routes>
-          <Route path="/" element={!session ? <LandingPage /> : <Navigate to="/app" />} />
-          <Route path="/login" element={!session ? <LoginPage /> : <Navigate to="/app" />} />
-          <Route path="/register" element={!session ? <RegisterPage /> : <Navigate to="/app" />} />
+          <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/app" />} />
+          <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/app" />} />
+          <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/app" />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/security" element={<SecurityPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/app" element={session ? <HomePage /> : <Navigate to="/" />} />
-          <Route path="/races" element={session ? <RacesPage /> : <Navigate to="/" />} />
-          <Route path="/settings" element={session ? <SettingsPage /> : <Navigate to="/" />} />
-          <Route path="/training-plan" element={session ? <TrainingPlanPage /> : <Navigate to="/" />} />
+          <Route path="/app" element={user ? <HomePage /> : <Navigate to="/" />} />
+          <Route path="/races" element={user ? <RacesPage /> : <Navigate to="/" />} />
+          <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/" />} />
+          <Route path="/training-plan" element={user ? <TrainingPlanPage /> : <Navigate to="/" />} />
           <Route path="/strava-callback" element={<StravaCallbackPage />} />
 
-          <Route path="*" element={<Navigate to={session ? "/app" : "/"} />} />
+          <Route path="*" element={<Navigate to={user ? "/app" : "/"} />} />
         </Routes>
       </Layout>
     </Router>
