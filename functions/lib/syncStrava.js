@@ -16,7 +16,7 @@ function extractDistanceKm(description) {
     const val = parseFloat(m[1].replace(',', '.'));
     return isNaN(val) || val <= 0 ? undefined : val;
 }
-exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 }, async (request) => {
+exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 }, async (request) => {
     var _a, _b, _c, _d, _e, _f;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)

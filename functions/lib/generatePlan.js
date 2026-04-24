@@ -305,7 +305,7 @@ BLOQUE D: Calf raise excéntrico monopodal 3×12/pierna
 Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
     };
 }
-exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true, secrets: [openAiApiKey, openAiModel], timeoutSeconds: 540, memory: '512MiB' }, async (request) => {
+exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [openAiApiKey, openAiModel], timeoutSeconds: 540, memory: '512MiB' }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)

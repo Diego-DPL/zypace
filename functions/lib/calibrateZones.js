@@ -33,7 +33,7 @@ function median(arr) {
     return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 // ── Function ─────────────────────────────────────────────────
-exports.calibrateZones = (0, https_1.onCall)({ region: 'europe-west1', cors: true }, async (request) => {
+exports.calibrateZones = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public' }, async (request) => {
     var _a;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)

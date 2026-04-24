@@ -11,7 +11,7 @@ const stravaClientSecret = (0, params_1.defineSecret)('STRAVA_CLIENT_SECRET');
  * Called from StravaCallbackPage after the user authorizes.
  * The client_secret never reaches the browser.
  */
-exports.stravaExchangeToken = (0, https_1.onCall)({ region: 'europe-west1', cors: true, secrets: [stravaClientId, stravaClientSecret] }, async (request) => {
+exports.stravaExchangeToken = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [stravaClientId, stravaClientSecret] }, async (request) => {
     var _a, _b;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)

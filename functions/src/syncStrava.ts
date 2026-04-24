@@ -25,7 +25,7 @@ function extractDistanceKm(description: string | null | undefined): number | und
 }
 
 export const syncStrava = onCall(
-  { region: 'europe-west1', cors: true, secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 },
+  { region: 'europe-west1', cors: true, invoker: 'public', secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');

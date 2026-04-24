@@ -361,7 +361,7 @@ interface PlanDay {
 }
 
 export const generatePlan = onCall(
-  { region: 'europe-west1', cors: true, secrets: [openAiApiKey, openAiModel], timeoutSeconds: 540, memory: '512MiB' },
+  { region: 'europe-west1', cors: true, invoker: 'public', secrets: [openAiApiKey, openAiModel], timeoutSeconds: 540, memory: '512MiB' },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');

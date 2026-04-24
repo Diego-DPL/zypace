@@ -51,7 +51,7 @@ function adjustDescription(description: string, factor: number): string | null {
 // ── Function ─────────────────────────────────────────────────
 
 export const analyzeWeek = onCall(
-  { region: 'europe-west1', cors: true },
+  { region: 'europe-west1', cors: true, invoker: 'public' },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');
