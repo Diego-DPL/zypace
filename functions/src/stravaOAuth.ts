@@ -11,7 +11,7 @@ const stravaClientSecret = defineSecret('STRAVA_CLIENT_SECRET');
  * The client_secret never reaches the browser.
  */
 export const stravaExchangeToken = onCall(
-  { region: 'europe-west1', secrets: [stravaClientId, stravaClientSecret] },
+  { region: 'europe-west1', cors: true, secrets: [stravaClientId, stravaClientSecret] },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');

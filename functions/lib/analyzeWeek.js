@@ -45,7 +45,7 @@ function adjustDescription(description, factor) {
     return null;
 }
 // ── Function ─────────────────────────────────────────────────
-exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1' }, async (request) => {
+exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true }, async (request) => {
     var _a, _b, _c, _d, _e;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)

@@ -37,7 +37,7 @@ function median(arr: number[]): number {
 // ── Function ─────────────────────────────────────────────────
 
 export const calibrateZones = onCall(
-  { region: 'europe-west1' },
+  { region: 'europe-west1', cors: true },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');
