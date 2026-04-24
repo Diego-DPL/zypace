@@ -46,22 +46,22 @@ const AddRaceForm = ({ onRaceAdded }: AddRaceFormProps) => {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Nombre de la Carrera</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Fecha</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" required />
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500" required />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Distancia (ej. 10k, Maratón)</label>
           <input type="text" value={distance} onChange={e => setDistance(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500" />
         </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo Objetivo</label>
           <input type="text" value={goalTime} onChange={e => setGoalTime(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500" />
+            className="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500" />
         </div>
         <button type="submit" disabled={loading}
           className="w-full py-3 px-4 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 disabled:opacity-50">
