@@ -5,6 +5,24 @@ import { supabase } from '../lib/supabaseClient';
 interface Race { id: number; name: string; date: string; }
 interface Workout { id: number; workout_date: string; description: string; is_completed: boolean; distance_km?: number | null; plan_id?: number; }
 interface Activity { activity_id: string; start_date: string; name: string; distance_m?: number | null; sport_type?: string; }
+interface IntensityWeek { label: string; kmZ1: number; kmZ4: number; kmZ5: number; total: number; }
+interface FitnessData { ctl: number; atl: number; tsb: number; history: { ctl: number; atl: number }[]; }
+
+function FitnessChart({ data }: { data: { ctl: number; atl: number }[] }) {
+  if (data.length < 2) return null;
+  const maxV = Math.max(...data.flatMap(d => [d.ctl, d.atl]), 1);
+  const W = 100, H = 40;
+  const px = (i: number) => ((i / (data.length - 1)) * W).toFixed(2);
+  const py = (v: number) => (H - (v / maxV) * (H - 2) - 1).toFixed(2);
+  const mkPath = (key: 'ctl' | 'atl') =>
+    data.map((d, i) => `${i === 0 ? 'M' : 'L'}${px(i)},${py(d[key])}`).join(' ');
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12 mt-1" preserveAspectRatio="none">
+      <path d={mkPath('ctl')} fill="none" stroke="#6366f1" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={mkPath('atl')} fill="none" stroke="#f97316" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
 
 const HomePage = () => {
   const { user } = useAuth();
@@ -18,6 +36,8 @@ const HomePage = () => {
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
   const [marking, setMarking] = useState<number | null>(null);
   const [weeklyTrend, setWeeklyTrend] = useState<number[]>([]);
+  const [intensityWeeks, setIntensityWeeks] = useState<IntensityWeek[]>([]);
+  const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
 
   const iso = (d: Date) => d.toISOString().substring(0,10);
   const weekStartISO = () => {
@@ -58,7 +78,7 @@ const HomePage = () => {
       const { data: activities7 } = await supabase.from('strava_activities').select('activity_id, start_date, name, distance_m, sport_type').eq('user_id', user.id).gte('start_date', since7).order('start_date', { ascending: false }).limit(5);
       setRecentActivities(activities7 || []);
       const { data: activities28 } = await supabase.from('strava_activities').select('distance_m, start_date').eq('user_id', user.id).gte('start_date', since28);
-      const { data: workouts28 } = await supabase.from('workouts').select('distance_km, workout_date').eq('user_id', user.id).gte('workout_date', since28);
+      const { data: workouts28 } = await supabase.from('workouts').select('distance_km, workout_date, explanation_json, is_completed').eq('user_id', user.id).gte('workout_date', since28);
 
       const planKmWeek = (workoutsWeek||[]).reduce((a,w)=> a + (w.distance_km||0),0);
       const actKmWeek = (activities7||[]).filter(a=>a.start_date>=wStart).reduce((a,a2)=> a + ((a2.distance_m||0)/1000),0);
@@ -78,6 +98,75 @@ const HomePage = () => {
         weekBlocks.push(parseFloat((wkAct+wkW).toFixed(1)));
       }
       setWeeklyTrend(weekBlocks);
+
+      // Intensity distribution (completed workouts by zone)
+      const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+      const fmtD = (d: Date) => `${d.getDate()} ${months[d.getMonth()]}`;
+      const iWeeks: IntensityWeek[] = [];
+      for (let i = 3; i >= 0; i--) {
+        const start = new Date(Date.now() - (i+1)*7*86400000);
+        const end   = new Date(start.getTime() + 7*86400000);
+        const sISO  = iso(start); const eISO = iso(end);
+        const label = `${fmtD(start)}–${fmtD(new Date(end.getTime()-86400000))}`;
+        let kmZ1 = 0, kmZ4 = 0, kmZ5 = 0;
+        for (const w of (workouts28 || [])) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (!(w as any).is_completed) continue;
+          if (w.workout_date < sISO || w.workout_date >= eISO) continue;
+          const km = (w.distance_km || 0) as number;
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const type: string = (w as any).explanation_json?.type || '';
+          if (type === 'suave' || type === 'largo') kmZ1 += km;
+          else if (type === 'umbral' || type === 'tempo') kmZ4 += km;
+          else if (type === 'series') kmZ5 += km;
+        }
+        iWeeks.push({ label, kmZ1, kmZ4, kmZ5, total: kmZ1 + kmZ4 + kmZ5 });
+      }
+      setIntensityWeeks(iWeeks);
+
+      // ── Fitness model CTL/ATL/TSB (last 90 days) ───────────────
+      const since90 = iso(new Date(Date.now() - 90 * 86400000));
+      const { data: workouts90 } = await supabase
+        .from('workouts')
+        .select('distance_km, workout_date, explanation_json, is_completed')
+        .eq('user_id', user.id)
+        .gte('workout_date', since90);
+
+      // Daily TSS: km × intensity factor (Z1=1.0, Z4=2.5, Z5=3.5)
+      const tssMap: Record<string, number> = {};
+      for (const w of (workouts90 || [])) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        if (!(w as any).is_completed) continue;
+        const km = (w.distance_km || 0) as number;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const type: string = (w as any).explanation_json?.type || '';
+        const factor = (type === 'umbral' || type === 'tempo') ? 2.5
+                     : type === 'series' ? 3.5
+                     : 1.0;
+        const d = w.workout_date as string;
+        tssMap[d] = (tssMap[d] || 0) + km * factor;
+      }
+
+      // EMA: CTL τ=42 days, ATL τ=7 days
+      let ctl = 0, atl = 0;
+      const kCtl = 1 / 42, kAtl = 1 / 7;
+      const fitnessHistory: { ctl: number; atl: number }[] = [];
+      for (let di = 89; di >= 0; di--) {
+        const dayDate = iso(new Date(Date.now() - di * 86400000));
+        const tss = tssMap[dayDate] || 0;
+        ctl = ctl * (1 - kCtl) + tss * kCtl;
+        atl = atl * (1 - kAtl) + tss * kAtl;
+        fitnessHistory.push({ ctl: parseFloat(ctl.toFixed(2)), atl: parseFloat(atl.toFixed(2)) });
+      }
+
+      if (ctl >= 0.3) {
+        setFitnessData({
+          ctl:     parseFloat(ctl.toFixed(1)),
+          atl:     parseFloat(atl.toFixed(1)),
+          tsb:     parseFloat((ctl - atl).toFixed(1)),
+          history: fitnessHistory,
+        });
+      }
 
       if (planId) {
         const { data: planWorkouts } = await supabase.from('workouts').select('id,is_completed,workout_date,description,distance_km,plan_id').eq('plan_id', planId);
@@ -220,6 +309,142 @@ const HomePage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Intensity distribution panel */}
+            {intensityWeeks.some(w => w.total > 0) && (
+              <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-emerald-300 via-teal-200 to-cyan-300 shadow">
+                <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-800">Distribución de intensidad polarizada</h2>
+                      <p className="text-xs text-gray-500 mt-0.5">Entrenamientos completados · últimas 4 semanas</p>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs flex-wrap">
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0"/><span className="text-gray-600">Z1 Fácil/Largo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-400 inline-block shrink-0"/><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0"/><span className="text-gray-600">Z5 Series</span></span>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {intensityWeeks.map((week, idx) => {
+                      if (week.total === 0) return (
+                        <div key={idx} className="flex items-center gap-3">
+                          <span className="text-[11px] text-gray-400 w-24 text-right shrink-0">{week.label}</span>
+                          <div className="flex-1 h-4 rounded-full bg-gray-100" />
+                          <span className="text-[11px] text-gray-400 w-12 shrink-0" />
+                          <span className="text-[11px] text-gray-300 w-14 text-right shrink-0">sin datos</span>
+                        </div>
+                      );
+                      const tot = week.total;
+                      const pZ1 = Math.round(week.kmZ1 / tot * 100);
+                      const pZ4 = Math.round(week.kmZ4 / tot * 100);
+                      const pZ5 = Math.round(week.kmZ5 / tot * 100);
+                      const onTarget = pZ1 >= 80;
+                      return (
+                        <div key={idx}>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] text-gray-500 w-24 text-right shrink-0">{week.label}</span>
+                            <div className="flex-1 h-4 rounded-full overflow-hidden bg-gray-100 flex">
+                              {week.kmZ1 > 0 && <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(week.kmZ1/tot)*100}%` }} title={`Z1: ${week.kmZ1.toFixed(1)} km`} />}
+                              {week.kmZ4 > 0 && <div className="h-full bg-orange-400 transition-all" style={{ width: `${(week.kmZ4/tot)*100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
+                              {week.kmZ5 > 0 && <div className="h-full bg-red-400 transition-all"    style={{ width: `${(week.kmZ5/tot)*100}%` }} title={`Z5: ${week.kmZ5.toFixed(1)} km`} />}
+                            </div>
+                            <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">{tot.toFixed(1)} km</span>
+                            <span className={`text-[10px] font-bold w-14 text-right shrink-0 ${onTarget ? 'text-emerald-600' : 'text-amber-600'}`}>
+                              {pZ1}% Z1
+                            </span>
+                          </div>
+                          <div className="flex gap-4 mt-0.5 pl-[108px] text-[10px]">
+                            {week.kmZ1 > 0 && <span className="text-emerald-600">Z1 {week.kmZ1.toFixed(1)} km ({pZ1}%)</span>}
+                            {week.kmZ4 > 0 && <span className="text-orange-500">Z4 {week.kmZ4.toFixed(1)} km ({pZ4}%)</span>}
+                            {week.kmZ5 > 0 && <span className="text-red-500">Z5 {week.kmZ5.toFixed(1)} km ({pZ5}%)</span>}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
+                    <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
+                    <span>
+                      Objetivo <span className="font-semibold text-gray-700">polarizado / noruego</span>:
+                      {' '}<span className="text-emerald-700 font-semibold">≥80% km en Z1</span> (fácil/largo) ·
+                      {' '}<span className="text-orange-600 font-semibold">≤20% en Z4-Z5</span> (umbral/series)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fitness model: CTL / ATL / TSB */}
+            {fitnessData && (
+              <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-violet-300 via-purple-200 to-indigo-300 shadow">
+                <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
+                    <div>
+                      <h2 className="text-lg font-semibold text-gray-800">Forma física</h2>
+                      <p className="text-xs text-gray-500 mt-0.5">Fitness crónico · fatiga aguda · balance — últimos 90 días</p>
+                    </div>
+                    <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full ${
+                      fitnessData.tsb >  10 ? 'bg-sky-100 text-sky-700'       :
+                      fitnessData.tsb >   0 ? 'bg-emerald-100 text-emerald-700' :
+                      fitnessData.tsb > -15 ? 'bg-green-100 text-green-700'   :
+                      fitnessData.tsb > -30 ? 'bg-amber-100 text-amber-700'   :
+                                              'bg-red-100 text-red-700'
+                    }`}>
+                      {fitnessData.tsb >  10 ? 'Fresco · listo para competir'    :
+                       fitnessData.tsb >   0 ? 'En forma'                         :
+                       fitnessData.tsb > -15 ? 'Entrenando bien'                  :
+                       fitnessData.tsb > -30 ? 'Carga alta · descansa pronto'     :
+                                               'Riesgo sobreentrenamiento'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 mb-4">
+                    <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500 mb-0.5">CTL</div>
+                      <div className="text-2xl font-bold text-indigo-700">{fitnessData.ctl}</div>
+                      <div className="text-[10px] text-indigo-400 mt-0.5">fitness crónico</div>
+                    </div>
+                    <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 text-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-500 mb-0.5">ATL</div>
+                      <div className="text-2xl font-bold text-orange-600">{fitnessData.atl}</div>
+                      <div className="text-[10px] text-orange-400 mt-0.5">fatiga aguda</div>
+                    </div>
+                    <div className={`rounded-xl border p-3 text-center ${
+                      fitnessData.tsb >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'
+                    }`}>
+                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${
+                        fitnessData.tsb >= 0 ? 'text-emerald-500' : 'text-amber-500'
+                      }`}>TSB</div>
+                      <div className={`text-2xl font-bold ${fitnessData.tsb >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                        {fitnessData.tsb > 0 ? '+' : ''}{fitnessData.tsb}
+                      </div>
+                      <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                        balance
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-gray-50 rounded-xl px-3 pt-2 pb-1">
+                    <div className="flex justify-between text-[9px] text-gray-400 mb-0.5">
+                      <span>90 días atrás</span>
+                      <span className="flex items-center gap-3">
+                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-indigo-400 inline-block"/>CTL</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-orange-400 inline-block"/>ATL</span>
+                      </span>
+                      <span>hoy</span>
+                    </div>
+                    <FitnessChart data={fitnessData.history} />
+                  </div>
+
+                  <p className="text-[10px] text-gray-400 mt-3">
+                    CTL = media ponderada 42 días · ATL = media ponderada 7 días · TSB = CTL − ATL · basado en km × factor de zona (Z1×1 / Z4×2.5 / Z5×3.5)
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Main sections */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">

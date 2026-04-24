@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { supabase } from '../lib/supabaseClient';
 import { Race } from './RacesPage';
+import WeeklyAnalysis from '../components/WeeklyAnalysis';
 
 // Definimos los tipos para el plan y los entrenamientos
 interface Workout {
@@ -41,12 +42,15 @@ const TrainingPlanPage = () => {
   const [loading, setLoading] = useState(false);
   const [loadingPlan, setLoadingPlan] = useState(false);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
+  const [planMeta, setPlanMeta] = useState<any | null>(null);
+  const [profileZones, setProfileZones] = useState<{ z1_sec_km: number; z4_sec_km: number; z5_sec_km: number } | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [versionPreview, setVersionPreview] = useState<any | null>(null);
   const [modalWorkout, setModalWorkout] = useState<any | null>(null);
   const [showModal, setShowModal] = useState(false);
   // Mostrar/ocultar configuración avanzada al crear nuevo plan
+  const [methodology, setMethodology] = useState<'polarized' | 'norwegian' | 'classic'>('polarized');
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
   // Estados para modales de feedback
   const [progressModal, setProgressModal] = useState(false);
@@ -127,14 +131,21 @@ const TrainingPlanPage = () => {
         .select('*')
         .eq('user_id', user.id)
         .order('date', { ascending: true });
-      
-      if (error) {
-        console.error('Error fetching races:', error);
-      } else {
-        setRaces(data);
+      if (error) { console.error('Error fetching races:', error); } else { setRaces(data); }
+    };
+    const fetchProfileZones = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('z1_pace_sec_km, z4_pace_sec_km, z5_pace_sec_km')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      if (data?.z1_pace_sec_km && data?.z4_pace_sec_km && data?.z5_pace_sec_km) {
+        setProfileZones({ z1_sec_km: data.z1_pace_sec_km, z4_sec_km: data.z4_pace_sec_km, z5_sec_km: data.z5_pace_sec_km });
       }
     };
     fetchRaces();
+    fetchProfileZones();
   }, [user]);
 
   const fetchPlanForRace = useCallback(async (raceId: string) => {
@@ -223,7 +234,9 @@ const TrainingPlanPage = () => {
               time_seconds: parseTimeToSeconds(lastRaceTime)
             } : null,
             target_time: targetRaceTime || null,
-            target_time_seconds: parseTimeToSeconds(targetRaceTime)
+            target_time_seconds: parseTimeToSeconds(targetRaceTime),
+            methodology,
+            stored_zones: profileZones || undefined,
           }
         },
       });
@@ -319,6 +332,7 @@ const TrainingPlanPage = () => {
 
   // 3. Volver a cargar el plan desde la BD para mostrarlo
   await fetchPlanForRace(selectedRace);
+  setPlanMeta(functionResponse.meta || null);
 
   // 4. Notificar al calendario que hay nuevos workouts
   window.dispatchEvent(new Event('workouts-changed'));
@@ -345,7 +359,26 @@ const TrainingPlanPage = () => {
       // Llamar nuevamente a la función IA para nueva versión completa
       const race = races.find(r => r.id === parseInt(selectedRace,10));
       if (!race) throw new Error('Carrera no encontrada');
-      const { data: functionResponse, error: functionError } = await supabase.functions.invoke('generate-plan', { body: { race, goal } });
+      const { data: functionResponse, error: functionError } = await supabase.functions.invoke('generate-plan', {
+        body: {
+          race,
+          goal,
+          config: {
+            run_days_per_week: runDays,
+            include_strength: includeStrength,
+            strength_days_per_week: includeStrength ? strengthDays : 0,
+            last_race: hasPreviousMark ? {
+              distance_km: parseFloat(lastRaceDistance) || null,
+              time: lastRaceTime || null,
+              time_seconds: parseTimeToSeconds(lastRaceTime)
+            } : null,
+            target_time: targetRaceTime || null,
+            target_time_seconds: parseTimeToSeconds(targetRaceTime),
+            methodology,
+            stored_zones: profileZones || undefined,
+          }
+        }
+      });
       if (functionError || !functionResponse?.plan) throw new Error(functionError?.message || 'Respuesta IA inválida');
       const meta = functionResponse.meta || {};
       // Guardar snapshot previo en versions
@@ -395,6 +428,7 @@ const TrainingPlanPage = () => {
         await supabase.from('workouts').insert(toInsert);
       }
       await fetchPlanForRace(selectedRace);
+      setPlanMeta(functionResponse.meta || null);
       window.dispatchEvent(new Event('workouts-changed'));
   setResultModal({ success: true, message: 'Plan regenerado desde hoy preservando histórico.' });
     } catch (err:any) {
@@ -483,14 +517,18 @@ const TrainingPlanPage = () => {
 
         {!loadingPlan && selectedRace && plan && (
           <div>
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex justify-between items-center mb-4">
               <div>
                 <h2 className="text-2xl font-bold text-gray-800">Plan para {selectedRaceDetails?.name}</h2>
                 <p className="text-gray-600">Objetivo: {plan.goal}</p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                  {planMeta?.methodology && (
+                    <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
+                      {planMeta.methodology === 'polarized' ? 'Polarizado (Seiler)' : planMeta.methodology === 'norwegian' ? 'Método Noruego' : 'Clásico'}
+                    </span>
+                  )}
                   {plan.model && <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded">Modelo: {plan.model}</span>}
-                  {plan.attempts != null && <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded">Intentos: {plan.attempts}</span>}
-                  {plan.used_fallback && <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">Fallback</span>}
+                  {plan.used_fallback && <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded">Algoritmo local</span>}
                   {plan.openai_error && <span className="bg-red-100 text-red-600 px-2 py-1 rounded" title={plan.openai_error}>Error IA</span>}
                 </div>
               </div>
@@ -511,6 +549,64 @@ const TrainingPlanPage = () => {
                 </button>
               </div>
             </div>
+
+            {/* Zonas de entrenamiento personalizadas */}
+            {planMeta?.zones && (
+              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-blue-800 mb-3">Tus zonas de entrenamiento personalizadas</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-green-100 rounded-lg p-2 text-center">
+                    <div className="font-bold text-green-800 text-sm">Z1 Fácil</div>
+                    <div className="text-green-700 font-mono mt-1">{planMeta.zones.z1}</div>
+                    <div className="text-green-600 mt-1">Conversacional · 80% vol</div>
+                  </div>
+                  <div className="bg-yellow-100 rounded-lg p-2 text-center">
+                    <div className="font-bold text-yellow-800 text-sm">Z4 Umbral</div>
+                    <div className="text-yellow-700 font-mono mt-1">{planMeta.zones.z4}</div>
+                    <div className="text-yellow-600 mt-1">≈ Ritmo 10k · LT2</div>
+                  </div>
+                  <div className="bg-red-100 rounded-lg p-2 text-center">
+                    <div className="font-bold text-red-800 text-sm">Z5 VO2max</div>
+                    <div className="text-red-700 font-mono mt-1">{planMeta.zones.z5}</div>
+                    <div className="text-red-600 mt-1">≈ Ritmo 5k · 20% vol</div>
+                  </div>
+                  <div className="bg-purple-100 rounded-lg p-2 text-center">
+                    <div className="font-bold text-purple-800 text-sm">Objetivo</div>
+                    <div className="text-purple-700 font-mono mt-1">{planMeta.zones.race}</div>
+                    <div className="text-purple-600 mt-1">Ritmo de carrera</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Fases del plan */}
+            {planMeta?.phases && planMeta.phases.length > 0 && (
+              <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Periodización del plan</h3>
+                <div className="flex flex-wrap gap-2">
+                  {planMeta.phases.map((ph: any) => {
+                    const colors: Record<string, string> = {
+                      base: 'bg-teal-100 text-teal-800 border-teal-300',
+                      desarrollo: 'bg-blue-100 text-blue-800 border-blue-300',
+                      especifico: 'bg-orange-100 text-orange-800 border-orange-300',
+                      taper: 'bg-purple-100 text-purple-800 border-purple-300',
+                    };
+                    const labels: Record<string, string> = {
+                      base: 'Base aeróbica',
+                      desarrollo: 'Desarrollo',
+                      especifico: 'Específico',
+                      taper: 'Taper',
+                    };
+                    return (
+                      <span key={ph.name} className={`text-xs px-3 py-1 rounded-full border font-medium ${colors[ph.name] || 'bg-gray-100 text-gray-700'}`}>
+                        {labels[ph.name] || ph.name} · sem {ph.startWeek}–{ph.endWeek}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
             <ul className="space-y-4">
               {plan.workouts.map((day) => (
                 <li key={day.id} className="p-4 border border-gray-200 rounded-lg flex justify-between items-start cursor-pointer hover:bg-gray-50"
@@ -539,10 +635,43 @@ const TrainingPlanPage = () => {
                   <p className="text-gray-800 font-medium mb-4">{modalWorkout.description}</p>
                   {modalWorkout.explanation_json && (
                     <div className="space-y-3 text-sm">
-                      {modalWorkout.explanation_json.type && <p><span className="font-semibold">Tipo:</span> {modalWorkout.explanation_json.type}</p>}
+                      <div className="flex flex-wrap gap-2 mb-1">
+                        {modalWorkout.explanation_json.phase && (() => {
+                          const phaseColors: Record<string, string> = {
+                            base: 'bg-teal-100 text-teal-700',
+                            desarrollo: 'bg-blue-100 text-blue-700',
+                            especifico: 'bg-orange-100 text-orange-700',
+                            taper: 'bg-purple-100 text-purple-700',
+                          };
+                          const phaseLabels: Record<string, string> = {
+                            base: 'Fase Base', desarrollo: 'Fase Desarrollo',
+                            especifico: 'Fase Específica', taper: 'Taper',
+                          };
+                          return (
+                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColors[modalWorkout.explanation_json.phase] || 'bg-gray-100 text-gray-600'}`}>
+                              {phaseLabels[modalWorkout.explanation_json.phase] || modalWorkout.explanation_json.phase}
+                            </span>
+                          );
+                        })()}
+                        {modalWorkout.explanation_json.type && (
+                          <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
+                            {modalWorkout.explanation_json.type}
+                          </span>
+                        )}
+                      </div>
                       {modalWorkout.explanation_json.purpose && <p><span className="font-semibold">Objetivo:</span> {modalWorkout.explanation_json.purpose}</p>}
-                      {modalWorkout.explanation_json.details && <p><span className="font-semibold">Cómo hacerlo:</span> {modalWorkout.explanation_json.details}</p>}
-                      {modalWorkout.explanation_json.intensity && <p><span className="font-semibold">Intensidad:</span> {modalWorkout.explanation_json.intensity}</p>}
+                      {modalWorkout.explanation_json.details && (
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <span className="font-semibold block mb-1">Cómo ejecutarlo:</span>
+                          <span className="text-gray-700">{modalWorkout.explanation_json.details}</span>
+                        </div>
+                      )}
+                      {modalWorkout.explanation_json.intensity && (
+                        <p className="bg-orange-50 border border-orange-200 rounded px-3 py-2">
+                          <span className="font-semibold text-orange-800">Zona / Ritmo: </span>
+                          <span className="text-orange-700 font-mono">{modalWorkout.explanation_json.intensity}</span>
+                        </p>
+                      )}
                     </div>
                   )}
                   {!modalWorkout.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
@@ -591,6 +720,12 @@ const TrainingPlanPage = () => {
                 </div>
               )}
             </div>
+
+            {/* Análisis semanal inteligente */}
+            <WeeklyAnalysis
+              planId={plan.id}
+              onWorkoutsChanged={() => fetchPlanForRace(selectedRace)}
+            />
           </div>
         )}
 
@@ -610,21 +745,85 @@ const TrainingPlanPage = () => {
 
               {showAdvancedConfig && (
                 <div className="space-y-6 mb-8">
+                  <fieldset className="border border-orange-200 rounded-lg p-4 bg-orange-50/30">
+                    <legend className="text-sm font-semibold text-orange-700 px-2">Metodología de Entrenamiento</legend>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+                      {([
+                        {
+                          value: 'polarized',
+                          label: 'Polarizado',
+                          desc: '80% fácil Z1 · 20% alta intensidad Z4-Z5. Sin zona media. Máxima evidencia científica (Seiler).'
+                        },
+                        {
+                          value: 'norwegian',
+                          label: 'Noruego',
+                          desc: '2 sesiones de umbral/semana. Todo lo demás en Z1 estricto. (Bakken / Ingebrigtsen).'
+                        },
+                        {
+                          value: 'classic',
+                          label: 'Clásico',
+                          desc: 'Series martes · Tempo jueves · Largo domingo. Progresión lineal tradicional.'
+                        }
+                      ] as const).map(m => (
+                        <label
+                          key={m.value}
+                          className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${
+                            methodology === m.value
+                              ? 'border-orange-500 bg-orange-50'
+                              : 'border-gray-200 bg-white hover:border-orange-300'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="radio"
+                              name="methodology"
+                              value={m.value}
+                              checked={methodology === m.value}
+                              onChange={() => setMethodology(m.value)}
+                              className="accent-orange-500"
+                            />
+                            <span className="font-semibold text-sm text-gray-800">{m.label}</span>
+                          </div>
+                          <span className="text-xs text-gray-500 ml-5">{m.desc}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </fieldset>
+
                   <fieldset className="border border-gray-200 rounded-lg p-4">
                     <legend className="text-sm font-semibold text-gray-600 px-2">Disponibilidad Running</legend>
                     <label className="block text-sm text-gray-700 mb-1">Días por semana que puedes correr</label>
                     <input type="number" min={2} max={7} value={runDays} onChange={e=>setRunDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded bg-white text-gray-800" />
                   </fieldset>
 
-                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3">
-                    <legend className="text-sm font-semibold text-gray-600 px-2">Fuerza</legend>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={includeStrength} onChange={e=>setIncludeStrength(e.target.checked)} /> Incluir entrenos de fuerza
+                  <fieldset className="border border-indigo-200 rounded-lg p-4 space-y-3 bg-indigo-50/40">
+                    <legend className="text-sm font-semibold text-indigo-700 px-2">Fuerza running-specific</legend>
+                    <label className="flex items-center gap-2 text-sm cursor-pointer">
+                      <input type="checkbox" checked={includeStrength} onChange={e=>setIncludeStrength(e.target.checked)} className="accent-indigo-600" />
+                      <span>Incluir entrenamiento de fuerza en el plan</span>
                     </label>
                     {includeStrength && (
-                      <div>
-                        <label className="block text-sm text-gray-700 mb-1">Días de fuerza por semana</label>
-                        <input type="number" min={1} max={3} value={strengthDays} onChange={e=>setStrengthDays(parseInt(e.target.value,10))} className="w-24 p-2 border rounded bg-white text-gray-800" />
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-sm text-gray-700 mb-1">Sesiones de fuerza por semana</label>
+                          <div className="flex gap-2">
+                            {[1, 2, 3].map(d => (
+                              <button key={d} type="button"
+                                onClick={() => setStrengthDays(d)}
+                                className={`w-10 h-10 rounded-lg text-sm font-semibold border transition-colors ${strengthDays === d ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'}`}>
+                                {d}
+                              </button>
+                            ))}
+                          </div>
+                          <p className="text-[11px] text-indigo-600 mt-1.5">
+                            {strengthDays === 1 && 'Sesión única: cadena posterior + core (S1)'}
+                            {strengthDays === 2 && 'S1 cadena posterior pesada · S2 explosivo + core'}
+                            {strengthDays === 3 && 'S1 posterior pesada · S2 explosivo + upper · S3 single-leg + estabilidad lateral'}
+                          </p>
+                        </div>
+                        <p className="text-[11px] text-gray-500">
+                          El plan incluirá rutinas detalladas periodizadas por fase (base excéntrica → desarrollo fuerza máxima → específico pliometría), avaladas por la evidencia científica.
+                        </p>
                       </div>
                     )}
                   </fieldset>
@@ -659,6 +858,32 @@ const TrainingPlanPage = () => {
                   </fieldset>
                 </div>
               )}
+              {/* Mostrar zonas calibradas del perfil si están disponibles */}
+              {profileZones && (
+                <div className="mb-5 p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm">
+                  <p className="text-teal-800 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
+                  <div className="flex flex-wrap gap-3 text-xs">
+                    {[
+                      { label: 'Z1 Fácil', sec: profileZones.z1_sec_km },
+                      { label: 'Z4 Umbral', sec: profileZones.z4_sec_km },
+                      { label: 'Z5 VO2max', sec: profileZones.z5_sec_km },
+                    ].map(z => {
+                      const mm = Math.floor(z.sec / 60);
+                      const ss = Math.round(z.sec % 60).toString().padStart(2, '0');
+                      return (
+                        <span key={z.label} className="bg-white border border-teal-200 rounded px-2 py-1 font-mono text-teal-700">
+                          {z.label}: {mm}:{ss}/km
+                        </span>
+                      );
+                    })}
+                  </div>
+                  <p className="text-teal-600 mt-1.5 text-xs">
+                    Se usarán como referencia al generar tu plan.
+                    {!targetRaceTime && ' Añade un tiempo objetivo en la configuración avanzada para zonas específicas de carrera.'}
+                  </p>
+                </div>
+              )}
+
               <div className="mb-6">
                 <label htmlFor="goal" className="block text-lg font-medium text-gray-700 mb-2">
                   ¿Cuál es tu objetivo?
