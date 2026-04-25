@@ -346,6 +346,7 @@ export interface FallbackMesocycleParams {
   phases: PhaseInfo[];
   taperWeeks: number;
   runDays: number;
+  runDaysOfWeek: number[] | null;       // specific weekdays 0=Sun..6=Sat; null = auto
   includeStrength: boolean;
   strengthDaysOfWeek: number[] | null;  // weekdays 0=Sun..6=Sat; null = auto-place
   strengthDaysCount: number;            // used when strengthDaysOfWeek is null
@@ -357,7 +358,7 @@ export interface FallbackMesocycleParams {
 export function buildFallbackMesocycle(p: FallbackMesocycleParams): { plan: PlanDay[] } {
   const {
     startISO, endISO, totalWeeks, mesocycleStartWeek, phases, taperWeeks,
-    runDays, includeStrength, strengthDaysOfWeek, strengthDaysCount,
+    runDays, runDaysOfWeek, includeStrength, strengthDaysOfWeek, strengthDaysCount,
     distKm, methodology, zones,
   } = p;
 
@@ -398,22 +399,54 @@ export function buildFallbackMesocycle(p: FallbackMesocycleParams): { plan: Plan
     interface DayPlan { desc: string; type: string; purpose: string; details: string; intensity: string | null }
     const dayPlans: Record<number, DayPlan> = {};
 
-    const qualDays: number[] = [];
+    // ── Run day set ──────────────────────────────────────────
+    // Standard quality days (tue/thu) are computed first for reference
+    const stdQualDays: number[] = [];
     if (hasQuality) {
-      qualDays.push(tuesdayWd);
+      stdQualDays.push(tuesdayWd);
       if (methodology === 'norwegian' || (runDays >= 4 && phase.name !== 'base')) {
-        qualDays.push(thursdayWd);
+        stdQualDays.push(thursdayWd);
       }
     }
-    const runDaySet = new Set<number>([...qualDays, sundayWd]);
-    const fillOrder = [wdFor(1), wdFor(3), wdFor(5), wdFor(6), wdFor(0), wdFor(2), wdFor(4)];
-    for (const wd of fillOrder) {
-      if (runDaySet.size >= runDays) break;
-      if (!runDaySet.has(wd)) runDaySet.add(wd);
+
+    let runDaySet: Set<number>;
+    if (runDaysOfWeek && runDaysOfWeek.length > 0) {
+      runDaySet = new Set(runDaysOfWeek.map(dow => wdFor(dow)));
+    } else {
+      runDaySet = new Set<number>([...stdQualDays, sundayWd]);
+      const fillOrder = [wdFor(1), wdFor(3), wdFor(5), wdFor(6), wdFor(0), wdFor(2), wdFor(4)];
+      for (const wd of fillOrder) {
+        if (runDaySet.size >= runDays) break;
+        if (!runDaySet.has(wd)) runDaySet.add(wd);
+      }
+    }
+
+    // Determine effective long-run day (Sunday if available, else last in week)
+    const sortedRunDays = Array.from(runDaySet).sort((a, b) => a - b);
+    const longRunDay = runDaySet.has(sundayWd)
+      ? sundayWd
+      : sortedRunDays[sortedRunDays.length - 1];
+
+    // Effective quality days: prefer standard days if they're in the set,
+    // otherwise pick middle / non-adjacent days from the set
+    let effQ1: number | undefined;
+    let effQ2: number | undefined;
+    if (hasQuality) {
+      const nonLong = sortedRunDays.filter(d => d !== longRunDay);
+      effQ1 = nonLong.includes(tuesdayWd)
+        ? tuesdayWd
+        : nonLong.length > 0 ? nonLong[Math.floor(nonLong.length / 2)] : undefined;
+      if (stdQualDays.length >= 2) {
+        const preferThursday = nonLong.includes(thursdayWd) && thursdayWd !== effQ1;
+        effQ2 = preferThursday
+          ? thursdayWd
+          : nonLong.find(d => d !== effQ1 && (effQ1 === undefined || Math.abs(d - effQ1) >= 2))
+            ?? nonLong.find(d => d !== effQ1);
+      }
     }
 
     for (const wd of Array.from(runDaySet)) {
-      if (wd === sundayWd) {
+      if (wd === longRunDay) {
         dayPlans[wd] = {
           desc: `Largo ${longRunKm}km`,
           type: 'largo',
@@ -421,7 +454,7 @@ export function buildFallbackMesocycle(p: FallbackMesocycleParams): { plan: Plan
           details: `${longRunKm}km completamente en Z1 (${zones?.z1 || 'ritmo conversacional'}). Hidrata cada 20-25min.`,
           intensity: zones?.z1 ?? 'Z1 — conversacional',
         };
-      } else if (wd === tuesdayWd && hasQuality) {
+      } else if (effQ1 !== undefined && wd === effQ1 && hasQuality) {
         if (methodology === 'norwegian') {
           dayPlans[wd] = {
             desc: `Umbral ${qualReps1}×1000m`,
@@ -439,7 +472,7 @@ export function buildFallbackMesocycle(p: FallbackMesocycleParams): { plan: Plan
             intensity: zones?.z5 ?? 'Z5 — VO2max',
           };
         }
-      } else if (wd === thursdayWd && hasQuality && qualDays.includes(thursdayWd)) {
+      } else if (effQ2 !== undefined && wd === effQ2 && hasQuality) {
         if (methodology === 'norwegian') {
           dayPlans[wd] = {
             desc: `Umbral ${qualReps2}×1000m`,

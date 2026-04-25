@@ -76,6 +76,9 @@ export const generateNextMesocycle = onCall(
     // ── 4. Plan config ──────────────────────────────────────────
     const goal             = (plan.goal as string) || '';
     const runDays          = Math.min(Math.max(Number(plan.run_days_per_week) || 4, 2), 7);
+    const runDaysOfWeek    = Array.isArray(plan.run_days_of_week)
+      ? (plan.run_days_of_week as number[])
+      : null;
     const includeStrength  = !!plan.include_strength;
     const strengthDaysOfWeek = Array.isArray(plan.strength_days_of_week)
       ? (plan.strength_days_of_week as number[])
@@ -154,7 +157,9 @@ FORMATO:
 
 PLAN: ${race.name} · ${distKm || '?'}km · ${race.date} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: ${nextMesoNumber} de ${totalMesocycles} — SOLO desde ${nextStartISO} hasta ${nextEndISO} (semanas ${mesoStartWeek}-${mesoStartWeek + mesoLenWeeks - 1} del plan completo)
-Días running/sem: ${runDays} · ${strengthNote}
+${runDaysOfWeek && runDaysOfWeek.length > 0
+  ? `Días FIJOS de running: ${runDaysOfWeek.map(d => ['dom','lun','mar','mié','jue','vie','sáb'][d]).join(', ')} — NO asignar running en otros días.`
+  : `Días running/sem: ${runDays}`} · ${strengthNote}
 Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 
 ${zonesBlock}
@@ -241,6 +246,7 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         phases,
         taperWeeks,
         runDays,
+        runDaysOfWeek:      runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
         includeStrength,
         strengthDaysOfWeek: strengthDaysOfWeek ?? null,
         strengthDaysCount,

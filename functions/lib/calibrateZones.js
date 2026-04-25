@@ -34,11 +34,55 @@ function median(arr) {
 }
 // ── Function ─────────────────────────────────────────────────
 exports.calibrateZones = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public' }, async (request) => {
-    var _a;
+    var _a, _b;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
     const db = (0, firestore_1.getFirestore)();
+    const { manual_race_km, manual_race_sec } = ((_b = request.data) !== null && _b !== void 0 ? _b : {});
+    // ── Manual calibration path ──────────────────────────────
+    if (manual_race_km && manual_race_sec && manual_race_km > 0 && manual_race_sec > 0) {
+        const p10kSec = (manual_race_sec * Math.pow(10 / manual_race_km, 1.06)) / 10;
+        const p5kSec = (manual_race_sec * Math.pow(5 / manual_race_km, 1.06)) / 5;
+        const z1Final = Math.round(p10kSec * 1.28);
+        const z4Final = Math.round(p10kSec * 1.02);
+        const z5Final = Math.round(p5kSec * 0.95);
+        const estimated5kSec = Math.round(p5kSec * 5);
+        const estimated10kSec = Math.round(p10kSec * 10);
+        await db.collection('users').doc(uid).set({
+            z1_pace_sec_km: z1Final,
+            z4_pace_sec_km: z4Final,
+            z5_pace_sec_km: z5Final,
+            estimated_5k_sec: estimated5kSec,
+            estimated_10k_sec: estimated10kSec,
+            zones_confidence: 'alta',
+            zones_activities: null,
+            zones_calibrated_at: new Date().toISOString(),
+            zones_source: 'manual',
+            updated_at: firestore_1.FieldValue.serverTimestamp(),
+        }, { merge: true });
+        function fmt(totalSec) {
+            const m = Math.floor(totalSec / 60);
+            const s = Math.round(totalSec % 60).toString().padStart(2, '0');
+            return `${m}:${s}`;
+        }
+        return {
+            success: true,
+            source: 'manual',
+            zones: {
+                z1: { sec_km: z1Final, display: secToMinStr(z1Final), label: 'Fácil / Aeróbico Z1' },
+                z4: { sec_km: z4Final, display: secToMinStr(z4Final), label: 'Umbral / LT2 Z4' },
+                z5: { sec_km: z5Final, display: secToMinStr(z5Final), label: 'VO2max Z5' },
+            },
+            estimates: {
+                time_5k: { sec: estimated5kSec, display: fmt(estimated5kSec) },
+                time_10k: { sec: estimated10kSec, display: fmt(estimated10kSec) },
+            },
+            confidence: 'alta',
+            calibrated_at: new Date().toISOString(),
+            note: 'Zonas calculadas desde tu marca personal. Son las más precisas para tu plan.',
+        };
+    }
     // ── 1. Fetch running activities (last 90 days) ───────────
     const since90 = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
     const actSnap = await db
@@ -166,6 +210,7 @@ exports.calibrateZones = (0, https_1.onCall)({ region: 'europe-west1', cors: tru
     }
     return {
         success: true,
+        source: 'strava',
         zones: {
             z1: { sec_km: z1Final, display: secToMinStr(z1Final), label: 'Fácil / Aeróbico Z1' },
             z4: { sec_km: z4Final, display: secToMinStr(z4Final), label: 'Umbral / LT2 Z4' },

@@ -303,8 +303,8 @@ Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
     };
 }
 function buildFallbackMesocycle(p) {
-    var _a, _b, _c, _d, _e, _f;
-    const { startISO, endISO, totalWeeks, mesocycleStartWeek, phases, taperWeeks, runDays, includeStrength, strengthDaysOfWeek, strengthDaysCount, distKm, methodology, zones, } = p;
+    var _a, _b, _c, _d, _e, _f, _g;
+    const { startISO, endISO, totalWeeks, mesocycleStartWeek, phases, taperWeeks, runDays, runDaysOfWeek, includeStrength, strengthDaysOfWeek, strengthDaysCount, distKm, methodology, zones, } = p;
     const days = [];
     const start = new Date(startISO + 'T00:00:00Z');
     const end = new Date(endISO + 'T00:00:00Z');
@@ -333,39 +333,68 @@ function buildFallbackMesocycle(p) {
         const qualReps1 = Math.round((4 + prog * 4) * volScale);
         const qualReps2 = Math.round((4 + prog * 4) * volScale);
         const dayPlans = {};
-        const qualDays = [];
+        // ── Run day set ──────────────────────────────────────────
+        // Standard quality days (tue/thu) are computed first for reference
+        const stdQualDays = [];
         if (hasQuality) {
-            qualDays.push(tuesdayWd);
+            stdQualDays.push(tuesdayWd);
             if (methodology === 'norwegian' || (runDays >= 4 && phase.name !== 'base')) {
-                qualDays.push(thursdayWd);
+                stdQualDays.push(thursdayWd);
             }
         }
-        const runDaySet = new Set([...qualDays, sundayWd]);
-        const fillOrder = [wdFor(1), wdFor(3), wdFor(5), wdFor(6), wdFor(0), wdFor(2), wdFor(4)];
-        for (const wd of fillOrder) {
-            if (runDaySet.size >= runDays)
-                break;
-            if (!runDaySet.has(wd))
-                runDaySet.add(wd);
+        let runDaySet;
+        if (runDaysOfWeek && runDaysOfWeek.length > 0) {
+            runDaySet = new Set(runDaysOfWeek.map(dow => wdFor(dow)));
+        }
+        else {
+            runDaySet = new Set([...stdQualDays, sundayWd]);
+            const fillOrder = [wdFor(1), wdFor(3), wdFor(5), wdFor(6), wdFor(0), wdFor(2), wdFor(4)];
+            for (const wd of fillOrder) {
+                if (runDaySet.size >= runDays)
+                    break;
+                if (!runDaySet.has(wd))
+                    runDaySet.add(wd);
+            }
+        }
+        // Determine effective long-run day (Sunday if available, else last in week)
+        const sortedRunDays = Array.from(runDaySet).sort((a, b) => a - b);
+        const longRunDay = runDaySet.has(sundayWd)
+            ? sundayWd
+            : sortedRunDays[sortedRunDays.length - 1];
+        // Effective quality days: prefer standard days if they're in the set,
+        // otherwise pick middle / non-adjacent days from the set
+        let effQ1;
+        let effQ2;
+        if (hasQuality) {
+            const nonLong = sortedRunDays.filter(d => d !== longRunDay);
+            effQ1 = nonLong.includes(tuesdayWd)
+                ? tuesdayWd
+                : nonLong.length > 0 ? nonLong[Math.floor(nonLong.length / 2)] : undefined;
+            if (stdQualDays.length >= 2) {
+                const preferThursday = nonLong.includes(thursdayWd) && thursdayWd !== effQ1;
+                effQ2 = preferThursday
+                    ? thursdayWd
+                    : (_a = nonLong.find(d => d !== effQ1 && (effQ1 === undefined || Math.abs(d - effQ1) >= 2))) !== null && _a !== void 0 ? _a : nonLong.find(d => d !== effQ1);
+            }
         }
         for (const wd of Array.from(runDaySet)) {
-            if (wd === sundayWd) {
+            if (wd === longRunDay) {
                 dayPlans[wd] = {
                     desc: `Largo ${longRunKm}km`,
                     type: 'largo',
                     purpose: 'Resistencia aeróbica, eficiencia metabólica y adaptación muscular',
                     details: `${longRunKm}km completamente en Z1 (${(zones === null || zones === void 0 ? void 0 : zones.z1) || 'ritmo conversacional'}). Hidrata cada 20-25min.`,
-                    intensity: (_a = zones === null || zones === void 0 ? void 0 : zones.z1) !== null && _a !== void 0 ? _a : 'Z1 — conversacional',
+                    intensity: (_b = zones === null || zones === void 0 ? void 0 : zones.z1) !== null && _b !== void 0 ? _b : 'Z1 — conversacional',
                 };
             }
-            else if (wd === tuesdayWd && hasQuality) {
+            else if (effQ1 !== undefined && wd === effQ1 && hasQuality) {
                 if (methodology === 'norwegian') {
                     dayPlans[wd] = {
                         desc: `Umbral ${qualReps1}×1000m`,
                         type: 'umbral',
                         purpose: 'Desarrollo del umbral anaeróbico (LT2, ~4mmol lactato)',
                         details: `Calentamiento 15min Z1. ${qualReps1}×1000m a ${(zones === null || zones === void 0 ? void 0 : zones.z4) || 'ritmo 10k'}. Recuperación 90-120s al trote suave. Enfriamiento 10min Z1.`,
-                        intensity: (_b = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _b !== void 0 ? _b : 'Z4 — umbral LT2',
+                        intensity: (_c = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _c !== void 0 ? _c : 'Z4 — umbral LT2',
                     };
                 }
                 else {
@@ -374,18 +403,18 @@ function buildFallbackMesocycle(p) {
                         type: 'series',
                         purpose: 'Desarrollo del VO2max y economía de carrera',
                         details: `Calentamiento 15min Z1. ${qualReps1}×4min a ${(zones === null || zones === void 0 ? void 0 : zones.z5) || 'ritmo 5k'} con recuperación activa de 4min al trote. Enfriamiento 10min Z1.`,
-                        intensity: (_c = zones === null || zones === void 0 ? void 0 : zones.z5) !== null && _c !== void 0 ? _c : 'Z5 — VO2max',
+                        intensity: (_d = zones === null || zones === void 0 ? void 0 : zones.z5) !== null && _d !== void 0 ? _d : 'Z5 — VO2max',
                     };
                 }
             }
-            else if (wd === thursdayWd && hasQuality && qualDays.includes(thursdayWd)) {
+            else if (effQ2 !== undefined && wd === effQ2 && hasQuality) {
                 if (methodology === 'norwegian') {
                     dayPlans[wd] = {
                         desc: `Umbral ${qualReps2}×1000m`,
                         type: 'umbral',
                         purpose: '2ª sesión de umbral semanal — método noruego doble umbral',
                         details: `Calentamiento 15min Z1. ${qualReps2}×1000m a ${(zones === null || zones === void 0 ? void 0 : zones.z4) || 'ritmo 10k'}. Recuperación 90s trote. Enfriamiento 10min Z1.`,
-                        intensity: (_d = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _d !== void 0 ? _d : 'Z4 — umbral LT2',
+                        intensity: (_e = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _e !== void 0 ? _e : 'Z4 — umbral LT2',
                     };
                 }
                 else {
@@ -395,7 +424,7 @@ function buildFallbackMesocycle(p) {
                         type: 'tempo',
                         purpose: 'Umbral aeróbico, eficiencia a ritmo de competición',
                         details: `Calentamiento 10min Z1. ${tempoKm}km continuos a ${(zones === null || zones === void 0 ? void 0 : zones.z4) || 'ritmo 10k-HM'}. Enfriamiento 10min Z1.`,
-                        intensity: (_e = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _e !== void 0 ? _e : 'Z4 — tempo',
+                        intensity: (_f = zones === null || zones === void 0 ? void 0 : zones.z4) !== null && _f !== void 0 ? _f : 'Z4 — tempo',
                     };
                 }
             }
@@ -406,7 +435,7 @@ function buildFallbackMesocycle(p) {
                     type: 'suave',
                     purpose: 'Base aeróbica, recuperación activa y adaptación músculo-esquelética',
                     details: `${km}km en Z1 a ${(zones === null || zones === void 0 ? void 0 : zones.z1) || 'ritmo conversacional'}. Mantén una conversación fluida.`,
-                    intensity: (_f = zones === null || zones === void 0 ? void 0 : zones.z1) !== null && _f !== void 0 ? _f : 'Z1 — fácil',
+                    intensity: (_g = zones === null || zones === void 0 ? void 0 : zones.z1) !== null && _g !== void 0 ? _g : 'Z1 — fácil',
                 };
             }
         }
