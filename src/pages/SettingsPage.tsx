@@ -16,6 +16,7 @@ interface ZoneProfile {
   zones_confidence: 'alta' | 'media' | 'baja' | null;
   zones_activities: number | null;
   zones_calibrated_at: string | null;
+  zones_source?: 'manual' | 'strava' | null;
 }
 
 function secKmToDisplay(sec: number): string {
@@ -49,6 +50,10 @@ const SettingsPage = () => {
   const [zoneProfile, setZoneProfile] = useState<ZoneProfile | null>(null);
   const [calibrating, setCalibrating] = useState(false);
   const [calibrationMsg, setCalibrationMsg] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
+  // Manual calibration inputs
+  const [manualDistKm, setManualDistKm] = useState<string>('10');
+  const [manualTime, setManualTime] = useState<string>('');
+  const [showManualForm, setShowManualForm] = useState(false);
 
   const verifyStravaConnection = useCallback(async () => {
     if (!user) return;
@@ -90,6 +95,7 @@ const SettingsPage = () => {
         zones_confidence:  d.zones_confidence  ?? null,
         zones_activities:  d.zones_activities  ?? null,
         zones_calibrated_at: d.zones_calibrated_at ?? null,
+        zones_source:      d.zones_source ?? null,
       });
     }
   }, [user]);
@@ -127,6 +133,42 @@ const SettingsPage = () => {
     } catch { /* silencioso */ } finally {
       await deleteDoc(doc(db, 'users', user.uid, 'strava_tokens', 'default'));
       setIsStravaConnected(false);
+    }
+  };
+
+  function parseTimeToSeconds(input: string): number | null {
+    if (!input) return null;
+    const parts = input.trim().split(':').map(p => parseInt(p, 10));
+    if (parts.some(isNaN)) return null;
+    if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    if (parts.length === 2) return parts[0] * 60 + parts[1];
+    return null;
+  }
+
+  const handleCalibrateManual = async () => {
+    const km = parseFloat(manualDistKm);
+    const sec = parseTimeToSeconds(manualTime);
+    if (!km || km <= 0 || !sec || sec <= 0) {
+      setCalibrationMsg({ type: 'error', text: 'Introduce una distancia y tiempo válidos (ej: 10km en 52:30).' });
+      return;
+    }
+    setCalibrating(true);
+    setCalibrationMsg(null);
+    try {
+      const calibrateZonesFn = httpsCallable(functions, 'calibrateZones');
+      const result = await calibrateZonesFn({ manual_race_km: km, manual_race_sec: sec });
+      const data = result.data as any;
+      if (!data.success) {
+        setCalibrationMsg({ type: 'error', text: data.message || 'Error al calibrar.' });
+        return;
+      }
+      await loadZoneProfile();
+      setCalibrationMsg({ type: 'success', text: `Zonas calibradas desde tu marca de ${km}km. Confianza: alta.` });
+      setShowManualForm(false);
+    } catch (e: unknown) {
+      setCalibrationMsg({ type: 'error', text: e instanceof Error ? e.message : 'Error desconocido' });
+    } finally {
+      setCalibrating(false);
     }
   };
 
@@ -202,19 +244,61 @@ const SettingsPage = () => {
               Se usan automáticamente al generar planes cuando no tienes un tiempo objetivo definido.
             </p>
           </div>
-          <button
-            onClick={handleCalibrateZones}
-            disabled={calibrating || !isStravaConnected}
-            title={!isStravaConnected ? 'Conecta Strava primero' : undefined}
-            className="flex-shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {calibrating ? 'Calculando…' : hasZones ? 'Recalibrar zonas' : 'Calibrar zonas desde Strava'}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={handleCalibrateZones}
+              disabled={calibrating || !isStravaConnected}
+              title={!isStravaConnected ? 'Conecta Strava primero' : undefined}
+              className="flex-shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {calibrating ? 'Calculando…' : hasZones ? 'Recalibrar desde Strava' : 'Calibrar desde Strava'}
+            </button>
+            <button
+              onClick={() => setShowManualForm(s => !s)}
+              disabled={calibrating}
+              className="flex-shrink-0 px-4 py-2 bg-white border border-gray-300 hover:border-orange-400 text-gray-700 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+            >
+              Introducir marca personal
+            </button>
+          </div>
         </div>
 
-        {!isStravaConnected && (
+        {/* Manual calibration form */}
+        {showManualForm && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+            <p className="text-sm font-semibold text-blue-800 mb-1">Calibrar desde marca personal</p>
+            <p className="text-xs text-blue-700 mb-3">Introduce tu mejor marca reciente en una carrera o test. Es más preciso que el análisis de entrenamientos.</p>
+            <div className="flex flex-wrap items-end gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Distancia</label>
+                <select value={manualDistKm} onChange={e => setManualDistKm(e.target.value)}
+                  className="p-2 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm">
+                  <option value="5">5 km</option>
+                  <option value="10">10 km</option>
+                  <option value="15">15 km</option>
+                  <option value="21.0975">Media maratón</option>
+                  <option value="42.195">Maratón</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Tiempo (MM:SS o H:MM:SS)</label>
+                <input type="text" placeholder="52:30" value={manualTime} onChange={e => setManualTime(e.target.value)}
+                  className="w-32 p-2 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm placeholder-gray-400" />
+              </div>
+              <button
+                onClick={handleCalibrateManual}
+                disabled={calibrating || !manualTime}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+              >
+                {calibrating ? 'Calculando…' : 'Calibrar zonas'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {!isStravaConnected && !showManualForm && (
           <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600 mb-4">
-            Conecta tu cuenta de Strava para calibrar tus zonas de entrenamiento.
+            Conecta Strava para calibrar automáticamente, o introduce una marca personal con el botón de arriba.
           </div>
         )}
 
@@ -237,7 +321,12 @@ const SettingsPage = () => {
                   Confianza {zoneProfile.zones_confidence}
                 </span>
               )}
-              {zoneProfile.zones_activities && (
+              {zoneProfile.zones_source === 'manual' && (
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                  Desde marca personal
+                </span>
+              )}
+              {zoneProfile.zones_source === 'strava' && zoneProfile.zones_activities && (
                 <span className="text-xs text-gray-500">
                   {zoneProfile.zones_activities} actividades analizadas
                 </span>

@@ -45,9 +45,11 @@ const TrainingPlanPage = () => {
   const [selectedRace, setSelectedRace] = useState('');
   const [goal, setGoal] = useState('');
   const [runDays, setRunDays] = useState<number>(4);
+  const [runDaysOfWeek, setRunDaysOfWeek] = useState<number[]>([]); // optional specific days (empty = auto)
   const [includeStrength, setIncludeStrength] = useState<boolean>(false);
+  const [strengthDaysCount, setStrengthDaysCount] = useState<number>(2);
   // Strength: specific weekdays (0=Sun..6=Sat)
-  const [strengthDaysOfWeek, setStrengthDaysOfWeek] = useState<number[]>([1, 4]); // Mon + Thu default
+  const [strengthDaysOfWeek, setStrengthDaysOfWeek] = useState<number[]>([]); // optional (empty = auto)
   const [hasPreviousMark, setHasPreviousMark] = useState<boolean>(false);
   const [lastRaceDistance, setLastRaceDistance] = useState<string>('');
   const [lastRaceTime, setLastRaceTime] = useState<string>('');
@@ -198,9 +200,10 @@ const TrainingPlanPage = () => {
         goal,
         config: {
           run_days_per_week:      runDays,
+          run_days_of_week:       runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
           include_strength:       includeStrength,
-          strength_days_of_week:  includeStrength ? strengthDaysOfWeek : [],
-          strength_days_per_week: includeStrength ? strengthDaysOfWeek.length : 0,
+          strength_days_of_week:  includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+          strength_days_per_week: includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
           last_race: hasPreviousMark ? {
             distance_km:  parseFloat(lastRaceDistance) || null,
             time:         lastRaceTime || null,
@@ -237,9 +240,10 @@ const TrainingPlanPage = () => {
         used_fallback:              meta.fallback ?? null,
         openai_error:               meta.openAiError || null,
         run_days_per_week:          runDays,
+        run_days_of_week:           runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
         include_strength:           includeStrength,
-        strength_days_of_week:      includeStrength ? strengthDaysOfWeek : null,
-        strength_days_per_week:     includeStrength ? strengthDaysOfWeek.length : null,
+        strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+        strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
         last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
         last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
         target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
@@ -334,9 +338,10 @@ const TrainingPlanPage = () => {
         goal,
         config: {
           run_days_per_week:      runDays,
+          run_days_of_week:       runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
           include_strength:       includeStrength,
-          strength_days_of_week:  includeStrength ? strengthDaysOfWeek : [],
-          strength_days_per_week: includeStrength ? strengthDaysOfWeek.length : 0,
+          strength_days_of_week:  includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+          strength_days_per_week: includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
           last_race: hasPreviousMark ? {
             distance_km:  parseFloat(lastRaceDistance) || null,
             time:         lastRaceTime || null,
@@ -466,6 +471,12 @@ const TrainingPlanPage = () => {
     setProgressModal(true);
     setLoading(true);
     void handleGeneratePlan();
+  };
+
+  const toggleRunDay = (dow: number) => {
+    setRunDaysOfWeek(prev =>
+      prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort()
+    );
   };
 
   const toggleStrengthDay = (dow: number) => {
@@ -778,10 +789,35 @@ const TrainingPlanPage = () => {
                   </fieldset>
 
                   {/* Run days */}
-                  <fieldset className="border border-gray-200 rounded-lg p-4">
+                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3">
                     <legend className="text-sm font-semibold text-gray-600 px-2">Disponibilidad Running</legend>
-                    <label className="block text-sm text-gray-700 mb-1">Días por semana que puedes correr</label>
-                    <input type="number" min={2} max={7} value={runDays} onChange={e => setRunDays(parseInt(e.target.value, 10))} className="w-24 p-2 border rounded bg-white text-gray-800" />
+                    <div className="flex items-center gap-3">
+                      <label className="text-sm text-gray-700">Días de running por semana</label>
+                      <input type="number" min={2} max={7} value={runDaysOfWeek.length > 0 ? runDaysOfWeek.length : runDays}
+                        onChange={e => { setRunDays(parseInt(e.target.value, 10)); setRunDaysOfWeek([]); }}
+                        className="w-20 p-2 border rounded bg-white text-gray-800 text-center" />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, se distribuyen automáticamente)</label>
+                      <div className="flex gap-2 flex-wrap">
+                        {DAY_LABELS.map((label, dow) => (
+                          <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
+                            className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                              runDaysOfWeek.includes(dow)
+                                ? 'bg-orange-500 text-white border-orange-500'
+                                : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'
+                            }`}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {runDaysOfWeek.length > 0 && (
+                        <p className="text-xs text-orange-600 mt-2">
+                          Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                          <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
+                        </p>
+                      )}
+                    </div>
                   </fieldset>
 
                   {/* Strength */}
@@ -793,8 +829,24 @@ const TrainingPlanPage = () => {
                     </label>
                     {includeStrength && (
                       <div className="space-y-3">
+                        <div className="flex items-center gap-3">
+                          <label className="text-sm text-gray-700">Sesiones de fuerza por semana</label>
+                          <div className="flex gap-1">
+                            {[1, 2, 3].map(n => (
+                              <button key={n} type="button"
+                                onClick={() => { setStrengthDaysCount(n); setStrengthDaysOfWeek([]); }}
+                                className={`w-10 h-10 rounded-lg text-sm font-bold border-2 transition-colors ${
+                                  (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) === n
+                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                                }`}>
+                                {n}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <div>
-                          <label className="block text-sm text-gray-700 mb-2">Días de fuerza (elige los días de la semana)</label>
+                          <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, se distribuyen automáticamente)</label>
                           <div className="flex gap-2 flex-wrap">
                             {DAY_LABELS.map((label, dow) => (
                               <button key={dow} type="button"
@@ -810,9 +862,12 @@ const TrainingPlanPage = () => {
                           </div>
                           {strengthDaysOfWeek.length > 0 && (
                             <p className="text-xs text-indigo-600 mt-2">
+                              Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                              {' — '}
                               {strengthDaysOfWeek.length === 1 && 'Sesión única: cadena posterior + core'}
                               {strengthDaysOfWeek.length === 2 && 'S1 cadena posterior pesada · S2 explosivo + core'}
                               {strengthDaysOfWeek.length >= 3 && 'S1 posterior pesada · S2 explosivo · S3 single-leg + estabilidad'}
+                              <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
                             </p>
                           )}
                         </div>
