@@ -92,9 +92,13 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
         : methodology === 'classic'
             ? `PERIODIZACIÓN CLÁSICA: Series martes (Z5) · Tempo jueves (Z4) · Largo domingo (Z1).`
             : `MÉTODO POLARIZADO (Seiler): 80% vol Z1 puro, 20% en Z4-Z5. Máx 2 sesiones calidad/sem, nunca consecutivas.`;
+    const DAY_NAMES_ES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const strengthNote = includeStrength
-        ? `Fuerza running-specific: ${(strengthDaysOfWeek === null || strengthDaysOfWeek === void 0 ? void 0 : strengthDaysOfWeek.length) || strengthDaysCount} sesión/es semana.`
+        ? strengthDaysOfWeek && strengthDaysOfWeek.length > 0
+            ? `Fuerza FIJA los: ${strengthDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')} — NO poner fuerza en otros días.`
+            : `Fuerza: ${strengthDaysCount} sesión/es semana (días libres).`
         : 'Sin fuerza.';
+    const scheduleHint = (0, planHelpers_1.buildDayScheduleHint)(startISO, mesoEndISO, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null);
     const developerInstructions = `Eres un entrenador de running científico. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO:
@@ -103,7 +107,7 @@ FORMATO:
 PLAN COMPLETO (contexto): ${race.name} · ${distKm || '?'}km · ${raceISO} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: 1 de ${totalMesocycles} — SOLO desde ${startISO} hasta ${mesoEndISO} (${mesoLenWeeks} semanas)
 ${runDaysOfWeek && runDaysOfWeek.length > 0
-        ? `Días FIJOS de running: ${runDaysOfWeek.map(d => ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'][d]).join(', ')} — NO asignar running en otros días.`
+        ? `Running FIJO los: ${runDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')}`
         : `Días running/sem: ${runDays}`} · ${strengthNote}
 Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 Marca previa: ${(lastRace === null || lastRace === void 0 ? void 0 : lastRace.distance_km) ? `${lastRace.distance_km}km en ${lastRace.time || '?'}` : 'no disponible'}
@@ -114,7 +118,12 @@ FASES DEL PLAN COMPLETO:
 ${phasesBlock}
 
 ${methodologyBlock}
-
+${scheduleHint ? `
+CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
+${scheduleHint}
+Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
+Los días marcados FUERZA deben tener sesión de fuerza running-specific.
+Los días marcados Descanso deben ser descanso. NO cambies ningún día.` : ''}
 REGLAS (incumplir invalida el plan):
 1. Descarga cada 4ª semana (−25-30% volumen)
 2. Máx ${peakLongRun} en rodaje largo
@@ -205,6 +214,14 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
                 parsedPlan = JSON.parse(rawContent.slice(first, last + 1).trim());
             }
             catch ( /* ignore */_b) { /* ignore */ }
+        }
+    }
+    // Validate AI respected specific day constraints; force fallback if not
+    if ((parsedPlan === null || parsedPlan === void 0 ? void 0 : parsedPlan.plan) && Array.isArray(parsedPlan.plan)) {
+        const aiOk = (0, planHelpers_1.validateDayCompliance)(parsedPlan.plan, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null);
+        if (!aiOk) {
+            parsedPlan = null;
+            usedModel = null;
         }
     }
     if (!parsedPlan || !parsedPlan.plan || !Array.isArray(parsedPlan.plan)) {

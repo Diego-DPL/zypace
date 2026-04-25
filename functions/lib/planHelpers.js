@@ -6,6 +6,8 @@ exports.estimateZones = estimateZones;
 exports.computePhases = computePhases;
 exports.phaseForWeek = phaseForWeek;
 exports.strengthSession = strengthSession;
+exports.buildDayScheduleHint = buildDayScheduleHint;
+exports.validateDayCompliance = validateDayCompliance;
 exports.buildFallbackMesocycle = buildFallbackMesocycle;
 function secToMinStr(s) {
     const mm = Math.floor(s / 60);
@@ -301,6 +303,60 @@ BLOQUE C: Curl nórdico 3×5 | 3min descanso · Hip Thrust 3×10 | 2min descanso
 BLOQUE D: Calf raise excéntrico monopodal 3×12/pierna
 Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
     };
+}
+// ── Day schedule hint ─────────────────────────────────────────
+/** Returns a date-by-date schedule hint for the AI prompt.
+ *  Only generated when specific run or strength days are configured.
+ */
+function buildDayScheduleHint(startISO, endISO, runDaysOfWeek, strengthDaysOfWeek) {
+    const hasRunDays = runDaysOfWeek && runDaysOfWeek.length > 0;
+    const hasStrDays = strengthDaysOfWeek && strengthDaysOfWeek.length > 0;
+    if (!hasRunDays && !hasStrDays)
+        return null;
+    const DAY_NAMES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const start = new Date(startISO + 'T00:00:00Z');
+    const end = new Date(endISO + 'T00:00:00Z');
+    const lines = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+        const dow = cur.getUTCDay();
+        const date = cur.toISOString().split('T')[0];
+        let type;
+        if (hasRunDays && runDaysOfWeek.includes(dow))
+            type = 'RUNNING';
+        else if (hasStrDays && strengthDaysOfWeek.includes(dow))
+            type = 'FUERZA';
+        else
+            type = 'Descanso';
+        lines.push(`  ${date} (${DAY_NAMES[dow]}): ${type}`);
+        cur.setUTCDate(cur.getUTCDate() + 1);
+    }
+    return lines.join('\n');
+}
+/** Returns true if the AI plan sufficiently respects the requested day constraints. */
+function validateDayCompliance(plan, runDaysOfWeek, strengthDaysOfWeek) {
+    if ((!runDaysOfWeek || runDaysOfWeek.length === 0) &&
+        (!strengthDaysOfWeek || strengthDaysOfWeek.length === 0))
+        return true;
+    let violations = 0;
+    for (const day of plan) {
+        const dow = new Date(day.date + 'T00:00:00Z').getUTCDay();
+        const desc = (day.description || '').toLowerCase();
+        const isRest = /descanso|rest/.test(desc);
+        const isStrength = /fuerza/.test(desc);
+        const isRunning = !isRest && !isStrength;
+        if (runDaysOfWeek && runDaysOfWeek.length > 0) {
+            if (isRunning && !runDaysOfWeek.includes(dow))
+                violations++; // running on wrong day
+            if (isRest && runDaysOfWeek.includes(dow))
+                violations++; // rest on run day
+        }
+        if (strengthDaysOfWeek && strengthDaysOfWeek.length > 0) {
+            if (isStrength && !strengthDaysOfWeek.includes(dow))
+                violations++; // strength on wrong day
+        }
+    }
+    return violations <= Math.ceil(plan.length * 0.10); // allow ≤10% violations
 }
 function buildFallbackMesocycle(p) {
     var _a, _b, _c, _d, _e, _f, _g;

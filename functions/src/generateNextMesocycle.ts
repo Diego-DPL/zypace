@@ -10,6 +10,8 @@ import {
   secToMinStr, estimateZones,
   computePhases, phaseForWeek,
   buildFallbackMesocycle,
+  buildDayScheduleHint,
+  validateDayCompliance,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -146,9 +148,18 @@ export const generateNextMesocycle = onCall(
       ? `ZONAS: Z1=${zones.z1} · Z4=${zones.z4} · Z5=${zones.z5} · Objetivo=${zones.race}`
       : 'Sin zonas calibradas. Usar RPE: Z1=5/10, Z4=8/10, Z5=9-10/10.';
 
+    const DAY_NAMES_ES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const strengthNote = includeStrength
-      ? `Fuerza: ${strengthDaysOfWeek?.length || strengthDaysCount} sesión/es semana.`
+      ? strengthDaysOfWeek && strengthDaysOfWeek.length > 0
+        ? `Fuerza FIJA los: ${strengthDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')} — NO poner fuerza en otros días.`
+        : `Fuerza: ${strengthDaysCount} sesión/es semana (días libres).`
       : 'Sin fuerza.';
+
+    const scheduleHint = buildDayScheduleHint(
+      nextStartISO, nextEndISO,
+      runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+      strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+    );
 
     const developerInstructions = `Eres un entrenador de running científico. Devuelve SOLO JSON válido.
 
@@ -158,7 +169,7 @@ FORMATO:
 PLAN: ${race.name} · ${distKm || '?'}km · ${race.date} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: ${nextMesoNumber} de ${totalMesocycles} — SOLO desde ${nextStartISO} hasta ${nextEndISO} (semanas ${mesoStartWeek}-${mesoStartWeek + mesoLenWeeks - 1} del plan completo)
 ${runDaysOfWeek && runDaysOfWeek.length > 0
-  ? `Días FIJOS de running: ${runDaysOfWeek.map(d => ['dom','lun','mar','mié','jue','vie','sáb'][d]).join(', ')} — NO asignar running en otros días.`
+  ? `Running FIJO los: ${runDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')}`
   : `Días running/sem: ${runDays}`} · ${strengthNote}
 Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 
@@ -170,7 +181,12 @@ ${phasesBlock}
 RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
 
 METODOLOGÍA: ${ methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)' }
-
+${scheduleHint ? `
+CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
+${scheduleHint}
+Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
+Los días marcados FUERZA deben tener sesión de fuerza running-specific.
+Los días marcados Descanso deben ser descanso. NO cambies ningún día.` : ''}
 REGLAS:
 1. Descarga cada 4ª semana del plan (semana ${mesoStartWeek + 3} si aplica)
 2. Sin calidad en días consecutivos
@@ -235,6 +251,16 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         try { parsedPlan = JSON.parse(rawContent.slice(first, last + 1).trim()); }
         catch { /* ignore */ }
       }
+    }
+
+    // Validate AI respected specific day constraints; force fallback if not
+    if (parsedPlan?.plan && Array.isArray(parsedPlan.plan)) {
+      const aiOk = validateDayCompliance(
+        parsedPlan.plan,
+        runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+        strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+      );
+      if (!aiOk) { parsedPlan = null; usedModel = null; }
     }
 
     if (!parsedPlan || !parsedPlan.plan || !Array.isArray(parsedPlan.plan)) {
