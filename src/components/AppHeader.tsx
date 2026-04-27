@@ -42,8 +42,9 @@ const AppHeader = () => {
           <Link to="/app" className="text-xl sm:text-2xl font-bold tracking-tight text-orange-500">Zypace</Link>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
-          <Link to="/races" className="text-gray-600 hover:text-orange-500 transition-colors">Calendario</Link>
+          <Link to="/calendar" className="text-gray-600 hover:text-orange-500 transition-colors">Calendario</Link>
           <Link to="/training-plan" className="text-gray-600 hover:text-orange-500 transition-colors">Mi Plan</Link>
+          <Link to="/races" className="text-gray-600 hover:text-orange-500 transition-colors">Carreras</Link>
           <Link to="/settings" className="text-gray-600 hover:text-orange-500 transition-colors">Ajustes</Link>
         </nav>
         <div className="hidden md:flex items-center gap-4">
@@ -62,8 +63,9 @@ const AppHeader = () => {
       >
         <div className="px-4 pt-2 pb-4 space-y-4 text-sm bg-white/95 backdrop-blur">
           <div className="flex flex-col gap-2">
-            <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-gray-100 text-gray-700">Calendario</Link>
+            <Link onClick={() => setOpen(false)} to="/calendar" className="py-2 px-3 rounded hover:bg-gray-100 text-gray-700">Calendario</Link>
             <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-gray-100 text-gray-700">Mi Plan</Link>
+            <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-gray-100 text-gray-700">Carreras</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-gray-100 text-gray-700">Ajustes</Link>
           </div>
           <div className="border-t border-gray-100 pt-3 flex items-center justify-between">
