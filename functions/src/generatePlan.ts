@@ -69,6 +69,19 @@ export const generatePlan = onCall(
     const distKm      = Number(race.distance) || 0;
     const storedZones = config?.stored_zones as { z1_sec_km?: number; z4_sec_km?: number; z5_sec_km?: number } | null;
 
+    // ── Extended runner profile ─────────────────────────────────
+    const experienceLevel    = (config?.experience_level as string) || 'intermediate';
+    const ageRange           = (config?.age_range as string) || '30-39';
+    const currentWeeklyKm    = Number(config?.current_weekly_km) || 40;
+    const longestRecentRunKm = Number(config?.longest_recent_run_km) || 15;
+    const maxSessionMinutes  = Number(config?.max_session_minutes) || 90;
+    const preferredTime      = (config?.preferred_training_time as string) || 'any';
+    const hasRecentInjury    = !!config?.has_recent_injury;
+    const recentInjuryDetail = (config?.recent_injury_detail as string) || null;
+    const injuryAreas        = Array.isArray(config?.injury_areas) ? (config!.injury_areas as string[]) : [];
+    const raceTerrain        = (config?.race_terrain as string) || 'road';
+    const racePriority       = (config?.race_priority as string) || 'A';
+
     // ── Zones ───────────────────────────────────────────────────
     let zones: TrainingZones | null = null;
     let targetPace: string | null = null;
@@ -129,6 +142,40 @@ export const generatePlan = onCall(
         ? `PERIODIZACIÓN CLÁSICA: Series martes (Z5) · Tempo jueves (Z4) · Largo domingo (Z1).`
         : `MÉTODO POLARIZADO (Seiler): 80% vol Z1 puro, 20% en Z4-Z5. Máx 2 sesiones calidad/sem, nunca consecutivas.`;
 
+    // ── Runner profile block ─────────────────────────────────────
+    const expLabel = experienceLevel === 'beginner' ? 'Principiante (<1 año)' :
+                     experienceLevel === 'intermediate' ? 'Intermedio (1-3 años)' :
+                     experienceLevel === 'advanced' ? 'Avanzado (3+ años)' : 'Élite/Sub-élite';
+    const terrainLabel = raceTerrain === 'road' ? 'asfalto/ciudad' :
+                         raceTerrain === 'trail' ? 'trail/montaña (incluir subidas, técnica)' :
+                         raceTerrain === 'mixed' ? 'mixto asfalto+trail' : 'pista atletismo';
+    const priorityLabel = racePriority === 'A' ? 'Carrera A — objetivo principal, taper completo' :
+                          racePriority === 'B' ? 'Carrera B — objetivo secundario, taper parcial 3-4 días' :
+                          'Carrera C — entrenamiento con dorsales, sin taper';
+    const injuryBlock = (() => {
+      const parts: string[] = [];
+      if (hasRecentInjury) parts.push(`LESIÓN RECIENTE: "${recentInjuryDetail || 'sí, sin detalles'}" — carga inicial conservadora, sin series hasta semana 2`);
+      const areas = injuryAreas.filter(a => a !== 'Sin lesiones conocidas');
+      if (areas.length > 0) parts.push(`Zonas crónicas: ${areas.join(', ')} — incluir ejercicios preventivos específicos y evitar sobrecargar esas zonas`);
+      return parts.length > 0 ? parts.join('\n  ') : 'Sin lesiones ni limitaciones';
+    })();
+
+    const runnerProfileBlock = `PERFIL DEL CORREDOR:
+  • Nivel: ${expLabel}
+  • Edad: ${ageRange} años
+  • Volumen actual: ~${currentWeeklyKm} km/semana
+  • Rodaje largo reciente: ~${longestRecentRunKm} km
+  • Tiempo máximo/sesión: ${maxSessionMinutes} min — NO superar este límite en ninguna sesión
+  • Momento preferido: ${preferredTime === 'morning' ? 'mañana' : preferredTime === 'afternoon' ? 'tarde' : preferredTime === 'evening' ? 'noche' : 'flexible'}
+  • Terreno objetivo: ${terrainLabel}
+  • Prioridad carrera: ${priorityLabel}
+  • Lesiones: ${injuryBlock}`;
+
+    // ── Progression constraints derived from profile ────────────
+    const maxInitialLongRunKm  = Math.min(longestRecentRunKm + 2, longestRecentRunKm * 1.1);
+    const maxWeeklyKmFirstWeek = Math.round(currentWeeklyKm * (experienceLevel === 'beginner' ? 0.85 : 1.0));
+    const maxSessionNote = `Ninguna sesión supere ${maxSessionMinutes} minutos — ritmo de rodaje ajustado a este límite.`;
+
     const DAY_NAMES_ES = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
     const strengthNote = includeStrength
       ? strengthDaysOfWeek && strengthDaysOfWeek.length > 0
@@ -142,7 +189,7 @@ export const generatePlan = onCall(
       strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
     );
 
-    const developerInstructions = `Eres un entrenador de running científico. Devuelve SOLO JSON válido, sin texto antes o después.
+    const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO:
 {"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso|fuerza","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
@@ -152,8 +199,19 @@ MESOCICLO A GENERAR: 1 de ${totalMesocycles} — SOLO desde ${startISO} hasta ${
 ${runDaysOfWeek && runDaysOfWeek.length > 0
   ? `Running FIJO los: ${runDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')}`
   : `Días running/sem: ${runDays}`} · ${strengthNote}
-Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
+Objetivo corredor: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 Marca previa: ${lastRace?.distance_km ? `${lastRace.distance_km}km en ${lastRace.time || '?'}` : 'no disponible'}
+
+${runnerProfileBlock}
+
+RESTRICCIONES DE CARGA INICIALES:
+• Semana 1 máx ~${maxWeeklyKmFirstWeek} km totales (no superar volumen actual de golpe)
+• Rodaje largo semana 1 máx ~${Math.round(maxInitialLongRunKm)} km
+• ${maxSessionNote}
+${hasRecentInjury ? '• LESIÓN RECIENTE: primera semana sin series ni calidad — solo rodajes suaves y fuerza preventiva' : ''}
+${raceTerrain === 'trail' ? '• TRAIL: incluir al menos 1 sesión/semana con subidas o terreno técnico, rodajes de montaña en Z1' : ''}
+${raceTerrain === 'track' ? '• PISTA: mayor énfasis en series de velocidad y trabajo a ritmo de carrera' : ''}
+${racePriority === 'C' ? '• CARRERA C: no hay taper — última semana igual que las anteriores, sin reducción de carga' : ''}
 
 ${zonesBlock}
 
@@ -173,6 +231,8 @@ REGLAS (incumplir invalida el plan):
 3. Sin sesiones calidad en días consecutivos (48h mínimo entre ellas)
 4. Fase BASE: cero calidad, 100% Z1
 5. Rodajes suaves SIEMPRE en Z1
+6. Adaptar complejidad de las sesiones al nivel ${expLabel}
+7. Respetar el tiempo máximo de sesión de ${maxSessionMinutes} min
 
 Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
 

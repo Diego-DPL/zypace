@@ -66,7 +66,17 @@ const TrainingPlanPage = () => {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [versionPreview, setVersionPreview] = useState<any | null>(null);
   const [methodology, setMethodology] = useState<'polarized' | 'norwegian' | 'classic'>('polarized');
-  const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+  const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced' | 'elite'>('intermediate');
+  const [ageRange, setAgeRange] = useState<string>('30-39');
+  const [currentWeeklyKm, setCurrentWeeklyKm] = useState<number>(30);
+  const [longestRecentRunKm, setLongestRecentRunKm] = useState<number>(12);
+  const [maxSessionMinutes, setMaxSessionMinutes] = useState<number>(90);
+  const [preferredTrainingTime, setPreferredTrainingTime] = useState<'morning' | 'afternoon' | 'evening' | 'any'>('any');
+  const [hasRecentInjury, setHasRecentInjury] = useState<boolean>(false);
+  const [recentInjuryDetail, setRecentInjuryDetail] = useState<string>('');
+  const [injuryAreas, setInjuryAreas] = useState<string[]>([]);
+  const [raceTerrain, setRaceTerrain] = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
+  const [racePriority, setRacePriority] = useState<'A' | 'B' | 'C'>('A');
   const [progressModal, setProgressModal] = useState(false);
   const [progressMessageIndex, setProgressMessageIndex] = useState(0);
   const progressMessages = [
@@ -216,6 +226,17 @@ const TrainingPlanPage = () => {
           target_time_seconds: parseTimeToSeconds(targetRaceTime),
           methodology,
           stored_zones: profileZones || undefined,
+          experience_level: experienceLevel,
+          age_range: ageRange,
+          current_weekly_km: currentWeeklyKm,
+          longest_recent_run_km: longestRecentRunKm,
+          max_session_minutes: maxSessionMinutes,
+          preferred_training_time: preferredTrainingTime,
+          has_recent_injury: hasRecentInjury,
+          recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
+          injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
+          race_terrain: raceTerrain,
+          race_priority: racePriority,
         },
       });
 
@@ -354,6 +375,17 @@ const TrainingPlanPage = () => {
           target_time_seconds: parseTimeToSeconds(targetRaceTime),
           methodology,
           stored_zones: profileZones || undefined,
+          experience_level: experienceLevel,
+          age_range: ageRange,
+          current_weekly_km: currentWeeklyKm,
+          longest_recent_run_km: longestRecentRunKm,
+          max_session_minutes: maxSessionMinutes,
+          preferred_training_time: preferredTrainingTime,
+          has_recent_injury: hasRecentInjury,
+          recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
+          injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
+          race_terrain: raceTerrain,
+          race_priority: racePriority,
         },
       });
 
@@ -485,6 +517,12 @@ const TrainingPlanPage = () => {
   const toggleStrengthDay = (dow: number) => {
     setStrengthDaysOfWeek(prev =>
       prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort()
+    );
+  };
+
+  const toggleInjuryArea = (area: string) => {
+    setInjuryAreas(prev =>
+      prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]
     );
   };
 
@@ -703,163 +741,382 @@ const TrainingPlanPage = () => {
         {/* Plan creation form */}
         {!loadingPlan && selectedRace && !plan && (
           <div>
-            <h2 className="text-2xl font-bold text-gray-800 mb-6">Crea tu plan personalizado</h2>
-            <form onSubmit={(e) => { e.preventDefault(); startGeneration(); }}>
-              <div className="mb-4">
-                <button type="button" onClick={() => setShowAdvancedConfig(s => !s)}
-                  className="text-sm text-orange-600 hover:text-orange-700 font-medium">
-                  {showAdvancedConfig ? 'Ocultar configuración avanzada' : 'Mostrar configuración avanzada'}
-                </button>
-              </div>
+            <div className="mb-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-1">Configura tu plan personalizado</h2>
+              <p className="text-sm text-gray-500">Completa tu perfil para que el entrenador IA genere un plan completamente adaptado a ti.</p>
+            </div>
+            <form onSubmit={(e) => { e.preventDefault(); startGeneration(); }} className="space-y-6">
 
-              {showAdvancedConfig && (
-                <div className="space-y-6 mb-8">
-                  {/* Methodology */}
-                  <fieldset className="border border-orange-200 rounded-lg p-4 bg-orange-50/30">
-                    <legend className="text-sm font-semibold text-orange-700 px-2">Metodología de Entrenamiento</legend>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-2">
+              {/* SECTION 1: Perfil del corredor */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-white">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
+                  <h3 className="text-base font-semibold text-gray-800">Tu perfil como corredor</h3>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nivel de experiencia</label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {([
-                        { value: 'polarized', label: 'Polarizado', desc: '80% fácil Z1 · 20% alta intensidad. Máxima evidencia científica (Seiler).' },
-                        { value: 'norwegian', label: 'Noruego',    desc: '2 sesiones de umbral/semana. Todo lo demás Z1 estricto (Ingebrigtsen).' },
-                        { value: 'classic',   label: 'Clásico',    desc: 'Series martes · Tempo jueves · Largo domingo. Progresión lineal.' },
-                      ] as const).map(m => (
-                        <label key={m.value}
-                          className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                        { value: 'beginner',     label: 'Principiante',    desc: 'Menos de 1 año corriendo' },
+                        { value: 'intermediate', label: 'Intermedio',      desc: '1–3 años, hasta 10k' },
+                        { value: 'advanced',     label: 'Avanzado',        desc: '3+ años, medias y maratones' },
+                        { value: 'elite',        label: 'Élite/Sub-élite', desc: 'Competitivo, alto volumen' },
+                      ] as const).map(lvl => (
+                        <label key={lvl.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
                           <div className="flex items-center gap-2">
-                            <input type="radio" name="methodology" value={m.value} checked={methodology === m.value} onChange={() => setMethodology(m.value)} className="accent-orange-500" />
-                            <span className="font-semibold text-sm text-gray-800">{m.label}</span>
+                            <input type="radio" name="experienceLevel" value={lvl.value} checked={experienceLevel === lvl.value} onChange={() => setExperienceLevel(lvl.value)} className="accent-orange-500" />
+                            <span className="font-semibold text-sm text-gray-800">{lvl.label}</span>
                           </div>
-                          <span className="text-xs text-gray-500 ml-5">{m.desc}</span>
+                          <span className="text-xs text-gray-500 ml-5">{lvl.desc}</span>
                         </label>
                       ))}
                     </div>
-                  </fieldset>
-
-                  {/* Run days */}
-                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-3">
-                    <legend className="text-sm font-semibold text-gray-600 px-2">Disponibilidad Running</legend>
-                    <div className="flex items-center gap-3">
-                      <label className="text-sm text-gray-700">Días de running por semana</label>
-                      <input type="number" min={2} max={7} value={runDaysOfWeek.length > 0 ? runDaysOfWeek.length : runDays}
-                        onChange={e => { setRunDays(parseInt(e.target.value, 10)); setRunDaysOfWeek([]); }}
-                        className="w-20 p-2 border rounded bg-white text-gray-800 text-center" />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Rango de edad</label>
+                    <div className="flex flex-wrap gap-2">
+                      {['18-29', '30-39', '40-49', '50-59', '60+'].map(r => (
+                        <button key={r} type="button" onClick={() => setAgeRange(r)}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${ageRange === r ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'}`}>
+                          {r}
+                        </button>
+                      ))}
                     </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, se distribuyen automáticamente)</label>
-                      <div className="flex gap-2 flex-wrap">
-                        {DAY_LABELS.map((label, dow) => (
-                          <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
-                            className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
-                              runDaysOfWeek.includes(dow)
-                                ? 'bg-orange-500 text-white border-orange-500'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'
-                            }`}>
-                            {label}
-                          </button>
-                        ))}
-                      </div>
-                      {runDaysOfWeek.length > 0 && (
-                        <p className="text-xs text-orange-600 mt-2">
-                          Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                          <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
-                        </p>
-                      )}
-                    </div>
-                  </fieldset>
+                  </div>
+                </div>
+              </div>
 
-                  {/* Strength */}
-                  <fieldset className="border border-indigo-200 rounded-lg p-4 space-y-3 bg-indigo-50/40">
-                    <legend className="text-sm font-semibold text-indigo-700 px-2">Fuerza running-specific</legend>
+              {/* SECTION 2: Volumen actual */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-white">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
+                  <h3 className="text-base font-semibold text-gray-800">Tu entrenamiento actual</h3>
+                </div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Kilómetros por semana actualmente</label>
+                    <p className="text-xs text-gray-400 mb-2">Promedio real de las últimas 4–6 semanas</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: '< 20 km',   value: 15  },
+                        { label: '20–40 km',  value: 30  },
+                        { label: '40–60 km',  value: 50  },
+                        { label: '60–80 km',  value: 70  },
+                        { label: '80–100 km', value: 90  },
+                        { label: '> 100 km',  value: 110 },
+                      ].map(opt => (
+                        <button key={opt.value} type="button" onClick={() => setCurrentWeeklyKm(opt.value)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${currentWeeklyKm === opt.value ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Rodaje largo más reciente</label>
+                    <p className="text-xs text-gray-400 mb-2">Tu carrera más larga en el último mes</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: '< 10 km',  value: 8  },
+                        { label: '10–15 km', value: 12 },
+                        { label: '15–20 km', value: 17 },
+                        { label: '20–25 km', value: 22 },
+                        { label: '25–32 km', value: 28 },
+                        { label: '> 32 km',  value: 35 },
+                      ].map(opt => (
+                        <button key={opt.value} type="button" onClick={() => setLongestRecentRunKm(opt.value)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${longestRecentRunKm === opt.value ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo máximo por sesión de entrenamiento</label>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { label: '45 min',  value: 45  },
+                        { label: '60 min',  value: 60  },
+                        { label: '75 min',  value: 75  },
+                        { label: '90 min',  value: 90  },
+                        { label: '2 horas', value: 120 },
+                        { label: '2h 30+',  value: 150 },
+                      ].map(opt => (
+                        <button key={opt.value} type="button" onClick={() => setMaxSessionMinutes(opt.value)}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${maxSessionMinutes === opt.value ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-700 border-gray-300 hover:border-teal-400'}`}>
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 3: Disponibilidad semanal */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-5">
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
+                  <h3 className="text-base font-semibold text-gray-800">Tu disponibilidad semanal</h3>
+                </div>
+
+                {/* Running days */}
+                <fieldset className="space-y-3">
+                  <legend className="text-sm font-medium text-gray-700">Días de running por semana</legend>
+                  <div className="flex items-center gap-3">
+                    <input type="number" min={2} max={7} value={runDaysOfWeek.length > 0 ? runDaysOfWeek.length : runDays}
+                      onChange={e => { setRunDays(parseInt(e.target.value, 10)); setRunDaysOfWeek([]); }}
+                      className="w-20 p-2 border rounded bg-white text-gray-800 text-center" />
+                    <span className="text-sm text-gray-500">días/semana</span>
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, el entrenador los distribuye)</label>
+                    <div className="flex gap-2 flex-wrap">
+                      {DAY_LABELS.map((label, dow) => (
+                        <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
+                          className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                            runDaysOfWeek.includes(dow)
+                              ? 'bg-orange-500 text-white border-orange-500'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-orange-400'
+                          }`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {runDaysOfWeek.length > 0 && (
+                      <p className="text-xs text-orange-600 mt-2">
+                        Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                        <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
+                      </p>
+                    )}
+                  </div>
+                </fieldset>
+
+                {/* Strength */}
+                <fieldset className="space-y-3 pt-4 border-t border-gray-100">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <legend className="text-sm font-medium text-gray-700">Entrenamiento de fuerza running-specific</legend>
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600" />
-                      <span>Incluir entrenamiento de fuerza en el plan</span>
+                      <span className="text-indigo-700 font-medium">Incluir fuerza en el plan</span>
                     </label>
-                    {includeStrength && (
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-3">
-                          <label className="text-sm text-gray-700">Sesiones de fuerza por semana</label>
-                          <div className="flex gap-1">
-                            {[1, 2, 3].map(n => (
-                              <button key={n} type="button"
-                                onClick={() => { setStrengthDaysCount(n); setStrengthDaysOfWeek([]); }}
-                                className={`w-10 h-10 rounded-lg text-sm font-bold border-2 transition-colors ${
-                                  (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) === n
-                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
-                                }`}>
-                                {n}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, se distribuyen automáticamente)</label>
-                          <div className="flex gap-2 flex-wrap">
-                            {DAY_LABELS.map((label, dow) => (
-                              <button key={dow} type="button"
-                                onClick={() => toggleStrengthDay(dow)}
-                                className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
-                                  strengthDaysOfWeek.includes(dow)
-                                    ? 'bg-indigo-600 text-white border-indigo-600'
-                                    : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
-                                }`}>
-                                {label}
-                              </button>
-                            ))}
-                          </div>
-                          {strengthDaysOfWeek.length > 0 && (
-                            <p className="text-xs text-indigo-600 mt-2">
-                              Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                              {' — '}
-                              {strengthDaysOfWeek.length === 1 && 'Sesión única: cadena posterior + core'}
-                              {strengthDaysOfWeek.length === 2 && 'S1 cadena posterior pesada · S2 explosivo + core'}
-                              {strengthDaysOfWeek.length >= 3 && 'S1 posterior pesada · S2 explosivo · S3 single-leg + estabilidad'}
-                              <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
-                            </p>
-                          )}
-                        </div>
-                        <p className="text-[11px] text-gray-500">
-                          El plan incluirá rutinas detalladas periodizadas por fase (base excéntrica → desarrollo fuerza máxima → específico pliometría).
-                        </p>
-                      </div>
-                    )}
-                  </fieldset>
-
-                  {/* Previous mark */}
-                  <fieldset className="border border-gray-200 rounded-lg p-4 space-y-4">
-                    <legend className="text-sm font-semibold text-gray-600 px-2">Marca Anterior</legend>
-                    <label className="flex items-center gap-2 text-sm">
-                      <input type="checkbox" checked={hasPreviousMark} onChange={e => setHasPreviousMark(e.target.checked)} /> Tengo una marca previa
-                    </label>
-                    {hasPreviousMark && (
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Distancia (km)</label>
-                          <input type="number" step="0.1" className="w-full p-2 border rounded bg-white text-gray-800" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Tiempo (HH:MM:SS)</label>
-                          <input type="text" placeholder="0:45:30" className="w-full p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)} />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Objetivo Próxima (HH:MM:SS)</label>
-                          <input type="text" placeholder="0:42:00" className="w-full p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                  </div>
+                  {includeStrength && (
+                    <div className="space-y-3 pl-1">
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-700">Sesiones/semana:</span>
+                        <div className="flex gap-1">
+                          {[1, 2, 3].map(n => (
+                            <button key={n} type="button"
+                              onClick={() => { setStrengthDaysCount(n); setStrengthDaysOfWeek([]); }}
+                              className={`w-10 h-10 rounded-lg text-sm font-bold border-2 transition-colors ${
+                                (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) === n
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                              }`}>
+                              {n}
+                            </button>
+                          ))}
                         </div>
                       </div>
-                    )}
-                    {!hasPreviousMark && (
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">Objetivo (HH:MM:SS)</label>
-                        <input type="text" placeholder="0:45:00" className="w-full sm:w-60 p-2 border rounded bg-white text-gray-800 placeholder-gray-400" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                        <label className="block text-xs text-gray-500 mb-2">Días específicos de fuerza (opcional)</label>
+                        <div className="flex gap-2 flex-wrap">
+                          {DAY_LABELS.map((label, dow) => (
+                            <button key={dow} type="button" onClick={() => toggleStrengthDay(dow)}
+                              className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                                strengthDaysOfWeek.includes(dow)
+                                  ? 'bg-indigo-600 text-white border-indigo-600'
+                                  : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                              }`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {strengthDaysOfWeek.length > 0 && (
+                          <p className="text-xs text-indigo-600 mt-2">
+                            Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                            <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
+                          </p>
+                        )}
                       </div>
-                    )}
-                  </fieldset>
+                      <p className="text-[11px] text-gray-400">
+                        Rutinas periodizadas por fase: excéntrica (base) → fuerza máxima (desarrollo) → pliometría (específico).
+                      </p>
+                    </div>
+                  )}
+                </fieldset>
+
+                {/* Preferred training time */}
+                <div className="pt-4 border-t border-gray-100">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Momento preferido para entrenar</label>
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { value: 'morning',   label: 'Mañana'         },
+                      { value: 'afternoon', label: 'Tarde'          },
+                      { value: 'evening',   label: 'Noche'          },
+                      { value: 'any',       label: 'Cualquier hora' },
+                    ] as const).map(t => (
+                      <button key={t.value} type="button" onClick={() => setPreferredTrainingTime(t.value)}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${preferredTrainingTime === t.value ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'}`}>
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              )}
+              </div>
+
+              {/* SECTION 4: Lesiones y limitaciones */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-4">
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
+                  <h3 className="text-base font-semibold text-gray-800">Lesiones y limitaciones</h3>
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" checked={hasRecentInjury} onChange={e => setHasRecentInjury(e.target.checked)} className="accent-red-500" />
+                  <span>Tengo o he tenido una lesión reciente (últimas 8 semanas)</span>
+                </label>
+                {hasRecentInjury && (
+                  <input type="text" value={recentInjuryDetail} onChange={e => setRecentInjuryDetail(e.target.value)}
+                    placeholder="Describe brevemente (ej: tendinitis aquíleo izquierdo, ya en recuperación)"
+                    className="w-full p-2.5 border border-red-200 rounded-lg text-sm bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-red-400 focus:outline-none" />
+                )}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Zonas de atención crónicas</label>
+                  <div className="flex flex-wrap gap-2">
+                    {[
+                      'Rodillas', 'Talón de Aquiles', 'Cintilla IT', 'Fascitis plantar',
+                      'Cadera / glúteo', 'Espalda baja', 'Tibias (periostitis)', 'Sin lesiones conocidas',
+                    ].map(area => (
+                      <button key={area} type="button" onClick={() => toggleInjuryArea(area)}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-colors ${
+                          injuryAreas.includes(area)
+                            ? 'bg-red-500 text-white border-red-500'
+                            : 'bg-white text-gray-600 border-gray-300 hover:border-red-300'
+                        }`}>
+                        {area}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECTION 5: Objetivo y datos de carrera */}
+              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-5">
+                <div className="flex items-center gap-3">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">5</span>
+                  <h3 className="text-base font-semibold text-gray-800">Objetivo y datos de la carrera</h3>
+                </div>
+
+                {/* Terrain */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de terreno de la carrera</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {([
+                      { value: 'road',  label: 'Asfalto', desc: 'Carretera o ciudad' },
+                      { value: 'trail', label: 'Trail',   desc: 'Montaña y senderos' },
+                      { value: 'mixed', label: 'Mixto',   desc: 'Asfalto y trail'    },
+                      { value: 'track', label: 'Pista',   desc: 'Estadio atletismo'  },
+                    ] as const).map(t => (
+                      <label key={t.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === t.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                        <div className="flex items-center gap-2">
+                          <input type="radio" name="raceTerrain" value={t.value} checked={raceTerrain === t.value} onChange={() => setRaceTerrain(t.value)} className="accent-orange-500" />
+                          <span className="font-semibold text-sm text-gray-800">{t.label}</span>
+                        </div>
+                        <span className="text-xs text-gray-500 ml-5">{t.desc}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Race priority */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prioridad de esta carrera en tu temporada</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {([
+                      { value: 'A', label: 'Carrera A', desc: 'Objetivo principal — taper completo, máxima preparación' },
+                      { value: 'B', label: 'Carrera B', desc: 'Objetivo secundario — taper parcial (3–4 días)' },
+                      { value: 'C', label: 'Carrera C', desc: 'Carrera de entrenamiento — sin tapering específico' },
+                    ] as const).map(p => (
+                      <label key={p.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                        <div className="flex items-center gap-2">
+                          <input type="radio" name="racePriority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-orange-500" />
+                          <span className="font-semibold text-sm text-gray-800">{p.label}</span>
+                        </div>
+                        <span className="text-xs text-gray-500 ml-5">{p.desc}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Previous mark and target */}
+                <div className="pt-1 border-t border-gray-100 space-y-3">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input type="checkbox" checked={hasPreviousMark} onChange={e => setHasPreviousMark(e.target.checked)} className="accent-orange-500" />
+                    <span className="font-medium">Tengo una marca previa de referencia</span>
+                  </label>
+                  {hasPreviousMark && (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Distancia (km)</label>
+                        <input type="number" step="0.1" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 focus:ring-1 focus:ring-orange-400 focus:outline-none" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Tiempo conseguido (H:MM:SS)</label>
+                        <input type="text" placeholder="0:45:30" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)} />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-gray-600 mb-1">Tiempo objetivo (H:MM:SS)</label>
+                        <input type="text" placeholder="0:42:00" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                      </div>
+                    </div>
+                  )}
+                  {!hasPreviousMark && (
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Tiempo objetivo (H:MM:SS) — si tienes uno</label>
+                      <input type="text" placeholder="Ej: 0:45:00 para 10k" className="w-full sm:w-64 p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                    </div>
+                  )}
+                </div>
+
+                {/* Goal text */}
+                <div className="pt-1 border-t border-gray-100">
+                  <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-1">Tu objetivo en palabras <span className="text-red-400">*</span></label>
+                  <p className="text-xs text-gray-400 mb-2">Cuéntale al entrenador qué quieres lograr con este plan</p>
+                  <input type="text" id="goal" value={goal} onChange={(e) => setGoal(e.target.value)}
+                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-800 placeholder-gray-400"
+                    placeholder="Ej: Terminar mi primer maratón, mejorar 10 min mi marca, disfrutar el recorrido…"
+                    required />
+                </div>
+              </div>
+
+              {/* SECTION 6: Metodología */}
+              <div className="border border-orange-100 rounded-xl p-5 bg-orange-50/20">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="w-7 h-7 rounded-full bg-orange-500 text-white text-xs font-bold flex items-center justify-center flex-shrink-0">6</span>
+                  <h3 className="text-base font-semibold text-gray-800">Metodología de entrenamiento</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  {([
+                    { value: 'polarized', label: 'Polarizado', desc: '80% fácil Z1 · 20% alta intensidad. Máxima evidencia científica (Seiler).' },
+                    { value: 'norwegian', label: 'Noruego',    desc: '2 sesiones de umbral/semana. Todo lo demás Z1 estricto (Ingebrigtsen).' },
+                    { value: 'classic',   label: 'Clásico',    desc: 'Series martes · Tempo jueves · Largo domingo. Progresión lineal.' },
+                  ] as const).map(m => (
+                    <label key={m.value}
+                      className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                      <div className="flex items-center gap-2">
+                        <input type="radio" name="methodology" value={m.value} checked={methodology === m.value} onChange={() => setMethodology(m.value)} className="accent-orange-500" />
+                        <span className="font-semibold text-sm text-gray-800">{m.label}</span>
+                      </div>
+                      <span className="text-xs text-gray-500 ml-5">{m.desc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
 
               {/* Calibrated zones notice */}
               {profileZones && (
-                <div className="mb-5 p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm">
+                <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm">
                   <p className="text-teal-800 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
                   <div className="flex flex-wrap gap-3 text-xs">
                     {[
@@ -880,21 +1137,14 @@ const TrainingPlanPage = () => {
               )}
 
               {/* Mesocycle explanation */}
-              <div className="mb-5 p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
                 <p className="font-semibold mb-1">Plan por mesociclos</p>
                 <p className="text-xs text-indigo-700">Se generará el primer mesociclo (5 semanas). Al acercarse al final de cada bloque podrás generar el siguiente, adaptado a tu progreso real.</p>
               </div>
 
-              <div className="mb-6">
-                <label htmlFor="goal" className="block text-lg font-medium text-gray-700 mb-2">¿Cuál es tu objetivo?</label>
-                <input type="text" id="goal" value={goal} onChange={(e) => setGoal(e.target.value)}
-                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-800 placeholder-gray-400"
-                  placeholder="Ej: Terminar la carrera, hacerla en menos de 4 horas..." required />
-              </div>
-
               <button type="submit" disabled={loading}
-                className="w-full bg-orange-500 text-white font-bold py-3 px-6 rounded-lg hover:bg-orange-600 transition-colors disabled:bg-gray-400">
-                {loading ? 'Generando…' : 'Generar primer mesociclo con IA'}
+                className="w-full bg-orange-500 text-white font-bold py-4 px-6 rounded-xl hover:bg-orange-600 transition-colors disabled:bg-gray-400 text-base shadow-md">
+                {loading ? 'Generando…' : 'Generar mi plan personalizado con IA'}
               </button>
             </form>
           </div>
