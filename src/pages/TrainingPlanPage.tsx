@@ -39,6 +39,34 @@ interface TrainingPlan {
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
+// Mon=0 … Sun=6
+function getWeekday(dateISO: string): number {
+  const dow = new Date(dateISO + 'T00:00:00Z').getUTCDay();
+  return dow === 0 ? 6 : dow - 1;
+}
+
+function getWorkoutType(w: Workout): string {
+  if (w.explanation_json?.type) return w.explanation_json.type;
+  const d = w.description.toLowerCase();
+  if (/descanso|rest/.test(d))          return 'descanso';
+  if (/fuerza/.test(d))                 return 'fuerza';
+  if (/series|fartlek|\dx/.test(d))     return 'series';
+  if (/umbral/.test(d))                 return 'umbral';
+  if (/tempo/.test(d))                  return 'tempo';
+  if (/largo/.test(d))                  return 'largo';
+  return 'suave';
+}
+
+const TYPE_STYLES: Record<string, { bg: string; border: string; dot: string; text: string; label: string }> = {
+  suave:    { bg: 'bg-green-50',  border: 'border-green-200',  dot: 'bg-green-400',  text: 'text-green-700',  label: 'Suave'  },
+  largo:    { bg: 'bg-blue-50',   border: 'border-blue-200',   dot: 'bg-blue-400',   text: 'text-blue-700',   label: 'Largo'  },
+  series:   { bg: 'bg-red-50',    border: 'border-red-200',    dot: 'bg-red-400',    text: 'text-red-700',    label: 'Series' },
+  umbral:   { bg: 'bg-amber-50',  border: 'border-amber-200',  dot: 'bg-amber-400',  text: 'text-amber-700',  label: 'Umbral' },
+  tempo:    { bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-400', text: 'text-orange-700', label: 'Tempo'  },
+  fuerza:   { bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', text: 'text-purple-700', label: 'Fuerza' },
+  descanso: { bg: 'bg-gray-50',   border: 'border-gray-200',   dot: 'bg-gray-300',   text: 'text-gray-400',   label: 'Desc.'  },
+};
+
 function groupByWeek(workouts: Workout[]): Array<{ key: string; label: string; range: string; items: Workout[] }> {
   const map = new Map<string, Workout[]>();
   for (const w of workouts) {
@@ -90,6 +118,7 @@ const TrainingPlanPage = () => {
   const [showModal, setShowModal] = useState(false);
   const [methodology, setMethodology] = useState<'polarized' | 'norwegian' | 'classic'>('polarized');
   const [showAdvancedConfig, setShowAdvancedConfig] = useState(false);
+  const [calendarView, setCalendarView] = useState(false);
   const [progressModal, setProgressModal] = useState(false);
   const [progressMessageIndex, setProgressMessageIndex] = useState(0);
   const progressMessages = [
@@ -700,8 +729,124 @@ const TrainingPlanPage = () => {
               </div>
             )}
 
-            {/* Workout list — grouped by week */}
-            <div className="space-y-6">
+            {/* View toggle */}
+            <div className="flex items-center gap-2 mb-4">
+              {(['lista', 'calendario'] as const).map(v => (
+                <button key={v} onClick={() => setCalendarView(v === 'calendario')}
+                  className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors capitalize ${
+                    (v === 'calendario') === calendarView
+                      ? 'bg-orange-500 text-white border-orange-500'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400'
+                  }`}>
+                  {v === 'lista' ? '≡ Lista' : '▦ Calendario'}
+                </button>
+              ))}
+            </div>
+
+            {/* Calendar view */}
+            {calendarView && (
+              <div className="space-y-4">
+                {/* Column headers */}
+                <div className="overflow-x-auto">
+                  <div style={{ minWidth: 560 }}>
+                    {/* Day headers */}
+                    <div className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 mb-1 px-1">
+                      <div />
+                      {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
+                        <div key={d} className="text-center text-xs font-bold text-gray-500 py-1">{d}</div>
+                      ))}
+                    </div>
+
+                    {groupByWeek(plan.workouts).map(({ key, label, range, items }) => {
+                      const weeklyKm  = items.reduce((s, w) => s + (w.distance_km  || 0), 0);
+                      const weeklyMin = items.reduce((s, w) => s + (w.duration_min || 0), 0);
+                      const doneKm    = items.filter(w => w.is_completed).reduce((s, w) => s + (w.distance_km || 0), 0);
+                      const trainDays = items.filter(w => !/descanso|rest/i.test(w.description));
+                      const doneDays  = trainDays.filter(w => w.is_completed);
+
+                      return (
+                        <div key={key} className="mb-3">
+                          {/* Week label row */}
+                          <div className="grid grid-cols-[80px_repeat(7,1fr)] gap-1 px-1 items-center mb-1">
+                            <div>
+                              <div className="text-[11px] font-bold text-gray-600">{label}</div>
+                              <div className="text-[10px] text-gray-400">{range}</div>
+                            </div>
+                            {Array.from({ length: 7 }, (_, col) => {
+                              const w = items.find(x => getWeekday(x.workout_date) === col);
+                              if (!w) return <div key={col} className="h-[72px] rounded-lg bg-gray-50 border border-gray-100" />;
+                              const type   = getWorkoutType(w);
+                              const st     = TYPE_STYLES[type] ?? TYPE_STYLES.suave;
+                              const isToday = w.workout_date === todayISO;
+                              const isRest  = type === 'descanso';
+                              const dayNum  = new Date(w.workout_date + 'T00:00:00Z').getUTCDate();
+
+                              return (
+                                <div key={col}
+                                  onClick={() => { setModalWorkout(w); setShowModal(true); }}
+                                  className={`h-[72px] rounded-lg border p-1 flex flex-col items-center justify-between cursor-pointer transition-opacity hover:opacity-80
+                                    ${st.bg} ${st.border}
+                                    ${isToday ? 'ring-2 ring-orange-400 ring-offset-1' : ''}
+                                    ${w.is_completed && !isRest ? 'opacity-60' : ''}
+                                  `}
+                                >
+                                  {/* Day number + done check */}
+                                  <div className="flex items-center justify-between w-full">
+                                    <span className={`text-[11px] font-bold ${isToday ? 'text-orange-600' : 'text-gray-500'}`}>{dayNum}</span>
+                                    {w.is_completed && !isRest && <span className="text-[10px] text-green-500 font-bold">✓</span>}
+                                  </div>
+                                  {/* Type dot */}
+                                  <div className={`w-2.5 h-2.5 rounded-full ${st.dot}`} />
+                                  {/* Type label + distance */}
+                                  <div className="text-center">
+                                    <div className={`text-[10px] font-semibold leading-tight ${st.text}`}>{st.label}</div>
+                                    {w.distance_km ? (
+                                      <div className="text-[10px] text-gray-500 font-mono leading-tight">{w.distance_km}km</div>
+                                    ) : w.duration_min ? (
+                                      <div className="text-[10px] text-gray-500 font-mono leading-tight">{w.duration_min}min</div>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Weekly summary strip */}
+                          <div className="ml-[84px] flex items-center gap-4 px-1 py-1 bg-gray-50 rounded-lg text-xs text-gray-500">
+                            {weeklyKm > 0 && (
+                              <span>
+                                <span className="font-semibold text-gray-700">{weeklyKm.toFixed(0)} km</span>
+                                {doneKm > 0 && doneKm < weeklyKm && <span className="text-green-600 ml-1">({doneKm.toFixed(0)} completados)</span>}
+                              </span>
+                            )}
+                            {weeklyMin > 0 && weeklyKm === 0 && (
+                              <span><span className="font-semibold text-gray-700">{weeklyMin} min</span></span>
+                            )}
+                            <span>{doneDays.length}/{trainDays.length} entrenamientos</span>
+                            {doneDays.length === trainDays.length && trainDays.length > 0 && (
+                              <span className="text-green-600 font-semibold">Semana completada ✓</span>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Legend */}
+                    <div className="mt-4 flex flex-wrap gap-2 px-1">
+                      {Object.entries(TYPE_STYLES).filter(([k]) => k !== 'descanso').map(([k, s]) => (
+                        <span key={k} className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full border ${s.bg} ${s.border} ${s.text}`}>
+                          <span className={`w-2 h-2 rounded-full ${s.dot}`} />
+                          {s.label}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* List view — grouped by week */}
+            {!calendarView && <div className="space-y-6">
               {groupByWeek(plan.workouts).map(({ key, label, range, items }) => {
                 const trainDays  = items.filter(w => !/descanso|rest/i.test(w.description));
                 const doneDays   = trainDays.filter(w => w.is_completed);
@@ -788,7 +933,7 @@ const TrainingPlanPage = () => {
                   </div>
                 );
               })}
-            </div>
+            </div>}
 
             {/* Workout detail modal */}
             {showModal && modalWorkout && (() => {
