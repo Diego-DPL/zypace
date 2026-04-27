@@ -171,7 +171,7 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
           </p>
 
           {/* Plan explanation */}
-          {exp.type && (
+          {(exp.type || exp.purpose || exp.details || exp.intensity) && (
             <div className="space-y-2 text-sm">
               <div className="flex flex-wrap gap-2">
                 {exp.phase && (
@@ -179,13 +179,17 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                     {PHASE_LABELS[exp.phase] || exp.phase}
                   </span>
                 )}
-                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">{exp.type}</span>
+                {exp.type && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">{exp.type}</span>}
               </div>
-              {exp.purpose && <p><span className="font-semibold">Objetivo:</span> {exp.purpose}</p>}
+              {exp.purpose && (
+                <p className="text-gray-700">
+                  <span className="font-semibold text-gray-900">Objetivo:</span> {exp.purpose}
+                </p>
+              )}
               {exp.details && (
-                <div className="bg-gray-50 rounded-lg p-3">
-                  <span className="font-semibold block mb-1">Cómo ejecutarlo:</span>
-                  <span className="text-gray-700 whitespace-pre-line text-sm">{exp.details}</span>
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                  <span className="text-xs font-bold uppercase tracking-wide text-orange-700 block mb-1.5">Cómo ejecutarlo</span>
+                  <p className="text-gray-800 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
                 </div>
               )}
               {exp.intensity && (
