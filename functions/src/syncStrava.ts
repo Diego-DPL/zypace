@@ -10,10 +10,18 @@ const STRAVA_API_BASE = 'https://www.strava.com/api/v3';
 interface StravaActivity {
   id: number;
   name: string;
-  distance: number;   // metres
+  distance: number;           // metres
   moving_time: number;
-  start_date: string; // ISO
+  start_date: string;         // ISO
   sport_type?: string;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  total_elevation_gain?: number;
+  suffer_score?: number;
+  average_cadence?: number;
+  pr_count?: number;
+  average_watts?: number;
+  perceived_exertion?: number;
 }
 
 function extractDistanceKm(description: string | null | undefined): number | undefined {
@@ -127,12 +135,20 @@ export const syncStrava = onCall(
         if (existingIds.has(a.id)) continue;
         const docRef = actsCollection.doc(String(a.id));
         batch.set(docRef, {
-          activity_id: a.id,
-          name:        a.name,
-          distance_m:  a.distance,
-          moving_time: a.moving_time,
-          start_date:  a.start_date.substring(0, 10),
-          sport_type:  a.sport_type ?? null,
+          activity_id:           a.id,
+          name:                  a.name,
+          distance_m:            a.distance,
+          moving_time:           a.moving_time,
+          start_date:            a.start_date.substring(0, 10),
+          sport_type:            a.sport_type ?? null,
+          average_heartrate:     a.average_heartrate ?? null,
+          max_heartrate:         a.max_heartrate ?? null,
+          total_elevation_gain:  a.total_elevation_gain ?? null,
+          suffer_score:          a.suffer_score ?? null,
+          average_cadence:       a.average_cadence ?? null,
+          pr_count:              a.pr_count ?? null,
+          average_watts:         a.average_watts ?? null,
+          perceived_exertion:    a.perceived_exertion ?? null,
         });
         importedNew++;
       }

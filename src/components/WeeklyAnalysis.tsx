@@ -16,6 +16,10 @@ interface AnalysisData {
   planned_series: number
   completed_series: number
   has_strava_data: boolean
+  avg_rpe: number | null
+  fatigue_index: number | null
+  feelings_summary: { feeling: string; count: number }[]
+  total_suffer_score: number | null
   pace_note?: string
 }
 
@@ -53,6 +57,11 @@ const VERDICT_CONFIG = {
 const TYPE_LABEL: Record<string, string> = {
   series: 'Intervalos', umbral: 'Umbral', tempo: 'Tempo',
   largo: 'Largo', suave: 'Fácil', descanso: 'Descanso', fuerza: 'Fuerza',
+}
+
+const FEELING_LABEL: Record<string, string> = {
+  great: '😄 Genial', good: '🙂 Bien', average: '😐 Normal',
+  tired: '😓 Cansado', very_tired: '😩 Muy cansado',
 }
 
 function formatDate(iso: string) {
@@ -210,6 +219,73 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   El ritmo medio de Strava incluye calentamiento y recuperaciones entre repeticiones, por lo que no se compara con el objetivo de las series. Solo se evalúa si las hiciste o no.
                 </span>
               </div>
+            </div>
+          )}
+
+          {/* Fatiga & RPE */}
+          {(result.analysis.fatigue_index !== null || result.analysis.avg_rpe !== null) && (
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {result.analysis.fatigue_index !== null && (
+                <Metric
+                  label="Índice de fatiga"
+                  value={`${result.analysis.fatigue_index}/100`}
+                  sub={
+                    result.analysis.fatigue_index >= 75 ? 'Fatiga alta — recupera' :
+                    result.analysis.fatigue_index >= 55 ? 'Fatiga moderada' :
+                    'Recuperación buena'
+                  }
+                  color={
+                    result.analysis.fatigue_index >= 75 ? 'red' :
+                    result.analysis.fatigue_index >= 55 ? 'yellow' : 'green'
+                  }
+                />
+              )}
+              {result.analysis.avg_rpe !== null && (
+                <Metric
+                  label="RPE medio"
+                  value={String(result.analysis.avg_rpe)}
+                  sub="Esfuerzo percibido (1–10)"
+                  color={
+                    result.analysis.avg_rpe >= 8 ? 'red' :
+                    result.analysis.avg_rpe >= 6 ? 'yellow' : 'green'
+                  }
+                />
+              )}
+              {result.analysis.total_suffer_score !== null && (
+                <Metric
+                  label="Suffer Score"
+                  value={String(result.analysis.total_suffer_score)}
+                  sub="Carga cardíaca semanal"
+                  color={
+                    result.analysis.total_suffer_score > 300 ? 'red' :
+                    result.analysis.total_suffer_score > 150 ? 'yellow' : 'blue'
+                  }
+                />
+              )}
+            </div>
+          )}
+
+          {/* Sensaciones */}
+          {result.analysis.feelings_summary.length > 0 && (
+            <div className="flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-gray-500 font-medium">Sensaciones:</span>
+              {result.analysis.feelings_summary
+                .sort((a, b) => b.count - a.count)
+                .map(({ feeling, count }) => (
+                  <span
+                    key={feeling}
+                    className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
+                      feeling === 'great'     ? 'bg-green-50 border-green-200 text-green-800' :
+                      feeling === 'good'      ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+                      feeling === 'average'   ? 'bg-gray-50 border-gray-200 text-gray-700' :
+                      feeling === 'tired'     ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
+                      'bg-red-50 border-red-200 text-red-800'
+                    }`}
+                  >
+                    {FEELING_LABEL[feeling] ?? feeling} ×{count}
+                  </span>
+                ))
+              }
             </div>
           )}
 

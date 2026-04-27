@@ -1,31 +1,326 @@
-import React from 'react';
+import { useState, useEffect } from 'react';
+import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../lib/firebaseClient';
+import { useAuth } from '../context/AuthContext';
+
+interface StravaActivityData {
+  activity_id?: number;
+  name?: string;
+  distance_m?: number;
+  moving_time?: number;
+  start_date?: string;
+  sport_type?: string | null;
+  average_heartrate?: number | null;
+  max_heartrate?: number | null;
+  total_elevation_gain?: number | null;
+  suffer_score?: number | null;
+  average_cadence?: number | null;
+  pr_count?: number | null;
+}
 
 interface WorkoutModalProps {
   open: boolean;
   onClose: () => void;
-  workout: any | null; // shape: { description, explanation?, workout_date? }
+  workout: any | null;
+  onCompleteToggle?: (workoutId: string, currentlyCompleted: boolean) => void;
+  onSaved?: () => void;
 }
 
-const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout }) => {
-  if (!open || !workout) return null;
-  const exp = workout.explanation || {};
+const RPE_LABELS = ['', 'Muy fácil', 'Fácil', 'Moderado', 'Algo duro', 'Duro', 'Duro+', 'Muy duro', 'Muy duro+', 'Casi máximo', 'Máximo'];
+const RPE_COLORS = ['', 'bg-green-400', 'bg-green-500', 'bg-lime-500', 'bg-yellow-400', 'bg-orange-400', 'bg-orange-500', 'bg-red-400', 'bg-red-500', 'bg-red-600', 'bg-red-700'];
+
+const FEELING_OPTIONS = [
+  { value: 'great',     label: '¡Genial!', emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'  },
+  { value: 'good',      label: 'Bien',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'    },
+  { value: 'average',   label: 'Normal',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
+  { value: 'tired',     label: 'Cansado',  emoji: '😓', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 'very_tired',label: 'Agotado',  emoji: '😩', active: 'bg-red-100 border-red-500 text-red-800'       },
+] as const;
+
+const PHASE_COLORS: Record<string, string> = {
+  base: 'bg-teal-100 text-teal-700', desarrollo: 'bg-blue-100 text-blue-700',
+  especifico: 'bg-orange-100 text-orange-700', taper: 'bg-purple-100 text-purple-700',
+};
+const PHASE_LABELS: Record<string, string> = {
+  base: 'Fase Base', desarrollo: 'Fase Desarrollo', especifico: 'Fase Específica', taper: 'Taper',
+};
+
+function formatPace(movingTime: number, distanceM: number): string {
+  if (!distanceM || distanceM < 100 || !movingTime) return '—';
+  const secPerKm = movingTime / (distanceM / 1000);
+  const mins = Math.floor(secPerKm / 60);
+  const secs = Math.round(secPerKm % 60).toString().padStart(2, '0');
+  return `${mins}:${secs}/km`;
+}
+
+function formatDuration(secs: number): string {
+  const h = Math.floor(secs / 3600);
+  const m = Math.floor((secs % 3600) / 60);
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m}min`;
+}
+
+function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-      <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">
-        <button onClick={onClose} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
-        <h3 className="text-xl font-bold text-gray-800 mb-2">Entrenamiento</h3>
-        {workout.workout_date && (
-          <p className="text-sm text-gray-500 mb-2">Fecha: {new Date(workout.workout_date).toLocaleDateString('es-ES')}</p>
-        )}
-        <p className="text-gray-800 font-medium mb-4">{workout.description}</p>
-        <div className="space-y-3 text-sm">
-          {exp.type && <p><span className="font-semibold text-gray-700">Tipo:</span> {exp.type}</p>}
-          {exp.purpose && <p><span className="font-semibold text-gray-700">Objetivo:</span> {exp.purpose}</p>}
-          {exp.details && <p><span className="font-semibold text-gray-700">Cómo hacerlo:</span> {exp.details}</p>}
-          {exp.intensity && <p><span className="font-semibold text-gray-700">Intensidad sugerida:</span> {exp.intensity}</p>}
+    <div className="text-center bg-white/60 rounded-lg px-2 py-1.5">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-700 opacity-80">{label}</div>
+      <div className="font-bold text-gray-800 text-sm mt-0.5">{value}</div>
+    </div>
+  );
+}
+
+const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onCompleteToggle, onSaved }) => {
+  const { user } = useAuth();
+  const [rpe, setRpe] = useState<number>(0);
+  const [feeling, setFeeling] = useState<string>('');
+  const [notes, setNotes] = useState<string>('');
+  const [stravaActivities, setStravaActivities] = useState<StravaActivityData[]>([]);
+  const [loadingStrava, setLoadingStrava] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    if (!open || !workout) return;
+    setRpe(workout.rpe ?? 0);
+    setFeeling(workout.feeling ?? '');
+    setNotes(workout.notes ?? '');
+    setSaved(false);
+
+    if (!user || !workout.workout_date) return;
+    setLoadingStrava(true);
+    setStravaActivities([]);
+    getDocs(query(
+      collection(db, 'users', user.uid, 'strava_activities'),
+      where('start_date', '==', workout.workout_date),
+    ))
+      .then(snap => setStravaActivities(snap.docs.map(d => d.data() as StravaActivityData)))
+      .catch(console.warn)
+      .finally(() => setLoadingStrava(false));
+  }, [open, workout?.id, user]);
+
+  const handleSave = async () => {
+    if (!user || !workout) return;
+    setSaving(true);
+    try {
+      const updates: Record<string, unknown> = {
+        rpe: rpe || null,
+        feeling: feeling || null,
+        notes: notes.trim() || null,
+      };
+      // Auto-mark completed when logging past workout
+      const todayISO = new Date().toISOString().substring(0, 10);
+      if (!workout.is_completed && workout.workout_date <= todayISO && (rpe > 0 || feeling || notes.trim())) {
+        updates.is_completed = true;
+      }
+      await updateDoc(doc(db, 'users', user.uid, 'workouts', workout.id), updates);
+      setSaved(true);
+      onSaved?.();
+    } catch (e) {
+      console.error('Error saving sensaciones:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  if (!open || !workout) return null;
+
+  const exp = workout.explanation_json || {};
+  const isRest = /descanso|rest/i.test(workout.description || '');
+  const todayISO = new Date().toISOString().substring(0, 10);
+  const isPast = workout.workout_date <= todayISO;
+  const showLog = isPast && !isRest;
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className={`bg-white rounded-xl shadow-xl max-w-lg w-full relative flex flex-col max-h-[90vh] ${workout.is_completed ? 'ring-2 ring-green-400' : ''}`}>
+
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 p-5 pb-3 flex-shrink-0">
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">
+              {isRest ? 'Día de descanso' : 'Entrenamiento'}
+            </h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {new Date(workout.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {!isRest && onCompleteToggle && (
+              <button
+                onClick={() => onCompleteToggle(workout.id, workout.is_completed)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
+                  workout.is_completed
+                    ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
+                    : 'bg-white border-gray-300 text-gray-600 hover:border-green-400 hover:text-green-600'
+                }`}
+              >
+                <span>{workout.is_completed ? '✓' : '○'}</span>
+                <span>{workout.is_completed ? 'Completado' : 'Marcar completado'}</span>
+              </button>
+            )}
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1">✕</button>
+          </div>
         </div>
-        <div className="mt-6 text-right">
-          <button onClick={onClose} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
+
+        {/* Scrollable body */}
+        <div className="px-5 pb-5 space-y-4 overflow-y-auto flex-1">
+
+          {/* Description */}
+          <p className={`font-medium ${workout.is_completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+            {workout.description}
+          </p>
+
+          {/* Plan explanation */}
+          {exp.type && (
+            <div className="space-y-2 text-sm">
+              <div className="flex flex-wrap gap-2">
+                {exp.phase && (
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[exp.phase] || 'bg-gray-100 text-gray-600'}`}>
+                    {PHASE_LABELS[exp.phase] || exp.phase}
+                  </span>
+                )}
+                <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">{exp.type}</span>
+              </div>
+              {exp.purpose && <p><span className="font-semibold">Objetivo:</span> {exp.purpose}</p>}
+              {exp.details && (
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <span className="font-semibold block mb-1">Cómo ejecutarlo:</span>
+                  <span className="text-gray-700 whitespace-pre-line text-sm">{exp.details}</span>
+                </div>
+              )}
+              {exp.intensity && (
+                <p className="bg-orange-50 border border-orange-200 rounded px-3 py-2">
+                  <span className="font-semibold text-orange-800">Zona / Ritmo: </span>
+                  <span className="text-orange-700 font-mono">{exp.intensity}</span>
+                </p>
+              )}
+            </div>
+          )}
+
+          {isRest && (
+            <p className="text-sm text-gray-400 italic text-center py-2 bg-gray-50 rounded-lg">
+              Día de descanso activo — prioriza el sueño y la nutrición.
+            </p>
+          )}
+
+          {/* Strava data */}
+          {isPast && (
+            <div className="border-t border-gray-100 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-sm font-semibold text-gray-700">Datos de Strava</h4>
+                {loadingStrava && <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />}
+              </div>
+              {stravaActivities.length > 0 ? (
+                <div className="space-y-2">
+                  {stravaActivities.map((a, i) => (
+                    <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-orange-800 mb-2">
+                        {a.name || 'Actividad'}{a.sport_type ? ` · ${a.sport_type}` : ''}
+                      </p>
+                      <div className="grid grid-cols-3 gap-1.5 text-xs">
+                        <StatCell label="Distancia" value={`${Math.round((a.distance_m || 0) / 100) / 10} km`} />
+                        <StatCell label="Duración" value={formatDuration(a.moving_time || 0)} />
+                        <StatCell label="Ritmo" value={formatPace(a.moving_time || 0, a.distance_m || 0)} />
+                        {a.average_heartrate != null && (
+                          <StatCell label="FC media" value={`${Math.round(a.average_heartrate)} ppm`} />
+                        )}
+                        {a.max_heartrate != null && (
+                          <StatCell label="FC máx" value={`${Math.round(a.max_heartrate)} ppm`} />
+                        )}
+                        {(a.total_elevation_gain ?? 0) > 1 && (
+                          <StatCell label="Desnivel+" value={`${Math.round(a.total_elevation_gain!)} m`} />
+                        )}
+                        {a.average_cadence != null && (
+                          <StatCell label="Cadencia" value={`${Math.round(a.average_cadence * 2)} spm`} />
+                        )}
+                        {a.suffer_score != null && (
+                          <StatCell label="Esfuerzo Rel." value={String(a.suffer_score)} />
+                        )}
+                        {(a.pr_count ?? 0) > 0 && (
+                          <StatCell label="Récords" value={`${a.pr_count} PR`} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : !loadingStrava ? (
+                <p className="text-xs text-gray-400 italic">
+                  Sin actividad Strava para este día. Sincroniza en Ajustes para ver métricas.
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {/* Sensaciones log */}
+          {showLog && (
+            <div className="border-t border-gray-100 pt-4 space-y-4">
+              <h4 className="text-sm font-semibold text-gray-700">¿Cómo fue el entrenamiento?</h4>
+
+              {/* Feeling */}
+              <div>
+                <label className="text-xs text-gray-500 mb-2 block">Sensación general</label>
+                <div className="flex gap-2 flex-wrap">
+                  {FEELING_OPTIONS.map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => setFeeling(feeling === opt.value ? '' : opt.value)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        feeling === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}>
+                      <span>{opt.emoji}</span> {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* RPE */}
+              <div>
+                <label className="text-xs text-gray-500 mb-2 block">
+                  Esfuerzo percibido (RPE){rpe > 0 ? ` — ${rpe}/10 · ${RPE_LABELS[rpe]}` : ' — sin registrar'}
+                </label>
+                <div className="flex gap-1">
+                  {[1,2,3,4,5,6,7,8,9,10].map(n => (
+                    <button key={n} type="button" onClick={() => setRpe(rpe === n ? 0 : n)}
+                      className={`flex-1 h-8 rounded text-xs font-bold transition-colors ${
+                        rpe >= n ? RPE_COLORS[n] + ' text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                      }`}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Notas libres</label>
+                <textarea
+                  value={notes}
+                  onChange={e => setNotes(e.target.value)}
+                  rows={3}
+                  placeholder="Sensaciones, observaciones, lo que quieras recordar…"
+                  className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-3">
+                <button onClick={handleSave} disabled={saving}
+                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold transition-colors disabled:opacity-50">
+                  {saving ? 'Guardando…' : 'Guardar sensaciones'}
+                </button>
+                {saved && <span className="text-xs text-green-600 font-semibold">✓ Guardado</span>}
+              </div>
+            </div>
+          )}
+
+          {/* Show saved sensaciones if they exist */}
+          {isPast && !isRest && !showLog === false && (workout.rpe || workout.feeling || workout.notes) && !saved && (
+            <div className="border-t border-gray-100 pt-3 text-sm text-gray-600 space-y-1">
+              <p className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Sensaciones registradas</p>
+              {workout.feeling && <p>{FEELING_OPTIONS.find(f => f.value === workout.feeling)?.emoji} {FEELING_OPTIONS.find(f => f.value === workout.feeling)?.label}</p>}
+              {workout.rpe > 0 && <p>RPE: {workout.rpe}/10 · {RPE_LABELS[workout.rpe]}</p>}
+              {workout.notes && <p className="italic text-gray-500">"{workout.notes}"</p>}
+            </div>
+          )}
+
         </div>
       </div>
     </div>
@@ -33,3 +328,4 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout }) =
 };
 
 export default WorkoutModal;
+

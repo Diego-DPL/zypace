@@ -6,6 +6,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
 import { Race } from './RacesPage';
+import WorkoutModal from '../components/WorkoutModal';
 
 interface Workout {
   id: string;
@@ -544,80 +545,13 @@ const CalendarPage = () => {
             )}
 
             {/* Workout detail modal */}
-            {showModal && modalWorkout && (() => {
-              const mw = plan?.workouts.find(w => w.id === modalWorkout.id) ?? modalWorkout;
-              const isRest = /descanso|rest/i.test(mw.description);
-              const phaseColors: Record<string, string> = {
-                base: 'bg-teal-100 text-teal-700', desarrollo: 'bg-blue-100 text-blue-700',
-                especifico: 'bg-orange-100 text-orange-700', taper: 'bg-purple-100 text-purple-700',
-              };
-              const phaseLabels: Record<string, string> = {
-                base: 'Fase Base', desarrollo: 'Fase Desarrollo',
-                especifico: 'Fase Específica', taper: 'Taper',
-              };
-              return (
-                <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-                  <div className={`bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative ${mw.is_completed ? 'ring-2 ring-green-400' : ''}`}>
-                    <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div>
-                        <h3 className="text-xl font-bold text-gray-800">Detalle del Entrenamiento</h3>
-                        <p className="text-sm text-gray-500 mt-0.5">
-                          {new Date(mw.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                        </p>
-                      </div>
-                      {!isRest && (
-                        <button
-                          onClick={() => handleToggleComplete(mw.id, mw.is_completed)}
-                          className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
-                            mw.is_completed
-                              ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
-                              : 'bg-white border-gray-300 text-gray-600 hover:border-green-400 hover:text-green-600'
-                          }`}
-                        >
-                          <span>{mw.is_completed ? '✓' : '○'}</span>
-                          <span>{mw.is_completed ? 'Completado' : 'Marcar completado'}</span>
-                        </button>
-                      )}
-                    </div>
-                    <p className={`font-medium mb-4 ${mw.is_completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>{mw.description}</p>
-                    {mw.explanation_json && (
-                      <div className="space-y-3 text-sm">
-                        <div className="flex flex-wrap gap-2 mb-1">
-                          {mw.explanation_json.phase && (
-                            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${phaseColors[mw.explanation_json.phase] || 'bg-gray-100 text-gray-600'}`}>
-                              {phaseLabels[mw.explanation_json.phase] || mw.explanation_json.phase}
-                            </span>
-                          )}
-                          {mw.explanation_json.type && (
-                            <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">
-                              {mw.explanation_json.type}
-                            </span>
-                          )}
-                        </div>
-                        {mw.explanation_json.purpose && <p><span className="font-semibold">Objetivo:</span> {mw.explanation_json.purpose}</p>}
-                        {mw.explanation_json.details && (
-                          <div className="bg-gray-50 rounded-lg p-3">
-                            <span className="font-semibold block mb-1">Cómo ejecutarlo:</span>
-                            <span className="text-gray-700 whitespace-pre-line">{mw.explanation_json.details}</span>
-                          </div>
-                        )}
-                        {mw.explanation_json.intensity && (
-                          <p className="bg-orange-50 border border-orange-200 rounded px-3 py-2">
-                            <span className="font-semibold text-orange-800">Zona / Ritmo: </span>
-                            <span className="text-orange-700 font-mono">{mw.explanation_json.intensity}</span>
-                          </p>
-                        )}
-                      </div>
-                    )}
-                    {!mw.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
-                    <div className="mt-6 text-right">
-                      <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })()}
+            <WorkoutModal
+              open={showModal}
+              onClose={() => setShowModal(false)}
+              workout={plan?.workouts.find(w => w.id === modalWorkout?.id) ?? modalWorkout}
+              onCompleteToggle={handleToggleComplete}
+              onSaved={() => { if (selectedRace) fetchPlanForRace(selectedRace); }}
+            />
           </div>
         );
       })()}
