@@ -146,17 +146,27 @@ const TrainingPlanPage = () => {
       const raceFromUrl = searchParams.get('race');
       if (raceFromUrl) setSelectedRace(raceFromUrl);
     };
-    const fetchProfileZones = async () => {
+    const fetchUserProfile = async () => {
       const snap = await getDoc(doc(db, 'users', user.uid));
       if (snap.exists()) {
         const d = snap.data();
         if (d.z1_pace_sec_km && d.z4_pace_sec_km && d.z5_pace_sec_km) {
           setProfileZones({ z1_sec_km: d.z1_pace_sec_km, z4_sec_km: d.z4_pace_sec_km, z5_sec_km: d.z5_pace_sec_km });
         }
+        // Pre-populate runner profile fields saved from previous plan generations
+        if (d.runner_experience_level)        setExperienceLevel(d.runner_experience_level);
+        if (d.runner_age_range)               setAgeRange(d.runner_age_range);
+        if (d.runner_current_weekly_km)       setCurrentWeeklyKm(Number(d.runner_current_weekly_km));
+        if (d.runner_longest_recent_run_km)   setLongestRecentRunKm(Number(d.runner_longest_recent_run_km));
+        if (d.runner_max_session_minutes)     setMaxSessionMinutes(Number(d.runner_max_session_minutes));
+        if (d.runner_preferred_training_time) setPreferredTrainingTime(d.runner_preferred_training_time);
+        if (typeof d.runner_has_recent_injury === 'boolean') setHasRecentInjury(d.runner_has_recent_injury);
+        if (d.runner_recent_injury_detail)    setRecentInjuryDetail(d.runner_recent_injury_detail || '');
+        if (Array.isArray(d.runner_injury_areas)) setInjuryAreas(d.runner_injury_areas);
       }
     };
     fetchRaces();
-    fetchProfileZones();
+    fetchUserProfile();
   }, [user]);
 
   const fetchPlanForRace = useCallback(async (raceId: string) => {
@@ -310,6 +320,20 @@ const TrainingPlanPage = () => {
         generated_at:  serverTimestamp(),
       });
 
+      // Persist runner profile so future plans and next mesocycles inherit it
+      await setDoc(doc(db, 'users', user.uid), {
+        runner_experience_level:        experienceLevel,
+        runner_age_range:               ageRange,
+        runner_current_weekly_km:       currentWeeklyKm,
+        runner_longest_recent_run_km:   longestRecentRunKm,
+        runner_max_session_minutes:     maxSessionMinutes,
+        runner_preferred_training_time: preferredTrainingTime,
+        runner_has_recent_injury:       hasRecentInjury,
+        runner_recent_injury_detail:    hasRecentInjury ? recentInjuryDetail : null,
+        runner_injury_areas:            injuryAreas.length > 0 ? injuryAreas : [],
+        runner_profile_updated_at:      serverTimestamp(),
+      }, { merge: true });
+
       await fetchPlanForRace(selectedRace);
       setPlanMeta(functionResponse.meta || null);
       window.dispatchEvent(new Event('workouts-changed'));
@@ -442,6 +466,19 @@ const TrainingPlanPage = () => {
           created_at:       serverTimestamp(),
         });
       }
+
+      await setDoc(doc(db, 'users', user.uid), {
+        runner_experience_level:        experienceLevel,
+        runner_age_range:               ageRange,
+        runner_current_weekly_km:       currentWeeklyKm,
+        runner_longest_recent_run_km:   longestRecentRunKm,
+        runner_max_session_minutes:     maxSessionMinutes,
+        runner_preferred_training_time: preferredTrainingTime,
+        runner_has_recent_injury:       hasRecentInjury,
+        runner_recent_injury_detail:    hasRecentInjury ? recentInjuryDetail : null,
+        runner_injury_areas:            injuryAreas.length > 0 ? injuryAreas : [],
+        runner_profile_updated_at:      serverTimestamp(),
+      }, { merge: true });
 
       await fetchPlanForRace(selectedRace);
       setPlanMeta(functionResponse.meta || null);

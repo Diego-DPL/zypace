@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { doc, getDoc, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -41,10 +41,48 @@ function timeAgo(iso: string): string {
   return `hace ${Math.floor(days / 30)} meses`;
 }
 
+interface RunnerProfile {
+  experience_level: 'beginner' | 'intermediate' | 'advanced' | 'elite';
+  age_range: string;
+  current_weekly_km: number;
+  longest_recent_run_km: number;
+  max_session_minutes: number;
+  preferred_training_time: 'morning' | 'afternoon' | 'evening' | 'any';
+  has_recent_injury: boolean;
+  recent_injury_detail: string;
+  injury_areas: string[];
+  updated_at: string | null;
+}
+
+const INJURY_AREA_OPTIONS = [
+  'Rodilla', 'Gemelo/Sóleo', 'Tendón de Aquiles', 'Fascitis plantar',
+  'Banda iliotibial (IT band)', 'Cadera/Glúteo', 'Espalda lumbar',
+  'Tobillo', 'Tibial anterior (periostitis)', 'Sin lesiones conocidas',
+];
+
+const DEFAULT_PROFILE: RunnerProfile = {
+  experience_level: 'intermediate',
+  age_range: '30-39',
+  current_weekly_km: 30,
+  longest_recent_run_km: 12,
+  max_session_minutes: 90,
+  preferred_training_time: 'any',
+  has_recent_injury: false,
+  recent_injury_detail: '',
+  injury_areas: [],
+  updated_at: null,
+};
+
 const SettingsPage = () => {
   const { user } = useAuth();
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  // Runner profile state
+  const [runnerProfile, setRunnerProfile] = useState<RunnerProfile>(DEFAULT_PROFILE);
+  const [profileLoaded, setProfileLoaded] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Zone calibration state
   const [zoneProfile, setZoneProfile] = useState<ZoneProfile | null>(null);
@@ -81,7 +119,7 @@ const SettingsPage = () => {
     }
   }, [user]);
 
-  const loadZoneProfile = useCallback(async () => {
+  const loadUserDoc = useCallback(async () => {
     if (!user) return;
     const snap = await getDoc(doc(db, 'users', user.uid));
     if (snap.exists()) {
@@ -97,13 +135,28 @@ const SettingsPage = () => {
         zones_calibrated_at: d.zones_calibrated_at ?? null,
         zones_source:      d.zones_source ?? null,
       });
+      if (d.runner_experience_level) {
+        setRunnerProfile({
+          experience_level:        d.runner_experience_level        ?? DEFAULT_PROFILE.experience_level,
+          age_range:               d.runner_age_range               ?? DEFAULT_PROFILE.age_range,
+          current_weekly_km:       Number(d.runner_current_weekly_km)     || DEFAULT_PROFILE.current_weekly_km,
+          longest_recent_run_km:   Number(d.runner_longest_recent_run_km) || DEFAULT_PROFILE.longest_recent_run_km,
+          max_session_minutes:     Number(d.runner_max_session_minutes)   || DEFAULT_PROFILE.max_session_minutes,
+          preferred_training_time: d.runner_preferred_training_time ?? DEFAULT_PROFILE.preferred_training_time,
+          has_recent_injury:       d.runner_has_recent_injury       ?? false,
+          recent_injury_detail:    d.runner_recent_injury_detail    ?? '',
+          injury_areas:            Array.isArray(d.runner_injury_areas) ? d.runner_injury_areas : [],
+          updated_at:              d.runner_profile_updated_at?.toDate?.().toISOString() ?? null,
+        });
+        setProfileLoaded(true);
+      }
     }
   }, [user]);
 
   useEffect(() => {
     verifyStravaConnection();
-    loadZoneProfile();
-  }, [verifyStravaConnection, loadZoneProfile]);
+    loadUserDoc();
+  }, [verifyStravaConnection, loadUserDoc]);
 
   const authUrl = useMemo(() => {
     const clientId   = import.meta.env.VITE_STRAVA_CLIENT_ID;
@@ -162,7 +215,7 @@ const SettingsPage = () => {
         setCalibrationMsg({ type: 'error', text: data.message || 'Error al calibrar.' });
         return;
       }
-      await loadZoneProfile();
+      await loadUserDoc();
       setCalibrationMsg({ type: 'success', text: `Zonas calibradas desde tu marca de ${km}km. Confianza: alta.` });
       setShowManualForm(false);
     } catch (e: unknown) {
@@ -183,7 +236,7 @@ const SettingsPage = () => {
         setCalibrationMsg({ type: 'info', text: data.message || 'No hay suficientes datos.' });
         return;
       }
-      await loadZoneProfile();
+      await loadUserDoc();
       setCalibrationMsg({
         type: 'success',
         text: `Zonas calibradas desde ${data.activities_analyzed} actividades. Confianza: ${data.confidence}.`,
@@ -192,6 +245,32 @@ const SettingsPage = () => {
       setCalibrationMsg({ type: 'error', text: e instanceof Error ? e.message : 'Error desconocido' });
     } finally {
       setCalibrating(false);
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    if (!user) return;
+    setSavingProfile(true);
+    setProfileMsg(null);
+    try {
+      await setDoc(doc(db, 'users', user.uid), {
+        runner_experience_level:        runnerProfile.experience_level,
+        runner_age_range:               runnerProfile.age_range,
+        runner_current_weekly_km:       runnerProfile.current_weekly_km,
+        runner_longest_recent_run_km:   runnerProfile.longest_recent_run_km,
+        runner_max_session_minutes:     runnerProfile.max_session_minutes,
+        runner_preferred_training_time: runnerProfile.preferred_training_time,
+        runner_has_recent_injury:       runnerProfile.has_recent_injury,
+        runner_recent_injury_detail:    runnerProfile.has_recent_injury ? runnerProfile.recent_injury_detail : null,
+        runner_injury_areas:            runnerProfile.injury_areas,
+        runner_profile_updated_at:      new Date(),
+      }, { merge: true });
+      setProfileLoaded(true);
+      setProfileMsg({ type: 'success', text: 'Perfil guardado. Se usará en todos tus próximos planes.' });
+    } catch {
+      setProfileMsg({ type: 'error', text: 'Error al guardar el perfil.' });
+    } finally {
+      setSavingProfile(false);
     }
   };
 
@@ -410,6 +489,154 @@ const SettingsPage = () => {
             </div>
           )
         )}
+      </div>
+      {/* ── Perfil de Corredor ── */}
+      <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Perfil de Corredor</h2>
+            <p className="text-sm text-gray-500 mt-1">
+              Tu perfil se usa para personalizar todos los planes y adaptar la carga a tu nivel real.
+              {runnerProfile.updated_at && (
+                <span className="ml-2 text-gray-400">Actualizado {timeAgo(runnerProfile.updated_at)}</span>
+              )}
+            </p>
+          </div>
+          {!profileLoaded && (
+            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+              Sin perfil guardado — se usarán los valores por defecto
+            </span>
+          )}
+        </div>
+
+        <div className="space-y-6">
+          {/* Nivel y edad */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Nivel de experiencia</label>
+              <div className="flex flex-wrap gap-2">
+                {([['beginner','Principiante'],['intermediate','Intermedio'],['advanced','Avanzado'],['elite','Élite']] as const).map(([v, label]) => (
+                  <button key={v} type="button"
+                    onClick={() => setRunnerProfile(p => ({ ...p, experience_level: v }))}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.experience_level === v ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300 hover:border-orange-300'}`}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">Rango de edad</label>
+              <select value={runnerProfile.age_range}
+                onChange={e => setRunnerProfile(p => ({ ...p, age_range: e.target.value }))}
+                className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm">
+                {['18-24','25-29','30-34','35-39','40-44','45-49','50-54','55-59','60+'].map(r => (
+                  <option key={r} value={r}>{r} años</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Volumen y rodaje largo */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Km semanales actuales: <span className="text-orange-500 font-bold">{runnerProfile.current_weekly_km} km</span>
+              </label>
+              <input type="range" min={10} max={150} step={5}
+                value={runnerProfile.current_weekly_km}
+                onChange={e => setRunnerProfile(p => ({ ...p, current_weekly_km: Number(e.target.value) }))}
+                className="w-full accent-orange-500" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10</span><span>150 km</span></div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Rodaje largo reciente: <span className="text-orange-500 font-bold">{runnerProfile.longest_recent_run_km} km</span>
+              </label>
+              <input type="range" min={5} max={42} step={1}
+                value={runnerProfile.longest_recent_run_km}
+                onChange={e => setRunnerProfile(p => ({ ...p, longest_recent_run_km: Number(e.target.value) }))}
+                className="w-full accent-orange-500" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>5</span><span>42 km</span></div>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Tiempo máximo/sesión: <span className="text-orange-500 font-bold">{runnerProfile.max_session_minutes} min</span>
+              </label>
+              <input type="range" min={30} max={240} step={10}
+                value={runnerProfile.max_session_minutes}
+                onChange={e => setRunnerProfile(p => ({ ...p, max_session_minutes: Number(e.target.value) }))}
+                className="w-full accent-orange-500" />
+              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>30</span><span>240 min</span></div>
+            </div>
+          </div>
+
+          {/* Momento preferido */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Momento de entrenamiento preferido</label>
+            <div className="flex flex-wrap gap-2">
+              {([['morning','Mañana'],['afternoon','Tarde'],['evening','Noche'],['any','Flexible']] as const).map(([v, label]) => (
+                <button key={v} type="button"
+                  onClick={() => setRunnerProfile(p => ({ ...p, preferred_training_time: v }))}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.preferred_training_time === v ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300 hover:border-orange-300'}`}>
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lesiones crónicas */}
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Zonas de lesión crónica o historial</label>
+            <div className="flex flex-wrap gap-2">
+              {INJURY_AREA_OPTIONS.map(area => (
+                <button key={area} type="button"
+                  onClick={() => setRunnerProfile(p => ({
+                    ...p,
+                    injury_areas: p.injury_areas.includes(area)
+                      ? p.injury_areas.filter(a => a !== area)
+                      : [...p.injury_areas.filter(a => a !== 'Sin lesiones conocidas'), area],
+                  }))}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
+                    runnerProfile.injury_areas.includes(area)
+                      ? area === 'Sin lesiones conocidas' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-red-100 border-red-400 text-red-800'
+                      : 'bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400'
+                  }`}>
+                  {area}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Lesión reciente */}
+          <div className="border border-amber-200 rounded-xl p-4 bg-amber-50/50">
+            <div className="flex items-center gap-3 mb-3">
+              <span className="text-sm font-semibold text-gray-800">¿Tienes alguna lesión reciente activa?</span>
+              <button type="button"
+                onClick={() => setRunnerProfile(p => ({ ...p, has_recent_injury: !p.has_recent_injury }))}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${runnerProfile.has_recent_injury ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${runnerProfile.has_recent_injury ? 'translate-x-4' : 'translate-x-0.5'}`} />
+              </button>
+            </div>
+            {runnerProfile.has_recent_injury && (
+              <input type="text" placeholder="Describe brevemente la lesión (ej: dolor rodilla derecha 2 semanas)"
+                value={runnerProfile.recent_injury_detail}
+                onChange={e => setRunnerProfile(p => ({ ...p, recent_injury_detail: e.target.value }))}
+                className="w-full p-2.5 border border-amber-300 rounded-lg bg-white text-gray-800 text-sm placeholder-gray-400" />
+            )}
+          </div>
+
+          {/* Feedback message */}
+          {profileMsg && (
+            <div className={`rounded-lg px-4 py-3 text-sm ${profileMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+              {profileMsg.text}
+            </div>
+          )}
+
+          <button onClick={handleSaveProfile} disabled={savingProfile}
+            className="w-full sm:w-auto px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
+            {savingProfile ? 'Guardando…' : 'Guardar perfil de corredor'}
+          </button>
+        </div>
       </div>
     </main>
   );

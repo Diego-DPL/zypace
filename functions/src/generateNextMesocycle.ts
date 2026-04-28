@@ -96,6 +96,24 @@ export const generateNextMesocycle = onCall(
     const taperWeeks = totalWeeks >= 8 ? 2 : 1;
     const totalMesocycles = Math.ceil(totalWeeks / mesoLenWeeks);
 
+    // ── 4b. Runner profile (from user doc + plan fallback) ─────
+    const userDoc = await db.collection('users').doc(uid).get();
+    const ud = userDoc.exists ? userDoc.data()! : {};
+
+    const rp_experience   = (ud.runner_experience_level  as string) || (plan.experience_level  as string) || 'intermediate';
+    const rp_ageRange     = (ud.runner_age_range          as string) || (plan.age_range          as string) || '30-39';
+    const rp_weeklyKm     = Number(ud.runner_current_weekly_km)     || Number(plan.current_weekly_km)     || 40;
+    const rp_longRun      = Number(ud.runner_longest_recent_run_km) || Number(plan.longest_recent_run_km) || 15;
+    const rp_maxMin       = Number(ud.runner_max_session_minutes)   || Number(plan.max_session_minutes)   || 90;
+    const rp_prefTime     = (ud.runner_preferred_training_time as string) || (plan.preferred_training_time as string) || 'any';
+    const rp_hasInjury    = !!(ud.runner_has_recent_injury   ?? plan.has_recent_injury);
+    const rp_injuryDetail = (ud.runner_recent_injury_detail as string) || (plan.recent_injury_detail as string) || null;
+    const rp_injuryAreas  = Array.isArray(ud.runner_injury_areas)
+      ? (ud.runner_injury_areas as string[])
+      : Array.isArray(plan.injury_areas) ? (plan.injury_areas as string[]) : [];
+    const rp_terrain   = (plan.race_terrain as string) || 'road';
+    const rp_priority  = (plan.race_priority as string) || 'A';
+
     // ── 5. Zones ────────────────────────────────────────────────
     let zones: TrainingZones | null = null;
     let targetPace: string | null = null;
@@ -129,6 +147,43 @@ export const generateNextMesocycle = onCall(
       ? runWorkouts.filter(w => w.is_completed).length / runWorkouts.length
       : 1;
 
+    // ── 6b. Fatigue signals from RPE + feelings ─────────────────
+    const completedRunW = recentWorkouts.filter(w => w.is_completed && !/descanso|rest|fuerza/i.test(w.description || ''));
+    const rpeVals = completedRunW
+      .map((w: any) => w.rpe)
+      .filter((r: any): r is number => typeof r === 'number' && r > 0);
+    const feelingMap: Record<string, number> = {};
+    for (const w of completedRunW) {
+      if (w.feeling) feelingMap[w.feeling] = (feelingMap[w.feeling] || 0) + 1;
+    }
+    const avgRpe = rpeVals.length > 0
+      ? Math.round(rpeVals.reduce((a: number, b: number) => a + b, 0) / rpeVals.length * 10) / 10
+      : null;
+    const easyRpeVals = completedRunW
+      .filter((w: any) => (w.explanation_json?.type === 'suave' || w.explanation_json?.type === 'largo') && w.rpe > 0)
+      .map((w: any) => w.rpe as number);
+    const avgEasyRpe = easyRpeVals.length > 0
+      ? easyRpeVals.reduce((a: number, b: number) => a + b, 0) / easyRpeVals.length
+      : null;
+
+    let fatigueScore = 40;
+    if (avgEasyRpe !== null) {
+      if (avgEasyRpe >= 8)      fatigueScore += 25;
+      else if (avgEasyRpe >= 7) fatigueScore += 15;
+      else if (avgEasyRpe >= 6) fatigueScore += 8;
+      else if (avgEasyRpe <= 4) fatigueScore -= 10;
+    }
+    fatigueScore += Math.min(((feelingMap['tired'] || 0) + (feelingMap['very_tired'] || 0) * 2) * 12, 30);
+    fatigueScore -= Math.min((feelingMap['great'] || 0) * 8, 20);
+    if (adherence < 0.5) fatigueScore -= 15;
+    const fatigueIndex = Math.min(100, Math.max(0, Math.round(fatigueScore)));
+    const fatigueLabel = fatigueIndex >= 75 ? 'ALTA — reducir carga del mesociclo' :
+                         fatigueIndex >= 55 ? 'moderada — mantener Z1 estricto' : 'baja — OK para progresar';
+
+    const feelingSummary = Object.entries(feelingMap).length > 0
+      ? Object.entries(feelingMap).map(([f, n]) => `${f}×${n}`).join(', ')
+      : 'sin datos';
+
     const performanceNote = adherence < 0.60
       ? `ATENCIÓN: adherencia baja (${Math.round(adherence * 100)}%) — reducir ligeramente la carga del próximo mesociclo.`
       : adherence >= 0.90
@@ -161,7 +216,43 @@ export const generateNextMesocycle = onCall(
       strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
     );
 
-    const developerInstructions = `Eres un entrenador de running científico. Devuelve SOLO JSON válido.
+    // ── 7b. Build profile + fatigue blocks for prompt ──────────
+    const expLabel = rp_experience === 'beginner'     ? 'Principiante (<1 año)' :
+                     rp_experience === 'intermediate' ? 'Intermedio (1-3 años)' :
+                     rp_experience === 'advanced'     ? 'Avanzado (3+ años)' : 'Élite/Sub-élite';
+    const terrainLabel = rp_terrain === 'trail'  ? 'trail/montaña (incluir subidas, técnica)' :
+                         rp_terrain === 'mixed'  ? 'mixto asfalto+trail' :
+                         rp_terrain === 'track'  ? 'pista atletismo' : 'asfalto/ciudad';
+    const priorityLabel = rp_priority === 'A' ? 'Carrera A — taper completo' :
+                          rp_priority === 'B' ? 'Carrera B — taper parcial 3-4 días' : 'Carrera C — sin taper';
+    const injuryBlock = (() => {
+      const parts: string[] = [];
+      if (rp_hasInjury) parts.push(`LESIÓN RECIENTE: "${rp_injuryDetail || 'sí, sin detalles'}" — evitar series hasta semana 2`);
+      const areas = rp_injuryAreas.filter((a: string) => a !== 'Sin lesiones conocidas');
+      if (areas.length > 0) parts.push(`Zonas crónicas: ${areas.join(', ')} — preventivos específicos`);
+      return parts.length > 0 ? parts.join(' · ') : 'Sin lesiones ni limitaciones';
+    })();
+
+    const runnerProfileBlock = `PERFIL DEL CORREDOR (persistente — usar como guía de carga):
+  • Nivel: ${expLabel}
+  • Edad: ${rp_ageRange} años
+  • Volumen actual: ~${rp_weeklyKm} km/semana
+  • Rodaje largo reciente: ~${rp_longRun} km
+  • Tiempo máximo/sesión: ${rp_maxMin} min — NO superar
+  • Momento preferido: ${rp_prefTime === 'morning' ? 'mañana' : rp_prefTime === 'afternoon' ? 'tarde' : rp_prefTime === 'evening' ? 'noche' : 'flexible'}
+  • Terreno objetivo: ${terrainLabel}
+  • Prioridad carrera: ${priorityLabel}
+  • Lesiones: ${injuryBlock}`;
+
+    const fatigueBlock = `ESTADO DE FATIGA ACTUAL (últimos 14 días):
+  • Índice de fatiga: ${fatigueIndex}/100 — ${fatigueLabel}
+  • RPE medio: ${avgRpe !== null ? `${avgRpe}/10` : 'sin datos'}
+  • Sensaciones reportadas: ${feelingSummary}
+  ${fatigueIndex >= 75 ? '→ OBLIGATORIO: reducir volumen e intensidad este mesociclo. Máx 1 sesión de calidad/semana las primeras 2 semanas.' :
+    fatigueIndex >= 55 ? '→ Mantener volumen pero cuidar intensidades. Z1 estricto en rodajes fáciles.' :
+    '→ El atleta está fresco. Se puede progresar según plan.'}`;
+
+    const developerInstructions = `Eres un entrenador de running científico y personalizado. Devuelve SOLO JSON válido.
 
 FORMATO:
 {"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso|fuerza","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
@@ -172,6 +263,10 @@ ${runDaysOfWeek && runDaysOfWeek.length > 0
   ? `Running FIJO los: ${runDaysOfWeek.map(d => DAY_NAMES_ES[d]).join(', ')}`
   : `Días running/sem: ${runDays}`} · ${strengthNote}
 Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
+
+${runnerProfileBlock}
+
+${fatigueBlock}
 
 ${zonesBlock}
 
@@ -191,7 +286,9 @@ REGLAS:
 1. Descarga cada 4ª semana del plan (semana ${mesoStartWeek + 3} si aplica)
 2. Sin calidad en días consecutivos
 3. Fase BASE: cero calidad, solo Z1
-4. Adaptar carga según rendimiento anterior
+4. Adaptar carga al estado de fatiga y perfil del corredor
+5. Adaptar complejidad al nivel ${expLabel}
+6. Ninguna sesión supere ${rp_maxMin} minutos
 
 Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
 
