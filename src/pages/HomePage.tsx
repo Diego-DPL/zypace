@@ -9,7 +9,7 @@ interface Race     { id: string; name: string; date: string; }
 interface Workout  { id: string; workout_date: string; description: string; is_completed: boolean; distance_km?: number | null; plan_id?: string; }
 interface Activity { activity_id: string; start_date: string; name: string; distance_m?: number | null; sport_type?: string; }
 interface IntensityWeek { label: string; kmZ1: number; kmZ4: number; kmZ5: number; total: number; }
-interface FitnessData   { ctl: number; atl: number; tsb: number; history: { ctl: number; atl: number }[]; }
+interface FitnessData   { ctl: number; atl: number; tsb: number; acwr: number; injuryRisk: 'low' | 'moderate' | 'high'; history: { ctl: number; atl: number }[]; }
 
 function FitnessChart({ data }: { data: { ctl: number; atl: number }[] }) {
   if (data.length < 2) return null;
@@ -175,11 +175,15 @@ const HomePage = () => {
       const tssMap: Record<string, number> = {};
       for (const w of workouts90) {
         if (!(w as any).is_completed) continue;
-        const km    = ((w as any).distance_km || 0) as number;
-        const type: string = (w as any).explanation_json?.type || '';
-        const factor = (type === 'umbral' || type === 'tempo') ? 2.5 : type === 'series' ? 3.5 : 1.0;
+        const rpe: number    = typeof (w as any).rpe === 'number' ? (w as any).rpe : 0;
+        const durMin: number = typeof (w as any).duration_min === 'number' ? (w as any).duration_min : 0;
+        const km: number     = ((w as any).distance_km || 0);
+        const type: string   = (w as any).explanation_json?.type || '';
+        const zFactor        = (type === 'umbral' || type === 'tempo') ? 2.5 : type === 'series' ? 3.5 : 1.0;
         const d = (w as any).workout_date as string;
-        tssMap[d] = (tssMap[d] || 0) + km * factor;
+        // Foster's session-RPE method (priority) or zone×distance fallback
+        const tl = (rpe > 0 && durMin > 0) ? durMin * Math.pow(rpe / 10, 2) * 10 : km * zFactor;
+        tssMap[d] = (tssMap[d] || 0) + tl;
       }
 
       let ctl = 0, atl = 0;
@@ -193,11 +197,14 @@ const HomePage = () => {
         fitnessHistory.push({ ctl: parseFloat(ctl.toFixed(2)), atl: parseFloat(atl.toFixed(2)) });
       }
       if (ctl >= 0.3) {
+        const acwr = ctl > 0 ? parseFloat((atl / ctl).toFixed(2)) : 0;
         setFitnessData({
-          ctl:     parseFloat(ctl.toFixed(1)),
-          atl:     parseFloat(atl.toFixed(1)),
-          tsb:     parseFloat((ctl - atl).toFixed(1)),
-          history: fitnessHistory,
+          ctl:        parseFloat(ctl.toFixed(1)),
+          atl:        parseFloat(atl.toFixed(1)),
+          tsb:        parseFloat((ctl - atl).toFixed(1)),
+          acwr,
+          injuryRisk: acwr > 1.5 ? 'high' : acwr > 1.3 ? 'moderate' : 'low',
+          history:    fitnessHistory,
         });
       }
 
@@ -438,7 +445,7 @@ const HomePage = () => {
                                                'Riesgo sobreentrenamiento'}
                     </span>
                   </div>
-                  <div className="grid grid-cols-3 gap-3 mb-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
                     <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-center">
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500 mb-0.5">CTL</div>
                       <div className="text-2xl font-bold text-indigo-700">{fitnessData.ctl}</div>
@@ -456,7 +463,34 @@ const HomePage = () => {
                       </div>
                       <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>balance</div>
                     </div>
+                    <div className={`rounded-xl border p-3 text-center ${
+                      fitnessData.injuryRisk === 'high'     ? 'border-red-200 bg-red-50' :
+                      fitnessData.injuryRisk === 'moderate' ? 'border-amber-200 bg-amber-50' :
+                                                              'border-sky-100 bg-sky-50'
+                    }`}>
+                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${
+                        fitnessData.injuryRisk === 'high' ? 'text-red-500' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-500' : 'text-sky-500'
+                      }`}>ACWR</div>
+                      <div className={`text-2xl font-bold ${
+                        fitnessData.injuryRisk === 'high' ? 'text-red-600' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-600' : 'text-sky-600'
+                      }`}>{fitnessData.acwr}</div>
+                      <div className={`text-[10px] mt-0.5 ${
+                        fitnessData.injuryRisk === 'high' ? 'text-red-400' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-400' : 'text-sky-400'
+                      }`}>{fitnessData.injuryRisk === 'high' ? 'riesgo alto' : fitnessData.injuryRisk === 'moderate' ? 'riesgo moderado' : 'carga óptima'}</div>
+                    </div>
                   </div>
+                  {fitnessData.injuryRisk !== 'low' && (
+                    <div className={`mb-4 rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2 ${
+                      fitnessData.injuryRisk === 'high' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-amber-50 border border-amber-200 text-amber-800'
+                    }`}>
+                      <span>{fitnessData.injuryRisk === 'high' ? '⚠️' : '⚡'}</span>
+                      <span>
+                        {fitnessData.injuryRisk === 'high'
+                          ? `ACWR ${fitnessData.acwr} — carga aguda muy superior a la crónica. Riesgo elevado de lesión: reduce volumen o intensidad esta semana.`
+                          : `ACWR ${fitnessData.acwr} — carga aguda algo superior a la crónica. Mantén la intensidad y descansa bien.`}
+                      </span>
+                    </div>
+                  )}
                   <div className="bg-gray-50 rounded-xl px-3 pt-2 pb-1">
                     <div className="flex justify-between text-[9px] text-gray-400 mb-0.5">
                       <span>90 días atrás</span>
@@ -469,7 +503,7 @@ const HomePage = () => {
                     <FitnessChart data={fitnessData.history} />
                   </div>
                   <p className="text-[10px] text-gray-400 mt-3">
-                    CTL = media ponderada 42 días · ATL = media ponderada 7 días · TSB = CTL − ATL · basado en km × factor de zona (Z1×1 / Z4×2.5 / Z5×3.5)
+                    CTL = fitness 42 días · ATL = fatiga 7 días · TSB = CTL−ATL · ACWR = ATL/CTL (óptimo 0.8–1.3) · TL calculado con RPE (Foster) o km×zona
                   </p>
                 </div>
               </div>

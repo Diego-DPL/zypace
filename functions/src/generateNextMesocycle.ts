@@ -184,6 +184,42 @@ export const generateNextMesocycle = onCall(
       ? Object.entries(feelingMap).map(([f, n]) => `${f}×${n}`).join(', ')
       : 'sin datos';
 
+    // ── 6c. Save previous mesocycle history snapshot ─────────────
+    if (prevMesoNumber >= 1 && plan.mesocycle_start_date) {
+      try {
+        const mesoWorkoutsSnap = await db
+          .collection('users').doc(uid)
+          .collection('workouts')
+          .where('plan_id', '==', planId)
+          .where('workout_date', '>=', plan.mesocycle_start_date as string)
+          .where('workout_date', '<=', prevMesoEnd)
+          .get();
+        const mesoWorkouts = mesoWorkoutsSnap.docs.map(d => d.data());
+        const mesoCompleted = mesoWorkouts.filter((w: any) => w.is_completed).length;
+        const mesoAdherence = mesoWorkouts.length > 0
+          ? Math.round((mesoCompleted / mesoWorkouts.length) * 100)
+          : null;
+        const mesoKm = mesoWorkouts
+          .filter((w: any) => w.is_completed)
+          .reduce((s: number, w: any) => s + (w.distance_km || 0), 0);
+        await db.collection('users').doc(uid).collection('mesocycle_history').add({
+          plan_id:             planId,
+          race_id:             plan.race_id,
+          mesocycle_number:    prevMesoNumber,
+          start_date:          plan.mesocycle_start_date,
+          end_date:            prevMesoEnd,
+          total_workouts:      mesoWorkouts.length,
+          completed_workouts:  mesoCompleted,
+          adherence_pct:       mesoAdherence,
+          total_km:            Math.round(mesoKm * 10) / 10,
+          avg_rpe:             avgRpe,
+          fatigue_index:       fatigueIndex,
+          feelings_summary:    Object.entries(feelingMap).map(([f, n]) => ({ feeling: f, count: n })),
+          created_at:          FieldValue.serverTimestamp(),
+        });
+      } catch { /* non-critical — don't fail mesocycle generation */ }
+    }
+
     const performanceNote = adherence < 0.60
       ? `ATENCIÓN: adherencia baja (${Math.round(adherence * 100)}%) — reducir ligeramente la carga del próximo mesociclo.`
       : adherence >= 0.90

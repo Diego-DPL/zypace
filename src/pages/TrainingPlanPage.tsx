@@ -64,6 +64,7 @@ const TrainingPlanPage = () => {
   const [profileZones, setProfileZones] = useState<{ z1_sec_km: number; z4_sec_km: number; z5_sec_km: number } | null>(null);
   const [versions, setVersions] = useState<any[]>([]);
   const [loadingVersions, setLoadingVersions] = useState(false);
+  const [mesoHistory, setMesoHistory] = useState<any[]>([]);
   const [versionPreview, setVersionPreview] = useState<any | null>(null);
   const [methodology, setMethodology] = useState<'polarized' | 'norwegian' | 'classic'>('polarized');
   const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced' | 'elite'>('intermediate');
@@ -173,6 +174,7 @@ const TrainingPlanPage = () => {
     if (!user || !raceId) return;
     setLoadingPlan(true);
     setPlan(null);
+    setMesoHistory([]);
     try {
       const planSnap = await getDocs(
         query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', raceId))
@@ -199,6 +201,14 @@ const TrainingPlanPage = () => {
       );
       setVersions(versSnap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoadingVersions(false);
+
+      const histSnap = await getDocs(
+        query(collection(db, 'users', user.uid, 'mesocycle_history'),
+          where('plan_id', '==', planId),
+          orderBy('mesocycle_number', 'asc'),
+        )
+      );
+      setMesoHistory(histSnap.docs.map(d => ({ id: d.id, ...d.data() })));
     } catch (error) {
       console.warn('Error fetching training plan:', error);
     } finally {
@@ -726,6 +736,43 @@ const TrainingPlanPage = () => {
                       <span key={ph.name} className={`text-xs px-3 py-1 rounded-full border font-medium ${colors[ph.name] || 'bg-gray-100 text-gray-700'}`}>
                         {labels[ph.name] || ph.name} · sem {ph.startWeek}–{ph.endWeek}
                       </span>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Mesocycle history */}
+            {mesoHistory.length > 0 && (
+              <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">Historial de mesociclos</h3>
+                <div className="space-y-2">
+                  {mesoHistory.map((h: any) => {
+                    const adh = h.adherence_pct ?? null;
+                    const fatigue = h.fatigue_index ?? null;
+                    const adhColor = adh === null ? 'text-gray-400' : adh >= 90 ? 'text-green-600' : adh >= 70 ? 'text-amber-600' : 'text-red-600';
+                    const fatColor = fatigue === null ? 'text-gray-400' : fatigue >= 75 ? 'text-red-600' : fatigue >= 55 ? 'text-amber-600' : 'text-green-600';
+                    return (
+                      <div key={h.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                        <span className="font-semibold text-indigo-700 w-20 shrink-0">Meso {h.mesocycle_number}</span>
+                        <span className="text-gray-500 shrink-0">
+                          {h.start_date ? new Date(h.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—'}
+                          {' → '}
+                          {h.end_date ? new Date(h.end_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—'}
+                        </span>
+                        <span className={`font-semibold ${adhColor}`}>
+                          {adh !== null ? `${adh}% adherencia` : 'sin adherencia'}
+                        </span>
+                        {h.total_km > 0 && <span className="text-gray-600">{h.total_km} km</span>}
+                        {h.avg_rpe !== null && h.avg_rpe !== undefined && (
+                          <span className="text-gray-600">RPE {h.avg_rpe}/10</span>
+                        )}
+                        {fatigue !== null && (
+                          <span className={`font-medium ${fatColor}`}>
+                            Fatiga {fatigue}/100
+                          </span>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
