@@ -221,8 +221,21 @@ export const analyzeWeek = onCall(
       ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10
       : null;
 
+    // ── 5b2. Sleep quality & freshness signals ───────────────────
+    const sleepQualityVals = allWorkouts
+      .map((w: any) => w.sleep_quality)
+      .filter((s: any): s is number => typeof s === 'number' && s >= 1 && s <= 5);
+    const avgSleepQuality = sleepQualityVals.length > 0
+      ? Math.round(sleepQualityVals.reduce((a: number, b: number) => a + b, 0) / sleepQualityVals.length * 10) / 10
+      : null;
+
+    const freshnessMap: Record<string, number> = {};
+    for (const w of completedRunWorkouts) {
+      if (w.freshness_start) { freshnessMap[w.freshness_start] = (freshnessMap[w.freshness_start] || 0) + 1; }
+    }
+
     // ── 5c. Fatigue index (0–100, higher = more fatigued) ─────
-    // Signals: high RPE on easy workouts, tired/very_tired feelings, high suffer scores, slow paces
+    // Signals: high RPE on easy workouts, tired/very_tired feelings, high suffer scores, slow paces, sleep, freshness
     let fatigueScore = 40; // neutral baseline
 
     // RPE signal — easy workouts should be RPE 4–6; if higher, flags fatigue
@@ -257,6 +270,21 @@ export const analyzeWeek = onCall(
     // Pace deviation signal
     if (avgPaceDev !== null && avgPaceDev > 0.08)      fatigueScore += 15;
     else if (avgPaceDev !== null && avgPaceDev > 0.04) fatigueScore += 7;
+
+    // Sleep quality signal (1=terrible … 5=excellent)
+    if (avgSleepQuality !== null) {
+      if (avgSleepQuality <= 1.5)      fatigueScore += 20;
+      else if (avgSleepQuality <= 2.5) fatigueScore += 13;
+      else if (avgSleepQuality <= 3.0) fatigueScore += 5;
+      else if (avgSleepQuality >= 4.5) fatigueScore -= 8;
+      else if (avgSleepQuality >= 4.0) fatigueScore -= 5;
+    }
+
+    // Freshness at workout start signal
+    const heavyStarts = (freshnessMap['heavy'] || 0) + (freshnessMap['very_heavy'] || 0) * 2;
+    const freshStarts = freshnessMap['fresh'] || 0;
+    fatigueScore += Math.min(heavyStarts * 7, 21);
+    fatigueScore -= Math.min(freshStarts * 5, 15);
 
     // Low adherence = less training = less fatigue buildup
     if (adherence < 0.5) fatigueScore -= 15;
@@ -434,6 +462,8 @@ export const analyzeWeek = onCall(
         avg_rpe:                avgRpe,
         fatigue_index:          fatigueIndex,
         feelings_summary:       Object.entries(feelingCounts).map(([feeling, count]) => ({ feeling, count })),
+        avg_sleep_quality:      avgSleepQuality,
+        freshness_summary:      Object.entries(freshnessMap).map(([freshness, count]) => ({ freshness, count })),
         total_suffer_score:     totalSufferScore > 0 ? totalSufferScore : null,
         pace_note: 'El análisis de ritmo solo aplica a esfuerzos continuos (umbral/tempo). Las series de pista se evalúan solo por adherencia.',
       },

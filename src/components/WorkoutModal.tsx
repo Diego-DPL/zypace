@@ -37,6 +37,21 @@ const FEELING_OPTIONS = [
   { value: 'very_tired',label: 'Agotado',  emoji: '😩', active: 'bg-red-100 border-red-500 text-red-800'       },
 ] as const;
 
+const SLEEP_OPTIONS = [
+  { value: 1, label: 'Pésimo',    emoji: '😴', active: 'bg-red-100 border-red-500 text-red-800'        },
+  { value: 2, label: 'Malo',      emoji: '😪', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 3, label: 'Regular',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
+  { value: 4, label: 'Bueno',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'      },
+  { value: 5, label: 'Excelente', emoji: '🌟', active: 'bg-green-100 border-green-500 text-green-800'   },
+] as const;
+
+const FRESHNESS_OPTIONS = [
+  { value: 'fresh',      label: 'Fresco',      emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'    },
+  { value: 'normal',     label: 'Normal',      emoji: '👌', active: 'bg-teal-100 border-teal-500 text-teal-800'       },
+  { value: 'heavy',      label: 'Pesado',      emoji: '😓', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 'very_heavy', label: 'Muy pesado',  emoji: '🦵', active: 'bg-red-100 border-red-500 text-red-800'          },
+] as const;
+
 const PHASE_COLORS: Record<string, string> = {
   base: 'bg-teal-100 text-teal-700', desarrollo: 'bg-blue-100 text-blue-700',
   especifico: 'bg-orange-100 text-orange-700', taper: 'bg-purple-100 text-purple-700',
@@ -74,6 +89,8 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
   const [rpe, setRpe] = useState<number>(0);
   const [feeling, setFeeling] = useState<string>('');
   const [notes, setNotes] = useState<string>('');
+  const [sleepQuality, setSleepQuality] = useState<number | null>(null);
+  const [freshnessStart, setFreshnessStart] = useState<string>('');
   const [stravaActivities, setStravaActivities] = useState<StravaActivityData[]>([]);
   const [loadingStrava, setLoadingStrava] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -84,6 +101,8 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
     setRpe(workout.rpe ?? 0);
     setFeeling(workout.feeling ?? '');
     setNotes(workout.notes ?? '');
+    setSleepQuality(typeof workout.sleep_quality === 'number' ? workout.sleep_quality : null);
+    setFreshnessStart(workout.freshness_start ?? '');
     setSaved(false);
 
     if (!user || !workout.workout_date) return;
@@ -106,10 +125,12 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
         rpe: rpe || null,
         feeling: feeling || null,
         notes: notes.trim() || null,
+        sleep_quality: sleepQuality ?? null,
+        freshness_start: freshnessStart || null,
       };
-      // Auto-mark completed when logging past workout
+      // Auto-mark completed when logging past workout (sleep-only doesn't count)
       const todayISO = new Date().toISOString().substring(0, 10);
-      if (!workout.is_completed && workout.workout_date <= todayISO && (rpe > 0 || feeling || notes.trim())) {
+      if (!workout.is_completed && workout.workout_date <= todayISO && (rpe > 0 || feeling || notes.trim() || freshnessStart)) {
         updates.is_completed = true;
       }
       await updateDoc(doc(db, 'users', user.uid, 'workouts', workout.id), updates);
@@ -207,6 +228,36 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
             </p>
           )}
 
+          {/* Sleep quality — shown for all past days */}
+          {isPast && (
+            <div className="border-t border-gray-100 pt-4 space-y-2">
+              <label className="text-xs text-gray-500 block font-semibold">
+                Calidad del sueño{sleepQuality != null ? ` — ${SLEEP_OPTIONS.find(o => o.value === sleepQuality)?.emoji} ${SLEEP_OPTIONS.find(o => o.value === sleepQuality)?.label}` : ''}
+              </label>
+              <div className="flex gap-2 flex-wrap">
+                {SLEEP_OPTIONS.map(opt => (
+                  <button key={opt.value} type="button"
+                    onClick={() => setSleepQuality(sleepQuality === opt.value ? null : opt.value)}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                      sleepQuality === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                    }`}>
+                    <span>{opt.emoji}</span> {opt.label}
+                  </button>
+                ))}
+              </div>
+              {/* Save button shown only for rest days (showLog handles saving for run days) */}
+              {isRest && (
+                <div className="flex items-center gap-3 pt-1">
+                  <button onClick={handleSave} disabled={saving}
+                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold transition-colors disabled:opacity-50">
+                    {saving ? 'Guardando…' : 'Guardar sueño'}
+                  </button>
+                  {saved && <span className="text-xs text-green-600 font-semibold">✓ Guardado</span>}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Strava data */}
           {isPast && (
             <div className="border-t border-gray-100 pt-4">
@@ -293,6 +344,22 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                 </div>
               </div>
 
+              {/* Freshness at start */}
+              <div>
+                <label className="text-xs text-gray-500 mb-2 block">¿Cómo llegaste al entreno?</label>
+                <div className="flex gap-2 flex-wrap">
+                  {FRESHNESS_OPTIONS.map(opt => (
+                    <button key={opt.value} type="button"
+                      onClick={() => setFreshnessStart(freshnessStart === opt.value ? '' : opt.value)}
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
+                        freshnessStart === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                      }`}>
+                      <span>{opt.emoji}</span> {opt.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               {/* Notes */}
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">Notas libres</label>
@@ -316,11 +383,13 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
           )}
 
           {/* Show saved sensaciones if they exist */}
-          {isPast && !isRest && !showLog === false && (workout.rpe || workout.feeling || workout.notes) && !saved && (
+          {isPast && !isRest && !showLog === false && (workout.rpe || workout.feeling || workout.notes || workout.sleep_quality || workout.freshness_start) && !saved && (
             <div className="border-t border-gray-100 pt-3 text-sm text-gray-600 space-y-1">
               <p className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Sensaciones registradas</p>
               {workout.feeling && <p>{FEELING_OPTIONS.find(f => f.value === workout.feeling)?.emoji} {FEELING_OPTIONS.find(f => f.value === workout.feeling)?.label}</p>}
+              {workout.freshness_start && <p>{FRESHNESS_OPTIONS.find(f => f.value === workout.freshness_start)?.emoji} Llegó {FRESHNESS_OPTIONS.find(f => f.value === workout.freshness_start)?.label.toLowerCase()}</p>}
               {workout.rpe > 0 && <p>RPE: {workout.rpe}/10 · {RPE_LABELS[workout.rpe]}</p>}
+              {workout.sleep_quality != null && <p>{SLEEP_OPTIONS.find(s => s.value === workout.sleep_quality)?.emoji} Sueño {SLEEP_OPTIONS.find(s => s.value === workout.sleep_quality)?.label.toLowerCase()}</p>}
               {workout.notes && <p className="italic text-gray-500">"{workout.notes}"</p>}
             </div>
           )}

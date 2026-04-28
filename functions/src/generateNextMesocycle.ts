@@ -114,6 +114,19 @@ export const generateNextMesocycle = onCall(
     const rp_terrain   = (plan.race_terrain as string) || 'road';
     const rp_priority  = (plan.race_priority as string) || 'A';
 
+    // ── 4c. Latest weekly review for this plan ────────────────────
+    let latestReview: Record<string, any> | null = null;
+    try {
+      const reviewsSnap = await db
+        .collection('users').doc(uid)
+        .collection('weekly_reviews')
+        .where('plan_id', '==', planId)
+        .orderBy('created_at', 'desc')
+        .limit(1)
+        .get();
+      if (!reviewsSnap.empty) latestReview = reviewsSnap.docs[0].data();
+    } catch { /* non-critical */ }
+
     // ── 5. Zones ────────────────────────────────────────────────
     let zones: TrainingZones | null = null;
     let targetPace: string | null = null;
@@ -288,6 +301,30 @@ export const generateNextMesocycle = onCall(
     fatigueIndex >= 55 ? '→ Mantener volumen pero cuidar intensidades. Z1 estricto en rodajes fáciles.' :
     '→ El atleta está fresco. Se puede progresar según plan.'}`;
 
+    const READINESS_LABELS: Record<string, string> = {
+      ready:   'Listo para atacar — puede subir carga',
+      normal:  'Normal — mantener carga planificada',
+      lighter: 'Necesita semana más suave — reducir volumen 20-25%',
+      rest:    'Necesita descansar — reducir drásticamente (≤50% volumen normal)',
+    };
+    const LIFE_CONTEXT_LABELS: Record<string, string> = {
+      normal:  'Semana normal',
+      stress:  'Semana estresante — reducir sesiones de calidad',
+      travel:  'Viajes/compromisos — priorizar sesiones cortas',
+      illness: 'No se encuentra bien — solo rodajes suaves si se entrena',
+      great:   'Con mucha energía — puede tolerar más carga',
+    };
+    const weeklyReviewBlock = latestReview
+      ? `CHECK-IN DEL ATLETA (última revisión semanal):
+  • Estado para próxima semana: ${READINESS_LABELS[latestReview.readiness] || latestReview.readiness || 'sin datos'}
+  • Contexto vital: ${LIFE_CONTEXT_LABELS[latestReview.life_context] || latestReview.life_context || 'sin datos'}
+  • Notas del atleta: ${latestReview.notes || 'ninguna'}
+  ${latestReview.readiness === 'rest' ? '→ OBLIGATORIO: reducir carga al mínimo (solo rodajes suaves Z1 ≤30min los primeros 4 días).' :
+    latestReview.readiness === 'lighter' ? '→ Reducir volumen semanal 20-25% respecto a lo planificado.' :
+    latestReview.readiness === 'ready' || latestReview.life_context === 'great' ? '→ Atleta fresco y motivado — se puede progresar.' :
+    ''}`
+      : 'CHECK-IN DEL ATLETA: sin datos de revisión semanal.';
+
     const developerInstructions = `Eres un entrenador de running científico y personalizado. Devuelve SOLO JSON válido.
 
 FORMATO:
@@ -303,6 +340,8 @@ Objetivo: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 ${runnerProfileBlock}
 
 ${fatigueBlock}
+
+${weeklyReviewBlock}
 
 ${zonesBlock}
 

@@ -46,7 +46,7 @@ function adjustDescription(description, factor) {
 }
 // ── Function ─────────────────────────────────────────────────
 exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public' }, async (request) => {
-    var _a, _b, _c, _d, _e;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
@@ -127,7 +127,14 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     for (const d of actsSnap.docs) {
         const a = d.data();
         const date = a.start_date;
-        (actsByDate[date] || (actsByDate[date] = [])).push({ distance_m: a.distance_m || 0, moving_time: a.moving_time || 0 });
+        (actsByDate[date] || (actsByDate[date] = [])).push({
+            distance_m: a.distance_m || 0,
+            moving_time: a.moving_time || 0,
+            average_heartrate: (_c = a.average_heartrate) !== null && _c !== void 0 ? _c : null,
+            max_heartrate: (_d = a.max_heartrate) !== null && _d !== void 0 ? _d : null,
+            suffer_score: (_e = a.suffer_score) !== null && _e !== void 0 ? _e : null,
+            average_cadence: (_f = a.average_cadence) !== null && _f !== void 0 ? _f : null,
+        });
     }
     // ── 5. Compute metrics ───────────────────────────────────
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -152,7 +159,7 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     const completedContinuous = runWorkouts.filter((w) => { var _a; return continuousTypes.has(((_a = w.explanation_json) === null || _a === void 0 ? void 0 : _a.type) || '') && w.is_completed; });
     const paceDeviations = [];
     for (const w of completedContinuous) {
-        const targetSec = parseTargetPace((_c = w.explanation_json) === null || _c === void 0 ? void 0 : _c.intensity);
+        const targetSec = parseTargetPace((_g = w.explanation_json) === null || _g === void 0 ? void 0 : _g.intensity);
         if (!targetSec)
             continue;
         const dayActs = actsByDate[w.workout_date] || [];
@@ -170,6 +177,95 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     const avgPaceDev = paceDeviations.length > 0
         ? paceDeviations.reduce((a, b) => a + b, 0) / paceDeviations.length
         : null;
+    // ── 5b. RPE & sensaciones from workout logs ───────────────
+    const completedRunWorkouts = runWorkouts.filter((w) => w.is_completed);
+    const rpeValues = completedRunWorkouts
+        .map((w) => w.rpe)
+        .filter((r) => typeof r === 'number' && r > 0);
+    const feelingCounts = {};
+    for (const w of completedRunWorkouts) {
+        if (w.feeling) {
+            feelingCounts[w.feeling] = (feelingCounts[w.feeling] || 0) + 1;
+        }
+    }
+    const avgRpe = rpeValues.length > 0
+        ? Math.round((rpeValues.reduce((a, b) => a + b, 0) / rpeValues.length) * 10) / 10
+        : null;
+    // ── 5b2. Sleep quality & freshness signals ───────────────────
+    const sleepQualityVals = allWorkouts
+        .map((w) => w.sleep_quality)
+        .filter((s) => typeof s === 'number' && s >= 1 && s <= 5);
+    const avgSleepQuality = sleepQualityVals.length > 0
+        ? Math.round(sleepQualityVals.reduce((a, b) => a + b, 0) / sleepQualityVals.length * 10) / 10
+        : null;
+    const freshnessMap = {};
+    for (const w of completedRunWorkouts) {
+        if (w.freshness_start) {
+            freshnessMap[w.freshness_start] = (freshnessMap[w.freshness_start] || 0) + 1;
+        }
+    }
+    // ── 5c. Fatigue index (0–100, higher = more fatigued) ─────
+    // Signals: high RPE on easy workouts, tired/very_tired feelings, high suffer scores, slow paces, sleep, freshness
+    let fatigueScore = 40; // neutral baseline
+    // RPE signal — easy workouts should be RPE 4–6; if higher, flags fatigue
+    const easyWorkoutsWithRpe = completedRunWorkouts.filter((w) => { var _a, _b; return (((_a = w.explanation_json) === null || _a === void 0 ? void 0 : _a.type) === 'suave' || ((_b = w.explanation_json) === null || _b === void 0 ? void 0 : _b.type) === 'largo') && w.rpe > 0; });
+    if (easyWorkoutsWithRpe.length > 0) {
+        const avgEasyRpe = easyWorkoutsWithRpe.reduce((s, w) => s + w.rpe, 0) / easyWorkoutsWithRpe.length;
+        if (avgEasyRpe >= 8)
+            fatigueScore += 25;
+        else if (avgEasyRpe >= 7)
+            fatigueScore += 15;
+        else if (avgEasyRpe >= 6)
+            fatigueScore += 8;
+        else if (avgEasyRpe <= 4)
+            fatigueScore -= 10; // very easy = good recovery
+    }
+    // Feeling signal
+    const tiredCount = (feelingCounts['tired'] || 0) + (feelingCounts['very_tired'] || 0) * 2;
+    const greatCount = feelingCounts['great'] || 0;
+    fatigueScore += Math.min(tiredCount * 12, 30);
+    fatigueScore -= Math.min(greatCount * 8, 20);
+    // Suffer score signal — sum across the week
+    let totalSufferScore = 0;
+    for (const acts of Object.values(actsByDate)) {
+        for (const a of acts) {
+            if (a.suffer_score != null)
+                totalSufferScore += a.suffer_score;
+        }
+    }
+    if (totalSufferScore > 300)
+        fatigueScore += 20;
+    else if (totalSufferScore > 200)
+        fatigueScore += 10;
+    else if (totalSufferScore > 100)
+        fatigueScore += 5;
+    // Pace deviation signal
+    if (avgPaceDev !== null && avgPaceDev > 0.08)
+        fatigueScore += 15;
+    else if (avgPaceDev !== null && avgPaceDev > 0.04)
+        fatigueScore += 7;
+    // Sleep quality signal (1=terrible … 5=excellent)
+    if (avgSleepQuality !== null) {
+        if (avgSleepQuality <= 1.5)
+            fatigueScore += 20;
+        else if (avgSleepQuality <= 2.5)
+            fatigueScore += 13;
+        else if (avgSleepQuality <= 3.0)
+            fatigueScore += 5;
+        else if (avgSleepQuality >= 4.5)
+            fatigueScore -= 8;
+        else if (avgSleepQuality >= 4.0)
+            fatigueScore -= 5;
+    }
+    // Freshness at workout start signal
+    const heavyStarts = (freshnessMap['heavy'] || 0) + (freshnessMap['very_heavy'] || 0) * 2;
+    const freshStarts = freshnessMap['fresh'] || 0;
+    fatigueScore += Math.min(heavyStarts * 7, 21);
+    fatigueScore -= Math.min(freshStarts * 5, 15);
+    // Low adherence = less training = less fatigue buildup
+    if (adherence < 0.5)
+        fatigueScore -= 15;
+    const fatigueIndex = Math.min(100, Math.max(0, Math.round(fatigueScore)));
     const completedSeries = runWorkouts.filter((w) => { var _a; return ((_a = w.explanation_json) === null || _a === void 0 ? void 0 : _a.type) === 'series' && w.is_completed; }).length;
     const plannedSeries = runWorkouts.filter((w) => { var _a; return ((_a = w.explanation_json) === null || _a === void 0 ? void 0 : _a.type) === 'series'; }).length;
     // Load (pseudo-TSS)
@@ -185,7 +281,7 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     let plannedLoad = 0, actualLoad = 0;
     for (const w of runWorkouts) {
         const km = w.distance_km || extractKm(w.description || '') || 0;
-        const factor = intensityFactor(((_d = w.explanation_json) === null || _d === void 0 ? void 0 : _d.type) || 'suave');
+        const factor = intensityFactor(((_h = w.explanation_json) === null || _h === void 0 ? void 0 : _h.type) || 'suave');
         plannedLoad += km * factor;
         if (w.is_completed) {
             const dayActs = actsByDate[w.workout_date] || [];
@@ -199,6 +295,12 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     const seriesNote = plannedSeries > 0
         ? ` Series de pista: ${completedSeries}/${plannedSeries} completadas (el ritmo de series no se analiza — el GPS registra el promedio incluido el trote de recuperación).`
         : '';
+    // Fatigue note for messages
+    const fatigueNote = fatigueIndex >= 75
+        ? ' Las sensaciones y métricas indican fatiga acumulada alta — necesitas más recuperación.'
+        : fatigueIndex >= 55
+            ? ' Señales de fatiga moderada — mantén los rodajes fáciles en Z1 estricto.'
+            : '';
     if (plannedRunCount === 0) {
         verdict = 'no_data';
         message = 'No hay entrenamientos de running planificados en los últimos 7 días para este plan.';
@@ -207,21 +309,26 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
         verdict = 'underload';
         message = `Completaste ${completedRunCount} de ${plannedRunCount} entrenamientos (${Math.round(adherence * 100)}%). La próxima semana será más suave para que puedas retomar el ritmo.${seriesNote}`;
     }
-    else if (avgPaceDev !== null && avgPaceDev > 0.10) {
+    else if (fatigueIndex >= 75 || (avgPaceDev !== null && avgPaceDev > 0.10)) {
         verdict = 'slow_paces';
-        message = `Tus esfuerzos continuos (umbral/tempo) fueron un ${Math.round(avgPaceDev * 100)}% más lentos de lo planificado — señal de fatiga acumulada. Voy a reducir ligeramente la intensidad la próxima semana.${seriesNote}`;
+        const trigger = fatigueIndex >= 75 && avgPaceDev !== null && avgPaceDev > 0.10
+            ? `Ritmos un ${Math.round(avgPaceDev * 100)}% más lentos y fatiga elevada (índice ${fatigueIndex}/100)`
+            : fatigueIndex >= 75
+                ? `Índice de fatiga elevado (${fatigueIndex}/100)`
+                : `Esfuerzos continuos un ${Math.round((avgPaceDev || 0) * 100)}% más lentos`;
+        message = `${trigger} — señal de carga acumulada. Reduciendo ligeramente la intensidad próxima semana.${seriesNote}`;
     }
-    else if (adherence >= 0.95 && (avgPaceDev === null || avgPaceDev <= 0.02)) {
+    else if (adherence >= 0.95 && (avgPaceDev === null || avgPaceDev <= 0.02) && fatigueIndex < 55) {
         verdict = 'excellent';
-        message = `¡Semana sobresaliente! ${completedRunCount}/${plannedRunCount} entrenamientos completados${avgPaceDev !== null ? ` y esfuerzos continuos en objetivo (${(avgPaceDev * 100).toFixed(1)}% desviación)` : ''}.${seriesNote}`;
+        message = `¡Semana sobresaliente! ${completedRunCount}/${plannedRunCount} entrenamientos${avgRpe !== null ? `, RPE medio ${avgRpe}` : ''}${avgPaceDev !== null ? `, ritmos en objetivo` : ''}.${seriesNote}`;
     }
-    else if (adherence >= 0.80 && (avgPaceDev === null || avgPaceDev <= 0.06)) {
+    else if (adherence >= 0.80 && (avgPaceDev === null || avgPaceDev <= 0.06) && fatigueIndex < 65) {
         verdict = 'great_week';
-        message = `Buena semana: ${completedRunCount}/${plannedRunCount} entrenamientos con ritmos continuos sólidos. Continúa con el plan.${seriesNote}`;
+        message = `Buena semana: ${completedRunCount}/${plannedRunCount} entrenamientos con ritmos sólidos.${fatigueNote}${seriesNote}`;
     }
     else {
         verdict = 'on_track';
-        message = `Semana correcta: ${completedRunCount}/${plannedRunCount} entrenamientos. ${avgPaceDev !== null ? `Desviación media (umbral/tempo): ${(avgPaceDev * 100).toFixed(1)}%.` : ''}${seriesNote}`;
+        message = `Semana correcta: ${completedRunCount}/${plannedRunCount} entrenamientos. ${avgPaceDev !== null ? `Desviación ritmo (umbral/tempo): ${(avgPaceDev * 100).toFixed(1)}%.` : ''}${fatigueNote}${seriesNote}`;
     }
     // ── 7. Upcoming workouts (14 days) ───────────────────────
     const in14ISO = new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
@@ -235,8 +342,8 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
         .orderBy('workout_date', 'asc')
         .get();
     const adjustments = [];
-    const needsReduction = verdict === 'underload' || verdict === 'slow_paces';
-    const canIncrease = verdict === 'excellent';
+    const needsReduction = verdict === 'underload' || verdict === 'slow_paces' || fatigueIndex >= 70;
+    const canIncrease = verdict === 'excellent' && fatigueIndex < 45;
     const REDUCE_QUALITY = 0.75;
     const REDUCE_EASY = 0.85;
     const INCREASE = 1.15;
@@ -244,7 +351,7 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
     let easyAdjusted = 0;
     for (const wDoc of upcomingSnap.docs) {
         const w = wDoc.data();
-        const wType = ((_e = w.explanation_json) === null || _e === void 0 ? void 0 : _e.type) || '';
+        const wType = ((_j = w.explanation_json) === null || _j === void 0 ? void 0 : _j.type) || '';
         const isQuality = qualityTypes.has(wType);
         const isEasy = wType === 'suave' || wType === 'largo';
         if (!isQuality && !isEasy)
@@ -309,6 +416,12 @@ exports.analyzeWeek = (0, https_1.onCall)({ region: 'europe-west1', cors: true, 
             planned_series: plannedSeries,
             completed_series: completedSeries,
             has_strava_data: hasStravaData,
+            avg_rpe: avgRpe,
+            fatigue_index: fatigueIndex,
+            feelings_summary: Object.entries(feelingCounts).map(([feeling, count]) => ({ feeling, count })),
+            avg_sleep_quality: avgSleepQuality,
+            freshness_summary: Object.entries(freshnessMap).map(([freshness, count]) => ({ freshness, count })),
+            total_suffer_score: totalSufferScore > 0 ? totalSufferScore : null,
             pace_note: 'El análisis de ritmo solo aplica a esfuerzos continuos (umbral/tempo). Las series de pista se evalúan solo por adherencia.',
         },
         verdict,
