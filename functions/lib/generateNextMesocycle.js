@@ -232,6 +232,15 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
             : `Fuerza: ${strengthDaysCount} sesión/es semana (días libres).`
         : 'Sin fuerza.';
     const scheduleHint = (0, planHelpers_1.buildDayScheduleHint)(nextStartISO, nextEndISO, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null);
+    const strengthBlock = includeStrength ? (0, planHelpers_1.buildStrengthInstructions)({
+        strengthDaysCount,
+        distKm,
+        experienceLevel: rp_experience,
+        terrain: rp_terrain,
+        hasRecentInjury: rp_hasInjury,
+        injuryDetail: rp_injuryDetail,
+        injuryAreas: rp_injuryAreas,
+    }) : '';
     // ── 7b. Build profile + fatigue blocks for prompt ──────────
     const expLabel = rp_experience === 'beginner' ? 'Principiante (<1 año)' :
         rp_experience === 'intermediate' ? 'Intermedio (1-3 años)' :
@@ -316,7 +325,7 @@ ${phasesBlock}
 RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
 
 METODOLOGÍA: ${methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)'}
-${scheduleHint ? `
+${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
 CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
 ${scheduleHint}
 Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
@@ -421,10 +430,6 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         });
         if (!usedModel)
             usedModel = `fallback-${methodology}`;
-    }
-    // Overwrite strength sessions with our validated templates
-    if (includeStrength) {
-        parsedPlan.plan = (0, planHelpers_1.postProcessStrengthSessions)(parsedPlan.plan, nextStartISO, mesoStartWeek, phases, taperWeeks, mesoLenWeeks, distKm);
     }
     // ── 8. Save workouts ────────────────────────────────────────
     const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;

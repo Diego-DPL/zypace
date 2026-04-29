@@ -12,7 +12,7 @@ import {
   buildFallbackMesocycle,
   buildDayScheduleHint,
   validateDayCompliance,
-  postProcessStrengthSessions,
+  buildStrengthInstructions,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -266,6 +266,16 @@ export const generateNextMesocycle = onCall(
       strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
     );
 
+    const strengthBlock = includeStrength ? buildStrengthInstructions({
+      strengthDaysCount,
+      distKm,
+      experienceLevel:  rp_experience,
+      terrain:          rp_terrain,
+      hasRecentInjury:  rp_hasInjury,
+      injuryDetail:     rp_injuryDetail,
+      injuryAreas:      rp_injuryAreas,
+    }) : '';
+
     // ── 7b. Build profile + fatigue blocks for prompt ──────────
     const expLabel = rp_experience === 'beginner'     ? 'Principiante (<1 año)' :
                      rp_experience === 'intermediate' ? 'Intermedio (1-3 años)' :
@@ -352,7 +362,7 @@ ${phasesBlock}
 RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
 
 METODOLOGÍA: ${ methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)' }
-${scheduleHint ? `
+${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
 CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
 ${scheduleHint}
 Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
@@ -454,13 +464,6 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         zones,
       });
       if (!usedModel) usedModel = `fallback-${methodology}`;
-    }
-
-    // Overwrite strength sessions with our validated templates
-    if (includeStrength) {
-      parsedPlan.plan = postProcessStrengthSessions(
-        parsedPlan.plan, nextStartISO, mesoStartWeek, phases, taperWeeks, mesoLenWeeks, distKm,
-      );
     }
 
     // ── 8. Save workouts ────────────────────────────────────────

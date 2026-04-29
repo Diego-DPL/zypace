@@ -144,6 +144,15 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
             : `Fuerza: ${strengthDaysCount} sesión/es semana (días libres).`
         : 'Sin fuerza.';
     const scheduleHint = (0, planHelpers_1.buildDayScheduleHint)(startISO, mesoEndISO, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null);
+    const strengthBlock = includeStrength ? (0, planHelpers_1.buildStrengthInstructions)({
+        strengthDaysCount,
+        distKm,
+        experienceLevel,
+        terrain: raceTerrain,
+        hasRecentInjury,
+        injuryDetail: recentInjuryDetail,
+        injuryAreas,
+    }) : '';
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO:
@@ -174,7 +183,7 @@ FASES DEL PLAN COMPLETO:
 ${phasesBlock}
 
 ${methodologyBlock}
-${scheduleHint ? `
+${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
 CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
 ${scheduleHint}
 Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
@@ -301,10 +310,6 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
         });
         if (!usedModel)
             usedModel = `fallback-${methodology}`;
-    }
-    // Overwrite strength sessions with our validated templates
-    if (includeStrength) {
-        parsedPlan.plan = (0, planHelpers_1.postProcessStrengthSessions)(parsedPlan.plan, startISO, 1, phases, taperWeeks, mesoLenWeeks, distKm);
     }
     // Validate + fill missing explanations
     parsedPlan.plan.forEach(d => {

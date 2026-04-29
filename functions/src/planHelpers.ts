@@ -325,53 +325,89 @@ Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
 }
 
 /**
- * Replace all `type === 'fuerza'` sessions in a generated plan with
- * our well-defined strength templates. Guarantees:
- *  – Different sessions within the same week (S1 ≠ S2 ≠ S3)
- *  – Phase-appropriate content (base/desarrollo/específico/taper)
- *  – Recovery-week and taper deload handling
- * Safe to call on both AI-generated and fallback plans.
+ * Builds a detailed strength training instructions block for the OpenAI prompt.
+ * Provides structure (what each session number focuses on) + athlete-specific
+ * personalisation context, letting the AI fill in the actual exercises.
  */
-export function postProcessStrengthSessions(
-  plan: PlanDay[],
-  startISO:       string,
-  mesoStartWeek:  number,   // 1-indexed week of full plan where this meso begins
-  phases:         PhaseInfo[],
-  taperWeeks:     number,
-  mesoLenWeeks:   number,
-  distKm:         number,
-): PlanDay[] {
-  const planStart = new Date(startISO + 'T00:00:00Z');
-  const sessionNumByWeekIdx: Record<number, number> = {};
+export function buildStrengthInstructions(params: {
+  strengthDaysCount: number;
+  distKm: number;
+  experienceLevel: string;
+  terrain: string;
+  hasRecentInjury: boolean;
+  injuryDetail: string | null;
+  injuryAreas: string[];
+}): string {
+  const { strengthDaysCount, distKm, experienceLevel, terrain, hasRecentInjury, injuryDetail, injuryAreas } = params;
+  const isTrail    = terrain === 'trail' || terrain === 'mixed';
+  const isBeginner = experienceLevel === 'beginner';
+  const isElite    = experienceLevel === 'elite';
+  const isLong     = distKm >= 42;
+  const chronicAreas = injuryAreas.filter(a => a && a !== 'Sin lesiones conocidas');
 
-  return plan.map(day => {
-    if (day.explanation?.type !== 'fuerza') return day;
+  const sessions: string[] = [];
 
-    const d          = new Date(day.date + 'T00:00:00Z');
-    const weekIdx    = Math.max(0, Math.floor((d.getTime() - planStart.getTime()) / (7 * 86400000)));
-    const weekOfPlan = mesoStartWeek + weekIdx;
-    const weekOfMeso = weekIdx + 1;
+  sessions.push(`  SESIÓN A (primer día fuerza de la semana) — Cadena posterior + isquiotibiales:
+    Objetivo: reforzar tendones, prevenir lesiones de isquios (principal causa de baja en runners).
+    Patrones obligatorios: bisagra de cadera (RDL, peso muerto o variante), isquiotibiales excéntrico (Nordic curl, glute-ham raise o similar), cadera posterior (hip thrust o puente de glúteo).
+    Core final: 10-12min — ejercicios antiextensión y antirotación (plancha, dead bug, Pallof press).
+    ${isLong ? 'Ultra/maratón: añadir trabajo de gemelo excéntrico monopodal — reducir lesiones de Aquiles.' : ''}
+    ${isTrail ? 'Trail: incluir equilibrio monopodal en superficie inestable — estabilidad de tobillo en terreno irregular.' : ''}`);
 
-    sessionNumByWeekIdx[weekIdx] = (sessionNumByWeekIdx[weekIdx] || 0) + 1;
-    const sessionNum = sessionNumByWeekIdx[weekIdx];
+  if (strengthDaysCount >= 2) {
+    sessions.push(`  SESIÓN B (segundo día fuerza de la semana) — Core + tracción + estabilidad lateral:
+    Objetivo: postura de carrera, economía, estabilidad de pelvis y cadera.
+    Patrones obligatorios: tracción horizontal o vertical (remo, jalón o dominada), core profundo (dead bug, plancha lateral, Copenhagen), estabilizadores laterales de cadera (clamshell, abducción con banda).
+    ${isTrail ? 'Trail: añadir step-down lateral excéntrico — control en descensos.' : 'Road: Farmer carry unilateral — estabilidad de core en carrera.'}
+    ${chronicAreas.includes('Rodilla') || chronicAreas.includes('IT Band') ? '⚠ Rodilla/IT Band: incluir trabajo específico de glúteo medio (clamshell pesado, abducción monopodal).' : ''}`);
+  }
 
-    const isRecovery = weekOfMeso % 4 === 0;
-    const isTaper    = taperWeeks > 0 && weekIdx >= mesoLenWeeks - taperWeeks;
-    const phase      = phaseForWeek(phases, weekOfPlan);
+  if (strengthDaysCount >= 3) {
+    sessions.push(`  SESIÓN C (tercer día fuerza de la semana) — Single-leg + tobillo + potencia:
+    Objetivo: fuerza unilateral (la asimetría entre piernas es el predictor #1 de lesiones), potencia explosiva.
+    Patrones obligatorios: sentadilla unilateral (búlgara, step-up o pistol squat progresivo), excéntrico de tobillo/gemelo, pliometría adaptada a la fase.
+    ${isTrail ? 'Trail: saltos laterales y de precisión — control en terreno técnico.' : 'Road: pogos de tobillo o box jump — economía de carrera y stiffness.'}`);
+  }
 
-    const sData = strengthSession(phase.name, sessionNum, isRecovery, isTaper, distKm);
-    return {
-      date:        day.date,
-      description: sData.desc,
-      explanation: {
-        type:      'fuerza',
-        phase:     phase.name,
-        purpose:   sData.purpose,
-        details:   sData.details,
-        intensity: null,
-      },
-    };
-  });
+  const progressionBlock = `  Semana 1 del mesociclo: adaptación — 3 series, RPE 6-7, excéntrico MUY lento (3-4s), aprender el movimiento.
+  Semana 2: carga — 3-4 series, RPE 7, aumentar 5-10% de carga o +1 rep respecto a semana anterior.
+  Semana 3: pico — 4 series, RPE 8, máxima carga de la fase, concéntrico explosivo.
+  Semana 4 (descarga): -30% volumen, 2-3 series, RPE 6, mismos patrones, descanso neural.`;
+
+  const phaseBlock = `  Fase BASE: enfoque excéntrico lento, reps moderadas (10-15), construir base tendinosa. Sin pliometría.
+  Fase DESARROLLO: cargas progresivamente más pesadas (6-10 reps), introducir pliometría básica (saltos bajos).
+  Fase ESPECÍFICO: pliometría alta intensidad, reducir volumen, maximizar potencia y stiffness.
+  Fase TAPER: mantenimiento, -40% volumen total, sin pliometría intensa, priorizar frescura.`;
+
+  const injuryBlock = hasRecentInjury
+    ? `  ⚠ LESIÓN RECIENTE ("${injuryDetail || 'sí'}"): primeras 2 semanas reducir ROM y carga -50%. Evitar ejercicios de alto impacto. Priorizar ejercicios de activación y control motor.`
+    : chronicAreas.length > 0
+    ? `  Áreas crónicas (${chronicAreas.join(', ')}): incluir ejercicios preventivos específicos para cada área en todas las sesiones.`
+    : '';
+
+  const levelBlock = isBeginner
+    ? '  Nivel PRINCIPIANTE: priorizar técnica sobre carga. Peso corporal las 2 primeras semanas. Progresión muy gradual.'
+    : isElite
+    ? '  Nivel ÉLITE: cargas altas (>80% 1RM en fases de fuerza), pliometría avanzada (depth jumps, bounding), periodización ondulante.'
+    : '';
+
+  return `SESIONES DE FUERZA RUNNING-SPECIFIC — instrucciones obligatorias para OpenAI:
+
+Las sesiones de fuerza DEBEN ser DIFERENTES entre sí dentro de la misma semana.
+Cada sesión tiene un bloque de trabajo principal distinto y complementario.
+Los ejercicios deben personalizarse al atleta (nivel, terreno, historial de lesiones).
+
+ESTRUCTURA POR NÚMERO DE SESIÓN EN LA SEMANA:
+${sessions.join('\n\n')}
+
+PROGRESIÓN SEMANAL DENTRO DEL MESOCICLO:
+${progressionBlock}
+
+PERIODIZACIÓN POR FASE DEL PLAN:
+${phaseBlock}
+
+${injuryBlock ? `LESIONES / ÁREAS A PROTEGER:\n${injuryBlock}\n` : ''}${levelBlock ? `NIVEL DEL ATLETA:\n${levelBlock}\n` : ''}
+REGLA CRÍTICA: Si el campo "details" de explanation lleva ejercicios de fuerza, TODOS deben ser diferentes entre las sesiones de la misma semana. Nunca repetir el mismo ejercicio principal en dos sesiones de la misma semana.`;
 }
 
 // ── Day schedule hint ─────────────────────────────────────────

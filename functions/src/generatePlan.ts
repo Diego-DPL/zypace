@@ -10,7 +10,7 @@ import {
   buildFallbackMesocycle,
   buildDayScheduleHint,
   validateDayCompliance,
-  postProcessStrengthSessions,
+  buildStrengthInstructions,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -190,6 +190,16 @@ export const generatePlan = onCall(
       strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
     );
 
+    const strengthBlock = includeStrength ? buildStrengthInstructions({
+      strengthDaysCount,
+      distKm,
+      experienceLevel,
+      terrain: raceTerrain,
+      hasRecentInjury,
+      injuryDetail:  recentInjuryDetail,
+      injuryAreas,
+    }) : '';
+
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO:
@@ -220,7 +230,7 @@ FASES DEL PLAN COMPLETO:
 ${phasesBlock}
 
 ${methodologyBlock}
-${scheduleHint ? `
+${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
 CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
 ${scheduleHint}
 Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
@@ -340,13 +350,6 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
         zones,
       });
       if (!usedModel) usedModel = `fallback-${methodology}`;
-    }
-
-    // Overwrite strength sessions with our validated templates
-    if (includeStrength) {
-      parsedPlan.plan = postProcessStrengthSessions(
-        parsedPlan.plan, startISO, 1, phases, taperWeeks, mesoLenWeeks, distKm,
-      );
     }
 
     // Validate + fill missing explanations
