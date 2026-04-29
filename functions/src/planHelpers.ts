@@ -324,6 +324,56 @@ Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
   };
 }
 
+/**
+ * Replace all `type === 'fuerza'` sessions in a generated plan with
+ * our well-defined strength templates. Guarantees:
+ *  – Different sessions within the same week (S1 ≠ S2 ≠ S3)
+ *  – Phase-appropriate content (base/desarrollo/específico/taper)
+ *  – Recovery-week and taper deload handling
+ * Safe to call on both AI-generated and fallback plans.
+ */
+export function postProcessStrengthSessions(
+  plan: PlanDay[],
+  startISO:       string,
+  mesoStartWeek:  number,   // 1-indexed week of full plan where this meso begins
+  phases:         PhaseInfo[],
+  taperWeeks:     number,
+  mesoLenWeeks:   number,
+  distKm:         number,
+): PlanDay[] {
+  const planStart = new Date(startISO + 'T00:00:00Z');
+  const sessionNumByWeekIdx: Record<number, number> = {};
+
+  return plan.map(day => {
+    if (day.explanation?.type !== 'fuerza') return day;
+
+    const d          = new Date(day.date + 'T00:00:00Z');
+    const weekIdx    = Math.max(0, Math.floor((d.getTime() - planStart.getTime()) / (7 * 86400000)));
+    const weekOfPlan = mesoStartWeek + weekIdx;
+    const weekOfMeso = weekIdx + 1;
+
+    sessionNumByWeekIdx[weekIdx] = (sessionNumByWeekIdx[weekIdx] || 0) + 1;
+    const sessionNum = sessionNumByWeekIdx[weekIdx];
+
+    const isRecovery = weekOfMeso % 4 === 0;
+    const isTaper    = taperWeeks > 0 && weekIdx >= mesoLenWeeks - taperWeeks;
+    const phase      = phaseForWeek(phases, weekOfPlan);
+
+    const sData = strengthSession(phase.name, sessionNum, isRecovery, isTaper, distKm);
+    return {
+      date:        day.date,
+      description: sData.desc,
+      explanation: {
+        type:      'fuerza',
+        phase:     phase.name,
+        purpose:   sData.purpose,
+        details:   sData.details,
+        intensity: null,
+      },
+    };
+  });
+}
+
 // ── Day schedule hint ─────────────────────────────────────────
 
 /** Returns a date-by-date schedule hint for the AI prompt.

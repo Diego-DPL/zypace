@@ -17,7 +17,7 @@ function extractDistanceKm(description) {
     return isNaN(val) || val <= 0 ? undefined : val;
 }
 exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 }, async (request) => {
-    var _a, _b, _c, _d, _e, _f;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
@@ -118,6 +118,14 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
                 moving_time: a.moving_time,
                 start_date: a.start_date.substring(0, 10),
                 sport_type: (_e = a.sport_type) !== null && _e !== void 0 ? _e : null,
+                average_heartrate: (_f = a.average_heartrate) !== null && _f !== void 0 ? _f : null,
+                max_heartrate: (_g = a.max_heartrate) !== null && _g !== void 0 ? _g : null,
+                total_elevation_gain: (_h = a.total_elevation_gain) !== null && _h !== void 0 ? _h : null,
+                suffer_score: (_j = a.suffer_score) !== null && _j !== void 0 ? _j : null,
+                average_cadence: (_k = a.average_cadence) !== null && _k !== void 0 ? _k : null,
+                pr_count: (_l = a.pr_count) !== null && _l !== void 0 ? _l : null,
+                average_watts: (_m = a.average_watts) !== null && _m !== void 0 ? _m : null,
+                perceived_exertion: (_o = a.perceived_exertion) !== null && _o !== void 0 ? _o : null,
             });
             importedNew++;
         }
@@ -161,7 +169,7 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
             continue;
         const inferredKm = extractDistanceKm(w.description);
         const targetM = inferredKm ? inferredKm * 1000 : undefined;
-        const timeMatch = (_f = w.description) === null || _f === void 0 ? void 0 : _f.match(/(\d{1,3})\s?(?:min|mins|m)\b/i);
+        const timeMatch = (_p = w.description) === null || _p === void 0 ? void 0 : _p.match(/(\d{1,3})\s?(?:min|mins|m)\b/i);
         const targetSecs = timeMatch ? parseInt(timeMatch[1], 10) * 60 : undefined;
         let matched = false;
         for (const act of dayActs) {

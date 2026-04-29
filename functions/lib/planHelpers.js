@@ -6,6 +6,7 @@ exports.estimateZones = estimateZones;
 exports.computePhases = computePhases;
 exports.phaseForWeek = phaseForWeek;
 exports.strengthSession = strengthSession;
+exports.postProcessStrengthSessions = postProcessStrengthSessions;
 exports.buildDayScheduleHint = buildDayScheduleHint;
 exports.validateDayCompliance = validateDayCompliance;
 exports.buildFallbackMesocycle = buildFallbackMesocycle;
@@ -303,6 +304,45 @@ BLOQUE C: Curl nórdico 3×5 | 3min descanso · Hip Thrust 3×10 | 2min descanso
 BLOQUE D: Calf raise excéntrico monopodal 3×12/pierna
 Core 12min: plancha frontal, lateral, pallof press, dead bug.`,
     };
+}
+/**
+ * Replace all `type === 'fuerza'` sessions in a generated plan with
+ * our well-defined strength templates. Guarantees:
+ *  – Different sessions within the same week (S1 ≠ S2 ≠ S3)
+ *  – Phase-appropriate content (base/desarrollo/específico/taper)
+ *  – Recovery-week and taper deload handling
+ * Safe to call on both AI-generated and fallback plans.
+ */
+function postProcessStrengthSessions(plan, startISO, mesoStartWeek, // 1-indexed week of full plan where this meso begins
+phases, taperWeeks, mesoLenWeeks, distKm) {
+    const planStart = new Date(startISO + 'T00:00:00Z');
+    const sessionNumByWeekIdx = {};
+    return plan.map(day => {
+        var _a;
+        if (((_a = day.explanation) === null || _a === void 0 ? void 0 : _a.type) !== 'fuerza')
+            return day;
+        const d = new Date(day.date + 'T00:00:00Z');
+        const weekIdx = Math.max(0, Math.floor((d.getTime() - planStart.getTime()) / (7 * 86400000)));
+        const weekOfPlan = mesoStartWeek + weekIdx;
+        const weekOfMeso = weekIdx + 1;
+        sessionNumByWeekIdx[weekIdx] = (sessionNumByWeekIdx[weekIdx] || 0) + 1;
+        const sessionNum = sessionNumByWeekIdx[weekIdx];
+        const isRecovery = weekOfMeso % 4 === 0;
+        const isTaper = taperWeeks > 0 && weekIdx >= mesoLenWeeks - taperWeeks;
+        const phase = phaseForWeek(phases, weekOfPlan);
+        const sData = strengthSession(phase.name, sessionNum, isRecovery, isTaper, distKm);
+        return {
+            date: day.date,
+            description: sData.desc,
+            explanation: {
+                type: 'fuerza',
+                phase: phase.name,
+                purpose: sData.purpose,
+                details: sData.details,
+                intensity: null,
+            },
+        };
+    });
 }
 // ── Day schedule hint ─────────────────────────────────────────
 /** Returns a date-by-date schedule hint for the AI prompt.

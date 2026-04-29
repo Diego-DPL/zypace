@@ -10,6 +10,7 @@ import {
   buildFallbackMesocycle,
   buildDayScheduleHint,
   validateDayCompliance,
+  postProcessStrengthSessions,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -339,6 +340,13 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
         zones,
       });
       if (!usedModel) usedModel = `fallback-${methodology}`;
+    }
+
+    // Overwrite strength sessions with our validated templates
+    if (includeStrength) {
+      parsedPlan.plan = postProcessStrengthSessions(
+        parsedPlan.plan, startISO, 1, phases, taperWeeks, mesoLenWeeks, distKm,
+      );
     }
 
     // Validate + fill missing explanations

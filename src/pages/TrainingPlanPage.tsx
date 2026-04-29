@@ -449,11 +449,14 @@ const TrainingPlanPage = () => {
         mesocycle_end_date:   meta.mesocycle_end_date || null,
       });
 
-      const todayISO = new Date().toISOString().substring(0, 10);
+      const todayISO    = new Date().toISOString().substring(0, 10);
+      const tomorrowISO = new Date(Date.now() + 86400000).toISOString().substring(0, 10);
+
+      // Delete only from tomorrow onwards — keep today's workout (completed or not)
       const futureSnap = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'),
           where('plan_id', '==', plan.id),
-          where('workout_date', '>=', todayISO),
+          where('workout_date', '>=', tomorrowISO),
         )
       );
       for (const w of futureSnap.docs) { await deleteDoc(w.ref); }
@@ -461,7 +464,7 @@ const TrainingPlanPage = () => {
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
       const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
       for (const w of functionResponse.plan) {
-        if (w.date < todayISO) continue;
+        if (w.date <= todayISO) continue;  // skip today and past — only save from tomorrow
         const desc: string = w.description || '';
         const dMatch = desc.match(distRegex);
         const tMatch = desc.match(durRegex);
@@ -622,7 +625,7 @@ const TrainingPlanPage = () => {
                 </button>
                 <button onClick={handleRegenerateFromToday} disabled={loading}
                   className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 text-sm">
-                  {loading ? 'Procesando...' : 'Regenerar desde hoy'}
+                  {loading ? 'Procesando...' : 'Regenerar desde mañana'}
                 </button>
               </div>
             </div>

@@ -422,6 +422,10 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         if (!usedModel)
             usedModel = `fallback-${methodology}`;
     }
+    // Overwrite strength sessions with our validated templates
+    if (includeStrength) {
+        parsedPlan.plan = (0, planHelpers_1.postProcessStrengthSessions)(parsedPlan.plan, nextStartISO, mesoStartWeek, phases, taperWeeks, mesoLenWeeks, distKm);
+    }
     // ── 8. Save workouts ────────────────────────────────────────
     const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
     const durRegex = /(\d{1,3})\s?(?:min|mins|m)\b/i;

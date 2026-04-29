@@ -12,6 +12,7 @@ import {
   buildFallbackMesocycle,
   buildDayScheduleHint,
   validateDayCompliance,
+  postProcessStrengthSessions,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -453,6 +454,13 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         zones,
       });
       if (!usedModel) usedModel = `fallback-${methodology}`;
+    }
+
+    // Overwrite strength sessions with our validated templates
+    if (includeStrength) {
+      parsedPlan.plan = postProcessStrengthSessions(
+        parsedPlan.plan, nextStartISO, mesoStartWeek, phases, taperWeeks, mesoLenWeeks, distKm,
+      );
     }
 
     // ── 8. Save workouts ────────────────────────────────────────
