@@ -79,6 +79,7 @@ const TrainingPlanPage = () => {
   const [raceTerrain, setRaceTerrain] = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
   const [racePriority, setRacePriority] = useState<'A' | 'B' | 'C'>('A');
   const [progressModal, setProgressModal] = useState(false);
+  const [showRegenModal, setShowRegenModal] = useState(false);
   const [progressMessageIndex, setProgressMessageIndex] = useState(0);
   const progressMessages = [
     'Analizando tu carrera y objetivo…',
@@ -648,9 +649,9 @@ const TrainingPlanPage = () => {
                   className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 text-sm">
                   Eliminar plan
                 </button>
-                <button onClick={handleRegenerateFromToday} disabled={loading}
+                <button onClick={() => setShowRegenModal(true)} disabled={loading}
                   className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 text-sm">
-                  {loading ? 'Procesando...' : 'Regenerar desde mañana'}
+                  Regenerar plan
                 </button>
               </div>
             </div>
@@ -1262,6 +1263,141 @@ const TrainingPlanPage = () => {
           </div>
         )}
       </div>
+
+      {/* ── Regenerate config modal ──────────────────────────── */}
+      {showRegenModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-800">Ajusta tu plan antes de regenerar</h2>
+              <p className="text-xs text-gray-500 mt-1">
+                Se mantendrán los entrenamientos ya completados. El nuevo plan empezará a partir de mañana.
+              </p>
+            </div>
+
+            <div className="p-6 space-y-6">
+
+              {/* Objetivo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Objetivo <span className="text-red-400">*</span></label>
+                <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
+                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none"
+                  placeholder="Ej: Bajar mi marca de 10k, terminar maratón…" />
+              </div>
+
+              {/* Días de running */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Días de running</label>
+                <div className="flex gap-1.5 flex-wrap mb-2">
+                  {DAY_LABELS.map((label, dow) => (
+                    <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
+                      className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                        runDaysOfWeek.includes(dow)
+                          ? 'bg-orange-500 text-white border-orange-500'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-orange-300'
+                      }`}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {runDaysOfWeek.length === 0 && (
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500">Días/semana:</label>
+                    <input type="number" min={2} max={7} value={runDays}
+                      onChange={e => setRunDays(Math.min(7, Math.max(2, parseInt(e.target.value) || 4)))}
+                      className="w-16 p-1.5 border border-gray-300 rounded text-sm text-center" />
+                  </div>
+                )}
+                {runDaysOfWeek.length > 0 && (
+                  <p className="text-xs text-orange-600">
+                    Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                    <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-400 hover:text-gray-600">limpiar</button>
+                  </p>
+                )}
+              </div>
+
+              {/* Fuerza */}
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mb-3">
+                  <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600 w-4 h-4" />
+                  Incluir entrenamiento de fuerza
+                </label>
+                {includeStrength && (
+                  <div className="space-y-3 pl-2">
+                    <div className="flex gap-1.5 flex-wrap">
+                      {DAY_LABELS.map((label, dow) => (
+                        <button key={dow} type="button" onClick={() => toggleStrengthDay(dow)}
+                          className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                            strengthDaysOfWeek.includes(dow)
+                              ? 'bg-indigo-600 text-white border-indigo-600'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                          }`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {strengthDaysOfWeek.length === 0 && (
+                      <div className="flex items-center gap-3">
+                        <label className="text-xs text-gray-500">Sesiones/semana:</label>
+                        {[1, 2, 3].map(n => (
+                          <button key={n} type="button" onClick={() => setStrengthDaysCount(n)}
+                            className={`w-9 h-9 rounded-lg text-sm font-bold border-2 transition-colors ${
+                              strengthDaysCount === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                            }`}>{n}</button>
+                        ))}
+                      </div>
+                    )}
+                    {strengthDaysOfWeek.length > 0 && (
+                      <p className="text-xs text-indigo-600">
+                        Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                        <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-400 hover:text-gray-600">limpiar</button>
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Metodología */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Metodología</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'polarized', label: 'Polarizado', desc: '80% Z1 · 20% alta int.' },
+                    { value: 'norwegian', label: 'Noruego',    desc: '2 sesiones umbral/sem' },
+                    { value: 'classic',   label: 'Clásico',    desc: 'Series·Tempo·Largo' },
+                  ] as const).map(m => (
+                    <button key={m.value} type="button" onClick={() => setMethodology(m.value)}
+                      className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 text-left transition-colors ${methodology === m.value ? 'border-orange-500 bg-orange-50' : 'border-gray-200 bg-white hover:border-orange-300'}`}>
+                      <span className="font-semibold text-xs text-gray-800">{m.label}</span>
+                      <span className="text-[10px] text-gray-500">{m.desc}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Tiempo objetivo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo objetivo (H:MM:SS)</label>
+                <input type="text" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
+                  placeholder="Ej: 3:45:00"
+                  className="w-full sm:w-48 p-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none font-mono" />
+              </div>
+
+            </div>
+
+            <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
+              <button type="button" onClick={() => setShowRegenModal(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">
+                Cancelar
+              </button>
+              <button type="button" disabled={!goal.trim()} onClick={() => { setShowRegenModal(false); handleRegenerateFromToday(); }}
+                className="px-5 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50">
+                Confirmar y regenerar plan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {progressModal && <ProgressPortal message={progressMessages[progressMessageIndex]} />}
       {resultModal && (
