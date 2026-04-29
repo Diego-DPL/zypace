@@ -138,6 +138,15 @@ const TrainingPlanPage = () => {
     return null;
   }
 
+  function secsToTimeStr(secs: number): string {
+    if (!secs || secs <= 0) return '';
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    const s = secs % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  }
+
   useEffect(() => {
     if (!user) return;
     const fetchRaces = async () => {
@@ -191,8 +200,22 @@ const TrainingPlanPage = () => {
       const workoutsData = workoutsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Workout));
 
       setPlan({ id: planId, ...planData, workouts: workoutsData } as TrainingPlan);
-      // Pre-populate goal form field from saved plan
-      if (planData.goal) setGoal(planData.goal as string);
+
+      // ── Restore all plan-specific form fields ──────────────────
+      if (planData.goal)                    setGoal(planData.goal as string);
+      if (planData.run_days_per_week)       setRunDays(Number(planData.run_days_per_week));
+      if (Array.isArray(planData.run_days_of_week)) setRunDaysOfWeek(planData.run_days_of_week as number[]);
+      setIncludeStrength(!!planData.include_strength);
+      if (Array.isArray(planData.strength_days_of_week)) setStrengthDaysOfWeek(planData.strength_days_of_week as number[]);
+      if (planData.strength_days_per_week)  setStrengthDaysCount(Number(planData.strength_days_per_week));
+      if (planData.methodology)             setMethodology(planData.methodology as 'polarized' | 'norwegian' | 'classic');
+      // Restore previous mark
+      if (planData.last_race_distance_km) {
+        setHasPreviousMark(true);
+        setLastRaceDistance(String(planData.last_race_distance_km));
+      }
+      if (planData.last_race_time_sec) setLastRaceTime(secsToTimeStr(planData.last_race_time_sec as number));
+      if (planData.target_race_time_sec) setTargetRaceTime(secsToTimeStr(planData.target_race_time_sec as number));
 
       setLoadingVersions(true);
       const versSnap = await getDocs(
