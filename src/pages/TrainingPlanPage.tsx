@@ -191,6 +191,8 @@ const TrainingPlanPage = () => {
       const workoutsData = workoutsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Workout));
 
       setPlan({ id: planId, ...planData, workouts: workoutsData } as TrainingPlan);
+      // Pre-populate goal form field from saved plan
+      if (planData.goal) setGoal(planData.goal as string);
 
       setLoadingVersions(true);
       const versSnap = await getDocs(
@@ -393,7 +395,7 @@ const TrainingPlanPage = () => {
       const generatePlanFn = httpsCallable(functions, 'generatePlan');
       const res = await generatePlanFn({
         race,
-        goal,
+        goal: goal || plan.goal,  // fallback to saved goal if form field is empty
         config: {
           run_days_per_week:      runDays,
           run_days_of_week:       runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
