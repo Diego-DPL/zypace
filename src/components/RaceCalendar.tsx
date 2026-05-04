@@ -199,12 +199,12 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
       <div className="flex flex-col gap-2 mb-2 text-xs sm:text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            {loadingWorkouts ? <span className="text-zinc-500">Entrenamientos...</span> : <span className="text-zinc-500">Workouts: {workouts.length}</span>}
-            {loadingActivities ? <span className="text-zinc-500">Actividades...</span> : <span className="text-zinc-500">Act: {activities.length}</span>}
-            <span className="text-zinc-400 font-medium">Semana {weekStart.format('DD/MM')} - {weekEnd.format('DD/MM')}:</span>
-            <span className="text-zinc-200">Plan {workoutsWeekKm.toFixed(1)} km</span>
-            <span className="text-zinc-200">Strava {activitiesWeekKm.toFixed(1)} km</span>
-            <span className="text-white font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
+            {loadingWorkouts ? <span className="text-zinc-400">Entrenamientos...</span> : <span className="text-zinc-400">{workouts.length} workouts</span>}
+            {loadingActivities ? <span className="text-zinc-400">Actividades...</span> : <span className="text-zinc-400">{activities.length} actividades</span>}
+            <span className="text-zinc-300 font-semibold">Semana {weekStart.format('DD/MM')}–{weekEnd.format('DD/MM')}</span>
+            <span className="text-zinc-200">Plan <span className="font-bold text-white">{workoutsWeekKm.toFixed(1)} km</span></span>
+            <span className="text-zinc-200">Strava <span className="font-bold text-white">{activitiesWeekKm.toFixed(1)} km</span></span>
+            <span className="text-lime-400 font-bold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex items-center gap-2">
             <img src={pwrdByStrava} alt="Powered by Strava" className="h-4 w-auto opacity-80" />
@@ -213,17 +213,17 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-zinc-700 text-zinc-300 rounded text-[10px] sm:text-xs hover:bg-red-900/60 hover:text-red-300">Reset</button>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs">
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showRaces} onChange={(e) => setShowRaces(e.target.checked)} /> Carreras</label>
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showWorkouts} onChange={(e) => setShowWorkouts(e.target.checked)} /> Plan</label>
-          <label className="flex items-center gap-1 cursor-pointer"><input type="checkbox" checked={showActivities} onChange={(e) => setShowActivities(e.target.checked)} /> Actividades</label>
-          <div className="flex flex-wrap items-center gap-2 ml-auto">
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#9333ea' }}></span>Series</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#2563eb' }}></span>Tempo</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#0d9488' }}></span>Largo</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#6b7280' }}></span>Descanso</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#f59e0b' }}></span>Otro</span>
-            <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm" style={{ background: '#16a34a' }}></span>Completado</span>
+        <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs text-zinc-300">
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-100 transition-colors"><input type="checkbox" checked={showRaces} onChange={(e) => setShowRaces(e.target.checked)} className="accent-lime-400" /> Carreras</label>
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-100 transition-colors"><input type="checkbox" checked={showWorkouts} onChange={(e) => setShowWorkouts(e.target.checked)} className="accent-lime-400" /> Plan</label>
+          <label className="flex items-center gap-1.5 cursor-pointer hover:text-zinc-100 transition-colors"><input type="checkbox" checked={showActivities} onChange={(e) => setShowActivities(e.target.checked)} className="accent-lime-400" /> Actividades</label>
+          <div className="flex flex-wrap items-center gap-2 ml-auto text-zinc-300">
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#9333ea' }}></span>Series</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#2563eb' }}></span>Tempo</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#0d9488' }}></span>Largo</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#6b7280' }}></span>Descanso</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#f59e0b' }}></span>Otro</span>
+            <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm" style={{ background: '#16a34a' }}></span>Completado</span>
           </div>
         </div>
       </div>
