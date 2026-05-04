@@ -4,6 +4,7 @@ import type { Event } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/es';
 import { Race } from '../pages/RacesPage';
+import pwrdByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg';
 import { collection, getDocs, doc, query, where, orderBy, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
@@ -205,10 +206,11 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <span className="text-zinc-200">Strava {activitiesWeekKm.toFixed(1)} km</span>
             <span className="text-white font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
-          <div className="flex gap-2">
-            <button onClick={() => syncStrava()} className="px-2 py-1 bg-lime-400 text-white rounded text-[10px] sm:text-xs hover:bg-lime-500" title="Sincronizar actividades recientes de Strava">Sync</button>
-            <button onClick={() => syncStrava({ full: true })} className="px-2 py-1 bg-lime-500 text-white rounded text-[10px] sm:text-xs hover:bg-lime-600">Full</button>
-            <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-lime-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
+          <div className="flex items-center gap-2">
+            <img src={pwrdByStrava} alt="Powered by Strava" className="h-4 w-auto opacity-80" />
+            <button onClick={() => syncStrava()} className="px-2 py-1 bg-lime-400 text-black rounded text-[10px] sm:text-xs font-semibold hover:bg-lime-500" title="Sincronizar actividades recientes de Strava">Sync</button>
+            <button onClick={() => syncStrava({ full: true })} className="px-2 py-1 bg-zinc-700 text-zinc-300 rounded text-[10px] sm:text-xs hover:bg-zinc-600">Full</button>
+            <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-zinc-700 text-zinc-300 rounded text-[10px] sm:text-xs hover:bg-red-900/60 hover:text-red-300">Reset</button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs">
@@ -274,7 +276,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
               >
                 {modalWorkout.is_completed ? 'Marcar incompleto' : 'Marcar completado'}
               </button>
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-lime-400 text-white rounded-lg hover:bg-lime-500 text-sm font-semibold">Cerrar</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-lime-400 text-black rounded-lg hover:bg-lime-500 text-sm font-semibold">Cerrar</button>
             </div>
           </div>
         </div>
