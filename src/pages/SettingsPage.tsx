@@ -276,9 +276,9 @@ const SettingsPage = () => {
 
   const hasZones = zoneProfile?.z1_pace_sec_km && zoneProfile?.z4_pace_sec_km && zoneProfile?.z5_pace_sec_km;
   const confidenceColor = {
-    alta:  'text-green-700 bg-green-100',
-    media: 'text-yellow-700 bg-yellow-100',
-    baja:  'text-red-700 bg-red-100',
+    alta:  'text-green-400 bg-green-950/50 border border-green-800',
+    media: 'text-yellow-400 bg-yellow-950/50 border border-yellow-800',
+    baja:  'text-red-400 bg-red-950/50 border border-red-800',
   };
 
   return (
@@ -327,7 +327,7 @@ const SettingsPage = () => {
               onClick={handleCalibrateZones}
               disabled={calibrating || !isStravaConnected}
               title={!isStravaConnected ? 'Conecta Strava primero' : undefined}
-              className="flex-shrink-0 px-4 py-2 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-shrink-0 px-4 py-2 bg-lime-400 hover:bg-lime-500 text-black text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {calibrating ? 'Calculando…' : hasZones ? 'Recalibrar desde Strava' : 'Calibrar desde Strava'}
             </button>
@@ -343,9 +343,9 @@ const SettingsPage = () => {
 
         {/* Manual calibration form */}
         {showManualForm && (
-          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-            <p className="text-sm font-semibold text-blue-800 mb-1">Calibrar desde marca personal</p>
-            <p className="text-xs text-blue-700 mb-3">Introduce tu mejor marca reciente en una carrera o test. Es más preciso que el análisis de entrenamientos.</p>
+          <div className="mb-4 p-4 bg-blue-950/40 border border-blue-800 rounded-xl">
+            <p className="text-sm font-semibold text-blue-300 mb-1">Calibrar desde marca personal</p>
+            <p className="text-xs text-blue-400 mb-3">Introduce tu mejor marca reciente en una carrera o test. Es más preciso que el análisis de entrenamientos.</p>
             <div className="flex flex-wrap items-end gap-3">
               <div>
                 <label className="block text-xs text-zinc-400 mb-1">Distancia</label>
@@ -382,9 +382,9 @@ const SettingsPage = () => {
 
         {calibrationMsg && (
           <div className={`rounded-lg px-4 py-3 text-sm mb-4 ${
-            calibrationMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' :
-            calibrationMsg.type === 'error'   ? 'bg-red-50 border border-red-200 text-red-700' :
-                                                'bg-blue-50 border border-blue-200 text-blue-800'
+            calibrationMsg.type === 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' :
+            calibrationMsg.type === 'error'   ? 'bg-red-950/50 border border-red-800 text-red-400' :
+                                                'bg-blue-950/40 border border-blue-800 text-blue-400'
           }`}>
             {calibrationMsg.text}
           </div>
@@ -400,7 +400,7 @@ const SettingsPage = () => {
                 </span>
               )}
               {zoneProfile.zones_source === 'manual' && (
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-950/50 border border-blue-800 text-blue-400">
                   Desde marca personal
                 </span>
               )}
@@ -502,7 +502,7 @@ const SettingsPage = () => {
             </p>
           </div>
           {!profileLoaded && (
-            <span className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-lg">
+            <span className="text-xs text-amber-400 bg-amber-950/40 border border-amber-800 px-2 py-1 rounded-lg">
               Sin perfil guardado — se usarán los valores por defecto
             </span>
           )}
@@ -544,7 +544,7 @@ const SettingsPage = () => {
               <input type="range" min={10} max={150} step={5}
                 value={runnerProfile.current_weekly_km}
                 onChange={e => setRunnerProfile(p => ({ ...p, current_weekly_km: Number(e.target.value) }))}
-                className="w-full accent-orange-500" />
+                className="w-full accent-lime-400" />
               <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>10</span><span>150 km</span></div>
             </div>
             <div>
@@ -554,7 +554,7 @@ const SettingsPage = () => {
               <input type="range" min={5} max={42} step={1}
                 value={runnerProfile.longest_recent_run_km}
                 onChange={e => setRunnerProfile(p => ({ ...p, longest_recent_run_km: Number(e.target.value) }))}
-                className="w-full accent-orange-500" />
+                className="w-full accent-lime-400" />
               <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>5</span><span>42 km</span></div>
             </div>
             <div>
@@ -564,7 +564,7 @@ const SettingsPage = () => {
               <input type="range" min={30} max={240} step={10}
                 value={runnerProfile.max_session_minutes}
                 onChange={e => setRunnerProfile(p => ({ ...p, max_session_minutes: Number(e.target.value) }))}
-                className="w-full accent-orange-500" />
+                className="w-full accent-lime-400" />
               <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>30</span><span>240 min</span></div>
             </div>
           </div>
@@ -597,7 +597,7 @@ const SettingsPage = () => {
                   }))}
                   className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                     runnerProfile.injury_areas.includes(area)
-                      ? area === 'Sin lesiones conocidas' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-red-100 border-red-400 text-red-800'
+                      ? area === 'Sin lesiones conocidas' ? 'bg-green-950/50 border-green-700 text-green-400' : 'bg-red-950/50 border-red-700 text-red-400'
                       : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-gray-400'
                   }`}>
                   {area}
@@ -607,7 +607,7 @@ const SettingsPage = () => {
           </div>
 
           {/* Lesión reciente */}
-          <div className="border border-amber-200 rounded-xl p-4 bg-amber-50/50">
+          <div className="border border-amber-800 rounded-xl p-4 bg-amber-950/30">
             <div className="flex items-center gap-3 mb-3">
               <span className="text-sm font-semibold text-zinc-100">¿Tienes alguna lesión reciente activa?</span>
               <button type="button"
@@ -620,19 +620,19 @@ const SettingsPage = () => {
               <input type="text" placeholder="Describe brevemente la lesión (ej: dolor rodilla derecha 2 semanas)"
                 value={runnerProfile.recent_injury_detail}
                 onChange={e => setRunnerProfile(p => ({ ...p, recent_injury_detail: e.target.value }))}
-                className="w-full p-2.5 border border-amber-300 rounded-lg bg-zinc-900 text-zinc-100 text-sm placeholder-gray-400" />
+                className="w-full p-2.5 border border-amber-800 rounded-lg bg-zinc-900 text-zinc-100 text-sm placeholder-zinc-500" />
             )}
           </div>
 
           {/* Feedback message */}
           {profileMsg && (
-            <div className={`rounded-lg px-4 py-3 text-sm ${profileMsg.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+            <div className={`rounded-lg px-4 py-3 text-sm ${profileMsg.type === 'success' ? 'bg-green-950/50 border border-green-800 text-green-400' : 'bg-red-950/50 border border-red-800 text-red-400'}`}>
               {profileMsg.text}
             </div>
           )}
 
           <button onClick={handleSaveProfile} disabled={savingProfile}
-            className="w-full sm:w-auto px-6 py-2.5 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
+            className="w-full sm:w-auto px-6 py-2.5 bg-lime-400 hover:bg-lime-500 text-black text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
             {savingProfile ? 'Guardando…' : 'Guardar perfil de corredor'}
           </button>
         </div>
@@ -649,16 +649,16 @@ function ZoneCard({ zone, label, pace, description, color }: {
   zone: string; label: string; pace: string; description: string; color: ZoneColor;
 }) {
   const colors: Record<ZoneColor, { bg: string; border: string; badge: string; paceText: string }> = {
-    green:  { bg: 'bg-green-50',  border: 'border-green-200',  badge: 'bg-green-200 text-green-900',  paceText: 'text-green-800'  },
-    yellow: { bg: 'bg-yellow-50', border: 'border-yellow-200', badge: 'bg-yellow-200 text-yellow-900', paceText: 'text-yellow-800' },
-    red:    { bg: 'bg-red-50',    border: 'border-red-200',    badge: 'bg-red-200 text-red-900',      paceText: 'text-red-800'    },
+    green:  { bg: 'bg-green-950/40',  border: 'border-green-800',  badge: 'bg-green-900/60 text-green-300',  paceText: 'text-green-300'  },
+    yellow: { bg: 'bg-yellow-950/40', border: 'border-yellow-800', badge: 'bg-yellow-900/60 text-yellow-300', paceText: 'text-yellow-300' },
+    red:    { bg: 'bg-red-950/40',    border: 'border-red-800',    badge: 'bg-red-900/60 text-red-300',      paceText: 'text-red-300'    },
   };
   const c = colors[color];
   return (
     <div className={`rounded-xl border p-4 ${c.bg} ${c.border}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{zone}</span>
-        <span className="text-sm font-semibold text-zinc-200">{label}</span>
+        <span className="text-sm font-semibold text-zinc-100">{label}</span>
       </div>
       <div className={`text-2xl font-mono font-bold ${c.paceText} mb-1`}>{pace}</div>
       <p className="text-xs text-zinc-500">{description}</p>
