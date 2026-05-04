@@ -48,12 +48,12 @@ interface Props {
 }
 
 const VERDICT_CONFIG = {
-  underload:   { label: 'Semana incompleta',     bg: 'bg-red-100',    text: 'text-red-800',    border: 'border-red-300'    },
-  slow_paces:  { label: 'Ritmos lentos',          bg: 'bg-yellow-100', text: 'text-yellow-800', border: 'border-yellow-300' },
-  on_track:    { label: 'En camino',              bg: 'bg-blue-100',   text: 'text-blue-800',   border: 'border-blue-300'   },
-  great_week:  { label: 'Buena semana',           bg: 'bg-green-100',  text: 'text-green-800',  border: 'border-green-300'  },
-  excellent:   { label: 'Semana sobresaliente',   bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },
-  no_data:     { label: 'Sin datos suficientes',  bg: 'bg-zinc-800',   text: 'text-zinc-200',   border: 'border-zinc-700'   },
+  underload:   { label: 'Semana incompleta',     bg: 'bg-red-950/50',    text: 'text-red-400',    border: 'border-red-800'    },
+  slow_paces:  { label: 'Ritmos lentos',          bg: 'bg-yellow-950/50', text: 'text-yellow-400', border: 'border-yellow-800' },
+  on_track:    { label: 'En camino',              bg: 'bg-blue-950/50',   text: 'text-blue-400',   border: 'border-blue-800'   },
+  great_week:  { label: 'Buena semana',           bg: 'bg-green-950/50',  text: 'text-green-400',  border: 'border-green-800'  },
+  excellent:   { label: 'Semana sobresaliente',   bg: 'bg-purple-950/50', text: 'text-purple-400', border: 'border-purple-800' },
+  no_data:     { label: 'Sin datos suficientes',  bg: 'bg-zinc-800',      text: 'text-zinc-200',   border: 'border-zinc-700'   },
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -71,10 +71,10 @@ const FRESHNESS_LABEL: Record<string, string> = {
 }
 
 const READINESS_OPTIONS = [
-  { value: 'ready',   label: 'Listo para atacar', emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'    },
-  { value: 'normal',  label: 'Normal, bien',       emoji: '👌', active: 'bg-teal-100 border-teal-500 text-teal-800'       },
-  { value: 'lighter', label: 'Semana más suave',   emoji: '😓', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
-  { value: 'rest',    label: 'Necesito descansar', emoji: '😴', active: 'bg-red-100 border-red-500 text-red-800'           },
+  { value: 'ready',   label: 'Listo para atacar', emoji: '🚀', active: 'bg-green-900/50 border-green-500 text-green-400'    },
+  { value: 'normal',  label: 'Normal, bien',       emoji: '👌', active: 'bg-teal-900/50 border-teal-500 text-teal-400'       },
+  { value: 'lighter', label: 'Semana más suave',   emoji: '😓', active: 'bg-yellow-900/50 border-yellow-500 text-yellow-400' },
+  { value: 'rest',    label: 'Necesito descansar', emoji: '😴', active: 'bg-red-900/50 border-red-500 text-red-400'           },
 ] as const
 
 const LIFE_CONTEXT_OPTIONS = [
@@ -178,7 +178,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
   const cfg = result ? VERDICT_CONFIG[result.verdict] : null
 
   return (
-    <div className="mt-10 border border-zinc-800 rounded-xl p-6 bg-white shadow-sm">
+    <div className="mt-10 border border-zinc-800 rounded-xl p-6 bg-zinc-900">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-lg font-bold text-zinc-100">Análisis semanal</h3>
@@ -189,14 +189,14 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
         <button
           onClick={runAnalysis}
           disabled={loading}
-          className="px-4 py-2 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-lime-400 hover:bg-lime-500 text-black text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? 'Analizando…' : result ? 'Re-analizar' : 'Analizar mi semana'}
         </button>
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-3 text-sm">
+        <div className="bg-red-950/50 border border-red-800 text-red-400 rounded-lg px-4 py-3 text-sm">
           {error}
         </div>
       )}
@@ -264,13 +264,13 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
 
           {/* Series de pista: solo adherencia, nunca ritmo medio */}
           {result.analysis.planned_series > 0 && (
-            <div className="bg-indigo-50 border border-indigo-200 rounded-lg px-4 py-2.5 text-sm flex items-start gap-2">
-              <span className="text-indigo-500 mt-0.5 flex-shrink-0">ℹ</span>
+            <div className="bg-indigo-950/50 border border-indigo-800 rounded-lg px-4 py-2.5 text-sm flex items-start gap-2">
+              <span className="text-indigo-400 mt-0.5 flex-shrink-0">ℹ</span>
               <div>
-                <span className="font-medium text-indigo-800">
+                <span className="font-medium text-indigo-300">
                   Series de pista: {result.analysis.completed_series}/{result.analysis.planned_series} completadas.
                 </span>
-                <span className="text-indigo-600 ml-1">
+                <span className="text-indigo-400 ml-1">
                   El ritmo medio de Strava incluye calentamiento y recuperaciones entre repeticiones, por lo que no se compara con el objetivo de las series. Solo se evalúa si las hiciste o no.
                 </span>
               </div>
@@ -345,11 +345,11 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   <span
                     key={feeling}
                     className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                      feeling === 'great'     ? 'bg-green-50 border-green-200 text-green-800' :
-                      feeling === 'good'      ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                      feeling === 'average'   ? 'bg-zinc-900 border-zinc-800 text-zinc-200' :
-                      feeling === 'tired'     ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                      'bg-red-50 border-red-200 text-red-800'
+                      feeling === 'great'     ? 'bg-green-950/50 border-green-800 text-green-400' :
+                      feeling === 'good'      ? 'bg-emerald-950/50 border-emerald-800 text-emerald-400' :
+                      feeling === 'average'   ? 'bg-zinc-800 border-zinc-700 text-zinc-300' :
+                      feeling === 'tired'     ? 'bg-yellow-950/50 border-yellow-800 text-yellow-400' :
+                      'bg-red-950/50 border-red-800 text-red-400'
                     }`}
                   >
                     {FEELING_LABEL[feeling] ?? feeling} ×{count}
@@ -369,10 +369,10 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   <span
                     key={freshness}
                     className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
-                      freshness === 'fresh'      ? 'bg-green-50 border-green-200 text-green-800' :
-                      freshness === 'normal'     ? 'bg-teal-50 border-teal-200 text-teal-800' :
-                      freshness === 'heavy'      ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                      'bg-red-50 border-red-200 text-red-800'
+                      freshness === 'fresh'      ? 'bg-green-950/50 border-green-800 text-green-400' :
+                      freshness === 'normal'     ? 'bg-teal-950/50 border-teal-800 text-teal-400' :
+                      freshness === 'heavy'      ? 'bg-yellow-950/50 border-yellow-800 text-yellow-400' :
+                      'bg-red-950/50 border-red-800 text-red-400'
                     }`}
                   >
                     {FRESHNESS_LABEL[freshness] ?? freshness} ×{count}
@@ -400,7 +400,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   <button
                     onClick={applyAll}
                     disabled={!!applyingId}
-                    className="text-xs font-medium text-lime-600 hover:text-lime-700 underline disabled:opacity-50"
+                    className="text-xs font-medium text-lime-400 hover:text-lime-300 underline disabled:opacity-50"
                   >
                     Aplicar todos
                   </button>
@@ -411,7 +411,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   const isApplied  = applied.has(adj.workout_id)
                   const isApplying = applyingId === adj.workout_id
                   return (
-                    <li key={adj.workout_id} className={`rounded-lg border p-3 text-sm transition-colors ${isApplied ? 'bg-green-50 border-green-200' : 'bg-zinc-900 border-zinc-800'}`}>
+                    <li key={adj.workout_id} className={`rounded-lg border p-3 text-sm transition-colors ${isApplied ? 'bg-green-950/40 border-green-800' : 'bg-zinc-800 border-zinc-700'}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -431,14 +431,14 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                         </div>
                         <div className="flex-shrink-0">
                           {isApplied ? (
-                            <span className="text-xs font-semibold text-green-700 bg-green-100 px-2 py-1 rounded-lg">
+                            <span className="text-xs font-semibold text-green-400 bg-green-950/50 border border-green-800 px-2 py-1 rounded-lg">
                               Aplicado
                             </span>
                           ) : (
                             <button
                               onClick={() => applyAdjustment(adj)}
                               disabled={isApplying || !!applyingId}
-                              className="text-xs font-semibold text-white bg-lime-400 hover:bg-lime-500 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                              className="text-xs font-semibold text-black bg-lime-400 hover:bg-lime-500 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                             >
                               {isApplying ? '…' : 'Aplicar'}
                             </button>
@@ -467,7 +467,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
               </div>
 
               {weekConfirmed ? (
-                <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3 text-sm font-medium">
+                <div className="bg-green-950/50 border border-green-800 text-green-400 rounded-lg px-4 py-3 text-sm font-medium">
                   ✓ Check-in guardado. El entrenador lo tendrá en cuenta para la próxima semana.
                 </div>
               ) : (
@@ -497,7 +497,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                           onClick={() => setLifeContext(lifeContext === opt.value ? '' : opt.value)}
                           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
                             lifeContext === opt.value
-                              ? 'bg-blue-100 border-blue-500 text-blue-800'
+                              ? 'bg-blue-900/50 border-blue-500 text-blue-400'
                               : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}>
                           <span>{opt.emoji}</span> {opt.label}
@@ -521,7 +521,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   <button
                     onClick={handleConfirmWeek}
                     disabled={confirmingWeek || (!readiness && !lifeContext && !weekNotes.trim())}
-                    className="px-4 py-2 bg-lime-400 text-white rounded-lg hover:bg-lime-500 text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-lime-400 text-black rounded-lg hover:bg-lime-500 text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {confirmingWeek ? 'Guardando…' : 'Confirmar semana'}
                   </button>
@@ -543,11 +543,11 @@ function Metric({ label, value, sub, color }: {
   label: string; value: string; sub: string; color: MetricColor
 }) {
   const colors: Record<MetricColor, string> = {
-    green:  'bg-green-50  border-green-200  text-green-800',
-    yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
-    red:    'bg-red-50    border-red-200    text-red-800',
-    blue:   'bg-blue-50   border-blue-200   text-blue-800',
-    gray:   'bg-zinc-900   border-zinc-800   text-zinc-400',
+    green:  'bg-green-950/50  border-green-800  text-green-400',
+    yellow: 'bg-yellow-950/50 border-yellow-800 text-yellow-400',
+    red:    'bg-red-950/50    border-red-800    text-red-400',
+    blue:   'bg-blue-950/50   border-blue-800   text-blue-400',
+    gray:   'bg-zinc-800      border-zinc-700   text-zinc-400',
   }
   return (
     <div className={`rounded-lg border p-3 text-center ${colors[color]}`}>

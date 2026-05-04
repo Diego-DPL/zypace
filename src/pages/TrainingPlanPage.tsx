@@ -111,12 +111,11 @@ const TrainingPlanPage = () => {
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 select-none">
         <div className="bg-zinc-900 relative rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-100/60 via-white to-white pointer-events-none z-0" />
           <div className="relative z-10 flex flex-col items-center w-full">
             <div className="w-16 h-16 mb-4 relative">
-              <div className="absolute inset-0 rounded-full border-4 border-lime-200" />
-              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 animate-spin" />
-              <div className="absolute inset-2 rounded-full bg-lime-50 animate-pulse" />
+              <div className="absolute inset-0 rounded-full border-4 border-zinc-700" />
+              <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-lime-400 animate-spin" />
+              <div className="absolute inset-2 rounded-full bg-lime-400/10 animate-pulse" />
             </div>
             <h3 className="text-lg font-semibold text-zinc-100 mb-2">Generando mesociclo</h3>
             <p className="text-sm text-zinc-200 font-medium min-h-[44px] leading-relaxed transition-opacity duration-700 px-1">{message}</p>
@@ -636,12 +635,12 @@ const TrainingPlanPage = () => {
                 <p className="text-zinc-400">Objetivo: {plan.goal}</p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   {planMeta?.methodology && (
-                    <span className="bg-lime-100 text-orange-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
+                    <span className="bg-lime-400/10 border border-lime-400/30 text-lime-400 px-2 py-1 rounded font-semibold uppercase tracking-wide text-[11px]">
                       {planMeta.methodology === 'polarized' ? 'Polarizado' : planMeta.methodology === 'norwegian' ? 'Noruego' : 'Clásico'}
                     </span>
                   )}
-                  {plan.model && <span className="bg-zinc-800 text-zinc-200 px-2 py-1 rounded">Modelo: {plan.model}</span>}
-                  {plan.used_fallback && <span className="bg-lime-100 text-lime-700 px-2 py-1 rounded">Algoritmo local</span>}
+                  {plan.model && <span className="bg-zinc-800 text-zinc-200 px-2 py-1 rounded text-[11px]">Modelo: {plan.model}</span>}
+                  {plan.used_fallback && <span className="bg-zinc-800 border border-zinc-700 text-zinc-400 px-2 py-1 rounded text-[11px]">Algoritmo local</span>}
                 </div>
               </div>
               <div className="flex gap-3 flex-wrap">
@@ -650,7 +649,7 @@ const TrainingPlanPage = () => {
                   Eliminar plan
                 </button>
                 <button onClick={() => setShowRegenModal(true)} disabled={loading}
-                  className="bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 transition-colors disabled:bg-gray-400 text-sm">
+                  className="bg-lime-400 text-black font-semibold py-2 px-4 rounded-lg hover:bg-lime-500 transition-colors disabled:opacity-50 text-sm">
                   Regenerar plan
                 </button>
               </div>
@@ -658,14 +657,14 @@ const TrainingPlanPage = () => {
 
             {/* Mesocycle progress */}
             {plan.total_weeks && plan.mesocycle_number && (
-              <div className="mb-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl">
+              <div className="mb-6 p-4 bg-indigo-950/40 border border-indigo-800 rounded-xl">
                 <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
                   <div>
-                    <span className="text-sm font-semibold text-indigo-800">
+                    <span className="text-sm font-semibold text-indigo-300">
                       Mesociclo {plan.mesocycle_number}{plan.total_mesocycles ? ` de ${plan.total_mesocycles}` : ''}
                     </span>
                     {plan.mesocycle_start_date && plan.mesocycle_end_date && (
-                      <span className="text-xs text-indigo-600 ml-2">
+                      <span className="text-xs text-indigo-400 ml-2">
                         {new Date(plan.mesocycle_start_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
                         {' → '}
                         {new Date(plan.mesocycle_end_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}
@@ -673,7 +672,7 @@ const TrainingPlanPage = () => {
                     )}
                   </div>
                   {daysUntilMesoEnd !== null && daysUntilMesoEnd > 0 && daysUntilMesoEnd <= 21 && (
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium ${daysUntilMesoEnd <= 7 ? 'bg-lime-100 text-lime-700' : 'bg-indigo-100 text-indigo-700'}`}>
+                    <span className={`text-xs px-2 py-1 rounded-full font-medium border ${daysUntilMesoEnd <= 7 ? 'bg-lime-400/10 border-lime-400/30 text-lime-400' : 'bg-indigo-900/40 border-indigo-800 text-indigo-400'}`}>
                       {daysUntilMesoEnd <= 0 ? 'Terminado' : `Faltan ${daysUntilMesoEnd} días`}
                     </span>
                   )}
@@ -685,7 +684,7 @@ const TrainingPlanPage = () => {
                     {Array.from({ length: plan.total_mesocycles }).map((_, i) => (
                       <div key={i} className={`h-2 flex-1 rounded-full ${
                         i + 1 < plan.mesocycle_number! ? 'bg-indigo-500' :
-                        i + 1 === plan.mesocycle_number ? 'bg-indigo-400' : 'bg-indigo-100'
+                        i + 1 === plan.mesocycle_number ? 'bg-indigo-400' : 'bg-zinc-700'
                       }`} />
                     ))}
                   </div>
@@ -699,7 +698,7 @@ const TrainingPlanPage = () => {
                   const pct = Math.round(done.length / allTrain.length * 100);
                   return (
                     <div className="mb-3 flex items-center gap-3">
-                      <div className="flex-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
+                      <div className="flex-1 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                         <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
                       <span className="text-xs text-zinc-500 flex-shrink-0">{done.length}/{allTrain.length} completados</span>
@@ -717,7 +716,7 @@ const TrainingPlanPage = () => {
                   </button>
                 )}
                 {(plan.total_mesocycles ?? 1) > (plan.mesocycle_number ?? 1) && !canGenerateNextMeso && daysUntilMesoEnd !== null && daysUntilMesoEnd > 14 && (
-                  <p className="text-xs text-indigo-600">
+                  <p className="text-xs text-indigo-400">
                     El botón para generar el siguiente mesociclo aparecerá 2 semanas antes del final del actual.
                   </p>
                 )}
@@ -726,14 +725,14 @@ const TrainingPlanPage = () => {
 
             {/* Training zones */}
             {planMeta?.zones && (
-              <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h3 className="text-sm font-semibold text-blue-800 mb-3">Zonas de entrenamiento personalizadas</h3>
+              <div className="mb-6 p-4 bg-zinc-800 border border-zinc-700 rounded-lg">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3">Zonas de entrenamiento personalizadas</h3>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   {[
-                    { label: 'Z1 Fácil',   value: planMeta.zones.z1,   cls: 'bg-green-100 text-green-800',   sub: 'Conversacional · 80% vol' },
-                    { label: 'Z4 Umbral',  value: planMeta.zones.z4,   cls: 'bg-yellow-100 text-yellow-800', sub: '≈ Ritmo 10k · LT2' },
-                    { label: 'Z5 VO2max',  value: planMeta.zones.z5,   cls: 'bg-red-100 text-red-800',       sub: '≈ Ritmo 5k' },
-                    { label: 'Objetivo',   value: planMeta.zones.race, cls: 'bg-purple-100 text-purple-800', sub: 'Ritmo de carrera' },
+                    { label: 'Z1 Fácil',   value: planMeta.zones.z1,   cls: 'bg-green-950/50 border border-green-800 text-green-400',   sub: 'Conversacional · 80% vol' },
+                    { label: 'Z4 Umbral',  value: planMeta.zones.z4,   cls: 'bg-yellow-950/50 border border-yellow-800 text-yellow-400', sub: '≈ Ritmo 10k · LT2' },
+                    { label: 'Z5 VO2max',  value: planMeta.zones.z5,   cls: 'bg-red-950/50 border border-red-800 text-red-400',         sub: '≈ Ritmo 5k' },
+                    { label: 'Objetivo',   value: planMeta.zones.race, cls: 'bg-purple-950/50 border border-purple-800 text-purple-400', sub: 'Ritmo de carrera' },
                   ].map(z => (
                     <div key={z.label} className={`${z.cls} rounded-lg p-2 text-center`}>
                       <div className="font-bold text-sm">{z.label}</div>
@@ -752,10 +751,10 @@ const TrainingPlanPage = () => {
                 <div className="flex flex-wrap gap-2">
                   {planMeta.phases.map((ph: any) => {
                     const colors: Record<string, string> = {
-                      base: 'bg-teal-100 text-teal-800 border-teal-300',
-                      desarrollo: 'bg-blue-100 text-blue-800 border-blue-300',
-                      especifico: 'bg-lime-100 text-orange-800 border-lime-300',
-                      taper: 'bg-purple-100 text-purple-800 border-purple-300',
+                      base: 'bg-teal-950/50 text-teal-400 border-teal-800',
+                      desarrollo: 'bg-blue-950/50 text-blue-400 border-blue-800',
+                      especifico: 'bg-lime-950/50 text-lime-400 border-lime-800',
+                      taper: 'bg-purple-950/50 text-purple-400 border-purple-800',
                     };
                     const labels: Record<string, string> = {
                       base: 'Base aeróbica', desarrollo: 'Desarrollo',
@@ -783,7 +782,7 @@ const TrainingPlanPage = () => {
                     const fatColor = fatigue === null ? 'text-zinc-600' : fatigue >= 75 ? 'text-red-600' : fatigue >= 55 ? 'text-amber-600' : 'text-green-600';
                     return (
                       <div key={h.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800">
-                        <span className="font-semibold text-indigo-700 w-20 shrink-0">Meso {h.mesocycle_number}</span>
+                        <span className="font-semibold text-indigo-400 w-20 shrink-0">Meso {h.mesocycle_number}</span>
                         <span className="text-zinc-500 shrink-0">
                           {h.start_date ? new Date(h.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—'}
                           {' → '}
@@ -831,7 +830,7 @@ const TrainingPlanPage = () => {
                 </ul>
               )}
               {versionPreview && (
-                <div className="mt-4 border rounded p-4 bg-white shadow-sm">
+                <div className="mt-4 border border-zinc-700 rounded p-4 bg-zinc-800">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold">Versión del {versionPreview.generated_at?.toDate ? versionPreview.generated_at.toDate().toLocaleString() : '—'}</h4>
                     <button onClick={() => setVersionPreview(null)} className="text-xs text-zinc-500 hover:text-zinc-200">Cerrar</button>
@@ -861,7 +860,7 @@ const TrainingPlanPage = () => {
             <form onSubmit={(e) => { e.preventDefault(); startGeneration(); }} className="space-y-6">
 
               {/* SECTION 1: Perfil del corredor */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-white">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
                   <h3 className="text-base font-semibold text-zinc-100">Tu perfil como corredor</h3>
@@ -876,7 +875,7 @@ const TrainingPlanPage = () => {
                         { value: 'advanced',     label: 'Avanzado',        desc: '3+ años, medias y maratones' },
                         { value: 'elite',        label: 'Élite/Sub-élite', desc: 'Competitivo, alto volumen' },
                       ] as const).map(lvl => (
-                        <label key={lvl.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                        <label key={lvl.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
                           <div className="flex items-center gap-2">
                             <input type="radio" name="experienceLevel" value={lvl.value} checked={experienceLevel === lvl.value} onChange={() => setExperienceLevel(lvl.value)} className="accent-orange-500" />
                             <span className="font-semibold text-sm text-zinc-100">{lvl.label}</span>
@@ -901,7 +900,7 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 2: Volumen actual */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-white">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
                   <h3 className="text-base font-semibold text-zinc-100">Tu entrenamiento actual</h3>
@@ -967,7 +966,7 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 3: Disponibilidad semanal */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-5">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
                   <h3 className="text-base font-semibold text-zinc-100">Tu disponibilidad semanal</h3>
@@ -1011,7 +1010,7 @@ const TrainingPlanPage = () => {
                     <legend className="text-sm font-medium text-zinc-200">Entrenamiento de fuerza running-specific</legend>
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600" />
-                      <span className="text-indigo-700 font-medium">Incluir fuerza en el plan</span>
+                      <span className="text-indigo-400 font-medium">Incluir fuerza en el plan</span>
                     </label>
                   </div>
                   {includeStrength && (
@@ -1080,7 +1079,7 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 4: Lesiones y limitaciones */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-4">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-4">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
                   <h3 className="text-base font-semibold text-zinc-100">Lesiones y limitaciones</h3>
@@ -1115,7 +1114,7 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 5: Objetivo y datos de carrera */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-5">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">5</span>
                   <h3 className="text-base font-semibold text-zinc-100">Objetivo y datos de la carrera</h3>
@@ -1131,7 +1130,7 @@ const TrainingPlanPage = () => {
                       { value: 'mixed', label: 'Mixto',   desc: 'Asfalto y trail'    },
                       { value: 'track', label: 'Pista',   desc: 'Estadio atletismo'  },
                     ] as const).map(t => (
-                      <label key={t.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === t.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                      <label key={t.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === t.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
                         <div className="flex items-center gap-2">
                           <input type="radio" name="raceTerrain" value={t.value} checked={raceTerrain === t.value} onChange={() => setRaceTerrain(t.value)} className="accent-orange-500" />
                           <span className="font-semibold text-sm text-zinc-100">{t.label}</span>
@@ -1151,7 +1150,7 @@ const TrainingPlanPage = () => {
                       { value: 'B', label: 'Carrera B', desc: 'Objetivo secundario — taper parcial (3–4 días)' },
                       { value: 'C', label: 'Carrera C', desc: 'Carrera de entrenamiento — sin tapering específico' },
                     ] as const).map(p => (
-                      <label key={p.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                      <label key={p.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
                         <div className="flex items-center gap-2">
                           <input type="radio" name="racePriority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-orange-500" />
                           <span className="font-semibold text-sm text-zinc-100">{p.label}</span>
@@ -1204,7 +1203,7 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 6: Metodología */}
-              <div className="border border-orange-100 rounded-xl p-5 bg-lime-50/20">
+              <div className="border border-zinc-700 rounded-xl p-5 bg-zinc-800">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">6</span>
                   <h3 className="text-base font-semibold text-zinc-100">Metodología de entrenamiento</h3>
@@ -1216,7 +1215,7 @@ const TrainingPlanPage = () => {
                     { value: 'classic',   label: 'Clásico',    desc: 'Series martes · Tempo jueves · Largo domingo. Progresión lineal.' },
                   ] as const).map(m => (
                     <label key={m.value}
-                      className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                      className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
                       <div className="flex items-center gap-2">
                         <input type="radio" name="methodology" value={m.value} checked={methodology === m.value} onChange={() => setMethodology(m.value)} className="accent-orange-500" />
                         <span className="font-semibold text-sm text-zinc-100">{m.label}</span>
@@ -1229,8 +1228,8 @@ const TrainingPlanPage = () => {
 
               {/* Calibrated zones notice */}
               {profileZones && (
-                <div className="p-3 bg-teal-50 border border-teal-200 rounded-lg text-sm">
-                  <p className="text-teal-800 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
+                <div className="p-3 bg-teal-950/40 border border-teal-800 rounded-lg text-sm">
+                  <p className="text-teal-400 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
                   <div className="flex flex-wrap gap-3 text-xs">
                     {[
                       { label: 'Z1 Fácil',  sec: profileZones.z1_sec_km },
@@ -1240,7 +1239,7 @@ const TrainingPlanPage = () => {
                       const mm = Math.floor(z.sec / 60);
                       const ss = Math.round(z.sec % 60).toString().padStart(2, '0');
                       return (
-                        <span key={z.label} className="bg-zinc-900 border border-teal-200 rounded px-2 py-1 font-mono text-teal-700">
+                        <span key={z.label} className="bg-zinc-900 border border-teal-800 rounded px-2 py-1 font-mono text-teal-400">
                           {z.label}: {mm}:{ss}/km
                         </span>
                       );
@@ -1250,9 +1249,9 @@ const TrainingPlanPage = () => {
               )}
 
               {/* Mesocycle explanation */}
-              <div className="p-3 bg-indigo-50 border border-indigo-200 rounded-lg text-sm text-indigo-800">
+              <div className="p-3 bg-indigo-950/40 border border-indigo-800 rounded-lg text-sm text-indigo-300">
                 <p className="font-semibold mb-1">Plan por mesociclos</p>
-                <p className="text-xs text-indigo-700">Se generará el primer mesociclo (5 semanas). Al acercarse al final de cada bloque podrás generar el siguiente, adaptado a tu progreso real.</p>
+                <p className="text-xs text-indigo-400">Se generará el primer mesociclo (5 semanas). Al acercarse al final de cada bloque podrás generar el siguiente, adaptado a tu progreso real.</p>
               </div>
 
               <button type="submit" disabled={loading}
@@ -1281,7 +1280,7 @@ const TrainingPlanPage = () => {
               <div>
                 <label className="block text-sm font-medium text-zinc-200 mb-1">Objetivo <span className="text-red-400">*</span></label>
                 <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
-                  className="w-full p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none"
+                  className="w-full p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-zinc-800 placeholder-zinc-500 focus:ring-1 focus:ring-lime-400 focus:outline-none"
                   placeholder="Ej: Bajar mi marca de 10k, terminar maratón…" />
               </div>
 
@@ -1348,7 +1347,7 @@ const TrainingPlanPage = () => {
                       </div>
                     )}
                     {strengthDaysOfWeek.length > 0 && (
-                      <p className="text-xs text-indigo-600">
+                      <p className="text-xs text-indigo-400">
                         Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
                         <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-zinc-600 hover:text-zinc-400">limpiar</button>
                       </p>
@@ -1367,7 +1366,7 @@ const TrainingPlanPage = () => {
                     { value: 'classic',   label: 'Clásico',    desc: 'Series·Tempo·Largo' },
                   ] as const).map(m => (
                     <button key={m.value} type="button" onClick={() => setMethodology(m.value)}
-                      className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 text-left transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                      className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 text-left transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
                       <span className="font-semibold text-xs text-zinc-100">{m.label}</span>
                       <span className="text-[10px] text-zinc-500">{m.desc}</span>
                     </button>
@@ -1380,7 +1379,7 @@ const TrainingPlanPage = () => {
                 <label className="block text-sm font-medium text-zinc-200 mb-1">Tiempo objetivo (H:MM:SS)</label>
                 <input type="text" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
                   placeholder="Ej: 3:45:00"
-                  className="w-full sm:w-48 p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none font-mono" />
+                  className="w-full sm:w-48 p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-zinc-800 placeholder-zinc-500 focus:ring-1 focus:ring-lime-400 focus:outline-none font-mono" />
               </div>
 
             </div>
@@ -1391,7 +1390,7 @@ const TrainingPlanPage = () => {
                 Cancelar
               </button>
               <button type="button" disabled={!goal.trim()} onClick={() => { setShowRegenModal(false); handleRegenerateFromToday(); }}
-                className="px-5 py-2 rounded-lg text-sm font-bold bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50">
+                className="px-5 py-2 rounded-lg text-sm font-bold bg-lime-400 text-black hover:bg-lime-500 transition-colors disabled:opacity-50">
                 Confirmar y regenerar plan
               </button>
             </div>
@@ -1405,7 +1404,7 @@ const TrainingPlanPage = () => {
           <div className="bg-zinc-900 rounded-xl shadow-xl max-w-sm w-full p-6 relative">
             <button onClick={() => setResultModal(null)} className="absolute top-2 right-2 text-zinc-600 hover:text-zinc-400">✕</button>
             <div className="flex flex-col items-center text-center">
-              <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center text-xl ${resultModal.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+              <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center text-xl ${resultModal.success ? 'bg-green-950/60 border border-green-800 text-green-400' : 'bg-red-950/60 border border-red-800 text-red-400'}`}>
                 {resultModal.success ? '✓' : '!'}
               </div>
               <h3 className="text-lg font-semibold text-zinc-100 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
