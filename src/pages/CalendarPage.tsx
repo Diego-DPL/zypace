@@ -49,13 +49,13 @@ function getWorkoutType(w: Workout): string {
 }
 
 const TYPE_STYLES: Record<string, { bg: string; border: string; dot: string; text: string; label: string; color: string }> = {
-  suave:    { bg: 'bg-green-50',  border: 'border-green-200',  dot: 'bg-green-400',  text: 'text-green-700',  label: 'Suave',  color: '#4ade80' },
-  largo:    { bg: 'bg-blue-50',   border: 'border-blue-200',   dot: 'bg-blue-400',   text: 'text-blue-700',   label: 'Largo',  color: '#60a5fa' },
-  series:   { bg: 'bg-red-50',    border: 'border-red-200',    dot: 'bg-red-400',    text: 'text-red-700',    label: 'Series', color: '#f87171' },
-  umbral:   { bg: 'bg-amber-50',  border: 'border-amber-200',  dot: 'bg-amber-400',  text: 'text-amber-700',  label: 'Umbral', color: '#fbbf24' },
-  tempo:    { bg: 'bg-lime-50', border: 'border-lime-200', dot: 'bg-lime-300', text: 'text-lime-700', label: 'Tempo',  color: '#fb923c' },
-  fuerza:   { bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', text: 'text-purple-700', label: 'Fuerza', color: '#c084fc' },
-  descanso: { bg: 'bg-zinc-900',   border: 'border-zinc-800',   dot: 'bg-gray-300',   text: 'text-zinc-600',   label: 'Desc.', color: '#d1d5db' },
+  suave:    { bg: 'bg-green-950/60',  border: 'border-green-800',  dot: 'bg-green-400',  text: 'text-green-400',  label: 'Suave',  color: '#4ade80' },
+  largo:    { bg: 'bg-blue-950/60',   border: 'border-blue-800',   dot: 'bg-blue-400',   text: 'text-blue-400',   label: 'Largo',  color: '#60a5fa' },
+  series:   { bg: 'bg-red-950/60',    border: 'border-red-800',    dot: 'bg-red-400',    text: 'text-red-400',    label: 'Series', color: '#f87171' },
+  umbral:   { bg: 'bg-amber-950/60',  border: 'border-amber-800',  dot: 'bg-amber-400',  text: 'text-amber-400',  label: 'Umbral', color: '#fbbf24' },
+  tempo:    { bg: 'bg-orange-950/60', border: 'border-orange-800', dot: 'bg-orange-400', text: 'text-orange-400', label: 'Tempo',  color: '#fb923c' },
+  fuerza:   { bg: 'bg-purple-950/60', border: 'border-purple-800', dot: 'bg-purple-400', text: 'text-purple-400', label: 'Fuerza', color: '#c084fc' },
+  descanso: { bg: 'bg-zinc-900',      border: 'border-zinc-800',   dot: 'bg-zinc-600',   text: 'text-zinc-600',   label: 'Desc.',  color: '#52525b' },
 };
 
 function groupByWeek(workouts: Workout[]): Array<{ key: string; label: string; range: string; items: Workout[] }> {
@@ -179,7 +179,7 @@ const CalendarPage = () => {
         </div>
         {plan && (
           <Link to={`/training-plan?race=${selectedRace}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-50 border border-lime-200 text-lime-700 text-sm font-semibold hover:bg-lime-100 transition-colors">
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
             Gestionar plan →
           </Link>
         )}
@@ -222,12 +222,12 @@ const CalendarPage = () => {
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-base font-bold text-zinc-100">{selectedRaceDetails?.name}</h2>
                   {plan.mesocycle_number && plan.total_mesocycles && (
-                    <span className="text-[11px] font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold bg-indigo-900/50 text-indigo-400 border border-indigo-800 px-2 py-0.5 rounded-full">
                       Meso {plan.mesocycle_number}/{plan.total_mesocycles}
                     </span>
                   )}
                   {daysUntilMesoEnd !== null && daysUntilMesoEnd <= 14 && daysUntilMesoEnd > 0 && (
-                    <span className="text-[11px] font-semibold bg-lime-100 text-lime-700 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold bg-lime-400/10 text-lime-400 border border-lime-400/30 px-2 py-0.5 rounded-full">
                       Meso acaba en {daysUntilMesoEnd}d
                     </span>
                   )}
@@ -356,16 +356,16 @@ const CalendarPage = () => {
 
                         return (
                           <div key={key} className={`mb-3 rounded-xl overflow-hidden transition-opacity ${isPastWeek ? 'opacity-60' : ''}`}
-                            style={{ border: isCurrentWeek ? '1.5px solid #a3e635' : '1px solid #f3f4f6' }}>
+                            style={{ border: isCurrentWeek ? '1.5px solid #a3e635' : '1px solid #3f3f46' }}>
                             {/* Week header */}
-                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-50' : 'bg-zinc-900'}`}>
+                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-400/10' : 'bg-zinc-900'}`}>
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-600' : 'text-zinc-500'}`}>
                                   {isCurrentWeek ? 'Esta semana' : label}
                                 </span>
                                 <span className="text-[10px] text-zinc-600">{range}</span>
                                 {allDone && trainDays.length > 0 && (
-                                  <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">✓ Completa</span>
+                                  <span className="text-[10px] font-bold text-green-400 bg-green-950/60 border border-green-800 px-1.5 py-0.5 rounded-full">✓ Completa</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-3">
@@ -392,7 +392,7 @@ const CalendarPage = () => {
                             </div>
 
                             {/* Day cells */}
-                            <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 p-2 bg-white">
+                            <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 p-2 bg-zinc-950">
                               <div className="flex flex-col justify-center gap-0.5 pr-1">
                                 {weeklyKm > 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyKm.toFixed(0)} km</span>}
                                 {weeklyMin > 0 && weeklyKm === 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyMin} min</span>}
@@ -419,7 +419,7 @@ const CalendarPage = () => {
                                         ${isToday ? 'ring-2 ring-lime-400 ring-offset-1' : ''}
                                         ${w.is_completed && !isRest ? 'opacity-50' : ''}
                                       `}
-                                      style={{ border: '1px solid #e5e7eb', borderLeftWidth: 3, borderLeftColor: st.color }}
+                                      style={{ border: '1px solid #3f3f46', borderLeftWidth: 3, borderLeftColor: st.color }}
                                     >
                                       <div className="flex items-center justify-between">
                                         <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-600' : 'text-zinc-500'}`}>{dayNum}</span>
@@ -478,8 +478,8 @@ const CalendarPage = () => {
                   const hasToday  = items.some(w => w.workout_date === todayISO);
 
                   return (
-                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-lime-200' : 'border-zinc-800'}`}>
-                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-50' : 'bg-zinc-900'}`}>
+                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-lime-400/40' : 'border-zinc-800'}`}>
+                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-400/10' : 'bg-zinc-900'}`}>
                         <div>
                           <span className="font-semibold text-sm text-zinc-200">{label}</span>
                           <span className="text-xs text-zinc-500 ml-2">{range}</span>
@@ -501,7 +501,7 @@ const CalendarPage = () => {
                           return (
                             <li key={w.id}
                               className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer
-                                ${w.is_completed ? 'bg-green-50/60 hover:bg-green-50' : isToday ? 'bg-lime-50/50 hover:bg-lime-50' : 'hover:bg-zinc-900'}
+                                ${w.is_completed ? 'bg-green-950/40 hover:bg-green-950/60' : isToday ? 'bg-lime-400/5 hover:bg-lime-400/10' : 'hover:bg-zinc-900/50'}
                               `}
                               onClick={() => { setModalWorkout(w); setShowModal(true); }}
                             >
@@ -559,7 +559,7 @@ const CalendarPage = () => {
       {/* No plan for this race */}
       {!loadingPlan && selectedRace && !plan && (
         <div className="text-center py-16 px-4">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-lime-50 flex items-center justify-center text-2xl">📋</div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center text-2xl">📋</div>
           <h2 className="text-lg font-semibold text-zinc-100 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
           <p className="text-sm text-zinc-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
           <Link to={`/training-plan?race=${selectedRace}`}

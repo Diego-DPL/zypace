@@ -255,7 +255,7 @@ const HomePage = () => {
 
   return (
     <main className="relative">
-      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-orange-50 via-white to-rose-50" />
+      <div className="absolute inset-0 -z-10 bg-zinc-950" />
       <div className="absolute top-0 inset-x-0 h-[280px] -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(163,230,53,0.15),transparent_60%)]" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-16">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
@@ -264,7 +264,7 @@ const HomePage = () => {
             {user && <p className="mt-2 text-sm text-zinc-400">Hola <span className="font-semibold text-zinc-100">{user.email}</span>, este es tu resumen de entrenamiento.</p>}
           </div>
           {nextRace && (
-            <div className="px-5 py-4 rounded-2xl bg-zinc-900/70 backdrop-blur shadow-sm border border-white/60 flex flex-col items-start gap-1">
+            <div className="px-5 py-4 rounded-2xl bg-zinc-900/70 backdrop-blur shadow-sm border border-zinc-700 flex flex-col items-start gap-1">
               <span className="text-[11px] uppercase tracking-wide text-zinc-500">Cuenta atrás</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-3xl font-black text-zinc-100 leading-none">{daysToRace}</span>
@@ -329,7 +329,7 @@ const HomePage = () => {
                   <span className="text-[11px] text-zinc-500 mt-1">Plan {last28Km.workouts.toFixed(1)} • Act {last28Km.activities.toFixed(1)}</span>
                   <div className="mt-3 grid grid-cols-4 gap-1">
                     {weeklyTrend.map((v, i) => { const pct = maxWeeklyTrend ? v / maxWeeklyTrend : 0; return (
-                      <div key={i} className="h-12 relative overflow-hidden rounded bg-gradient-to-b from-gray-100 to-gray-50">
+                      <div key={i} className="h-12 relative overflow-hidden rounded bg-gradient-to-b from-zinc-800 to-zinc-700">
                         <div style={{ height: `${pct * 100}%` }} className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-fuchsia-500 to-violet-400 rounded-t transition-all" />
                         <span className="absolute inset-x-0 top-0 text-[9px] text-center text-zinc-600 pt-0.5">S{i + 1}</span>
                       </div>);
@@ -419,7 +419,7 @@ const HomePage = () => {
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
                       Objetivo <span className="font-semibold text-zinc-200">polarizado / noruego</span>:
-                      {' '}<span className="text-emerald-700 font-semibold">≥80% km en Z1</span> (fácil/largo) ·
+                      {' '}<span className="text-emerald-400 font-semibold">≥80% km en Z1</span> (fácil/largo) ·
                       {' '}<span className="text-lime-600 font-semibold">≤20% en Z4-Z5</span> (umbral/series)
                     </span>
                   </div>
@@ -436,12 +436,12 @@ const HomePage = () => {
                       <h2 className="text-lg font-semibold text-zinc-100">Forma física</h2>
                       <p className="text-xs text-zinc-500 mt-0.5">Fitness crónico · fatiga aguda · balance — últimos 90 días</p>
                     </div>
-                    <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full ${
-                      fitnessData.tsb >  10 ? 'bg-sky-100 text-sky-700'         :
-                      fitnessData.tsb >   0 ? 'bg-emerald-100 text-emerald-700' :
-                      fitnessData.tsb > -15 ? 'bg-green-100 text-green-700'     :
-                      fitnessData.tsb > -30 ? 'bg-amber-100 text-amber-700'     :
-                                              'bg-red-100 text-red-700'
+                    <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full border ${
+                      fitnessData.tsb >  10 ? 'bg-sky-900/40 border-sky-800 text-sky-400'         :
+                      fitnessData.tsb >   0 ? 'bg-emerald-900/40 border-emerald-800 text-emerald-400' :
+                      fitnessData.tsb > -15 ? 'bg-green-900/40 border-green-800 text-green-400'     :
+                      fitnessData.tsb > -30 ? 'bg-amber-900/40 border-amber-800 text-amber-400'     :
+                                              'bg-red-900/40 border-red-800 text-red-400'
                     }`}>
                       {fitnessData.tsb >  10 ? 'Fresco · listo para competir'    :
                        fitnessData.tsb >   0 ? 'En forma'                         :
@@ -451,42 +451,42 @@ const HomePage = () => {
                     </span>
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-                    <div className="rounded-xl border border-indigo-100 bg-indigo-50 p-3 text-center">
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-500 mb-0.5">CTL</div>
-                      <div className="text-2xl font-bold text-indigo-700">{fitnessData.ctl}</div>
-                      <div className="text-[10px] text-indigo-400 mt-0.5">fitness crónico</div>
+                    <div className="rounded-xl border border-indigo-800 bg-indigo-950/40 p-3 text-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-indigo-400 mb-0.5">CTL</div>
+                      <div className="text-2xl font-bold text-indigo-300">{fitnessData.ctl}</div>
+                      <div className="text-[10px] text-indigo-500 mt-0.5">fitness crónico</div>
                     </div>
-                    <div className="rounded-xl border border-lime-100 bg-lime-50 p-3 text-center">
+                    <div className="rounded-xl border border-lime-800 bg-lime-950/40 p-3 text-center">
                       <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-500 mb-0.5">ATL</div>
-                      <div className="text-2xl font-bold text-lime-600">{fitnessData.atl}</div>
-                      <div className="text-[10px] text-lime-400 mt-0.5">fatiga aguda</div>
+                      <div className="text-2xl font-bold text-lime-400">{fitnessData.atl}</div>
+                      <div className="text-[10px] text-lime-600 mt-0.5">fatiga aguda</div>
                     </div>
-                    <div className={`rounded-xl border p-3 text-center ${fitnessData.tsb >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
-                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-500' : 'text-amber-500'}`}>TSB</div>
-                      <div className={`text-2xl font-bold ${fitnessData.tsb >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>
+                    <div className={`rounded-xl border p-3 text-center ${fitnessData.tsb >= 0 ? 'border-emerald-800 bg-emerald-950/40' : 'border-amber-800 bg-amber-950/40'}`}>
+                      <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>TSB</div>
+                      <div className={`text-2xl font-bold ${fitnessData.tsb >= 0 ? 'text-emerald-300' : 'text-amber-300'}`}>
                         {fitnessData.tsb > 0 ? '+' : ''}{fitnessData.tsb}
                       </div>
-                      <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-400' : 'text-amber-400'}`}>balance</div>
+                      <div className={`text-[10px] mt-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-600' : 'text-amber-600'}`}>balance</div>
                     </div>
                     <div className={`rounded-xl border p-3 text-center ${
-                      fitnessData.injuryRisk === 'high'     ? 'border-red-200 bg-red-50' :
-                      fitnessData.injuryRisk === 'moderate' ? 'border-amber-200 bg-amber-50' :
-                                                              'border-sky-100 bg-sky-50'
+                      fitnessData.injuryRisk === 'high'     ? 'border-red-800 bg-red-950/40' :
+                      fitnessData.injuryRisk === 'moderate' ? 'border-amber-800 bg-amber-950/40' :
+                                                              'border-sky-800 bg-sky-950/40'
                     }`}>
                       <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${
-                        fitnessData.injuryRisk === 'high' ? 'text-red-500' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-500' : 'text-sky-500'
+                        fitnessData.injuryRisk === 'high' ? 'text-red-400' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-400' : 'text-sky-400'
                       }`}>ACWR</div>
                       <div className={`text-2xl font-bold ${
-                        fitnessData.injuryRisk === 'high' ? 'text-red-600' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-600' : 'text-sky-600'
+                        fitnessData.injuryRisk === 'high' ? 'text-red-300' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-300' : 'text-sky-300'
                       }`}>{fitnessData.acwr}</div>
                       <div className={`text-[10px] mt-0.5 ${
-                        fitnessData.injuryRisk === 'high' ? 'text-red-400' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-400' : 'text-sky-400'
+                        fitnessData.injuryRisk === 'high' ? 'text-red-500' : fitnessData.injuryRisk === 'moderate' ? 'text-amber-500' : 'text-sky-500'
                       }`}>{fitnessData.injuryRisk === 'high' ? 'riesgo alto' : fitnessData.injuryRisk === 'moderate' ? 'riesgo moderado' : 'carga óptima'}</div>
                     </div>
                   </div>
                   {fitnessData.injuryRisk !== 'low' && (
                     <div className={`mb-4 rounded-lg px-3 py-2 text-xs font-medium flex items-center gap-2 ${
-                      fitnessData.injuryRisk === 'high' ? 'bg-red-50 border border-red-200 text-red-800' : 'bg-amber-50 border border-amber-200 text-amber-800'
+                      fitnessData.injuryRisk === 'high' ? 'bg-red-950/40 border border-red-800 text-red-400' : 'bg-amber-950/40 border border-amber-800 text-amber-400'
                     }`}>
                       <span>{fitnessData.injuryRisk === 'high' ? '⚠️' : '⚡'}</span>
                       <span>
@@ -521,7 +521,7 @@ const HomePage = () => {
                   <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">Entrenamientos de esta semana <span className="text-xs font-normal text-zinc-600">(lunes-domingo)</span></h2>
-                      <button onClick={loadData} className="text-xs font-medium text-lime-600 hover:text-lime-700">Refrescar</button>
+                      <button onClick={loadData} className="text-xs font-medium text-lime-400 hover:text-lime-300">Refrescar</button>
                     </div>
                     {weekWorkouts.length === 0 && <p className="text-sm text-zinc-500">No hay entrenamientos en esta semana.</p>}
                     <ul className="divide-y divide-zinc-800">
@@ -530,7 +530,7 @@ const HomePage = () => {
                           <div>
                             <p className="text-sm font-medium text-zinc-200">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-zinc-100 leading-snug max-w-prose">{w.description}</p>
-                            {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-lime-50 text-lime-600 font-medium">{w.distance_km} km</p>}
+                            {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-lime-400/10 text-lime-400 font-medium">{w.distance_km} km</p>}
                           </div>
                           <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-zinc-700 text-zinc-200 hover:bg-zinc-600'}`}>{marking === w.id ? '...' : (w.is_completed ? 'Hecho' : 'Marcar')}</button>
                         </li>
@@ -545,13 +545,13 @@ const HomePage = () => {
                     {upcomingWorkouts.length === 0 && <p className="text-sm text-zinc-500">No hay próximos entrenos (o no hay plan).</p>}
                     <ul className="space-y-3">
                       {upcomingWorkouts.map(w => (
-                        <li key={w.id} className="flex justify-between items-start border border-lime-100 rounded-xl p-4 bg-gradient-to-br from-orange-50 to-white shadow-sm">
+                        <li key={w.id} className="flex justify-between items-start border border-zinc-700 rounded-xl p-4 bg-zinc-800/50 shadow-sm">
                           <div>
                             <p className="text-sm font-medium text-zinc-200">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-zinc-100 leading-snug max-w-prose">{w.description}</p>
-                            {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-lime-100/60 text-lime-600 font-medium">{w.distance_km} km</p>}
+                            {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-lime-400/10 text-lime-400 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-lime-100 text-zinc-100 hover:bg-lime-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-zinc-700 text-zinc-200 hover:bg-zinc-600'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
                         </li>
                       ))}
                     </ul>
@@ -569,7 +569,7 @@ const HomePage = () => {
                     {recentActivities.length === 0 && <p className="text-sm text-zinc-500">Sin actividades recientes.</p>}
                     <ul className="space-y-3 text-sm">
                       {recentActivities.map(a => (
-                        <li key={a.activity_id} className="flex justify-between items-center bg-gradient-to-r from-sky-50 to-white border border-sky-100 rounded-xl px-3 py-2">
+                        <li key={a.activity_id} className="flex justify-between items-center bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2">
                           <div className="pr-3">
                             <p className="font-medium text-zinc-200 leading-snug line-clamp-1" title={a.name}>{a.name || 'Actividad'}</p>
                             <p className="text-[11px] text-zinc-500">{new Date(a.start_date).toLocaleDateString()} • {a.sport_type || 'Run'}</p>
@@ -577,7 +577,7 @@ const HomePage = () => {
                               Ver en Strava
                             </a>
                           </div>
-                          <span className="text-xs font-semibold text-sky-600 bg-sky-100 px-2 py-1 rounded-full">{a.distance_m ? (a.distance_m / 1000).toFixed(1) : '—'} km</span>
+                          <span className="text-xs font-semibold text-sky-400 bg-sky-900/40 px-2 py-1 rounded-full">{a.distance_m ? (a.distance_m / 1000).toFixed(1) : '—'} km</span>
                         </li>
                       ))}
                     </ul>
