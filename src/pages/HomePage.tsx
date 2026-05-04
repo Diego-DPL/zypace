@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import {
   collection, getDocs, doc, query, where, orderBy, limit, updateDoc,
 } from 'firebase/firestore';
+import poweredByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg';
 import { db } from '../lib/firebaseClient';
 
 interface Race     { id: string; name: string; date: string; }
@@ -305,7 +306,11 @@ const HomePage = () => {
                     <span className="text-2xl font-bold text-gray-800">{weeklyKm.total.toFixed(1)}</span>
                     <span className="text-xs font-semibold text-emerald-600">km</span>
                   </div>
-                  <span className="text-[11px] text-gray-500 mt-1">Plan {weeklyKm.plan.toFixed(1)} • Strava {weeklyKm.activities.toFixed(1)}</span>
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    <span className="text-[11px] text-gray-500">Plan {weeklyKm.plan.toFixed(1)} km •</span>
+                    <img src={poweredByStrava} alt="Powered by Strava" className="h-3 w-auto" />
+                    <span className="text-[11px] text-gray-500">{weeklyKm.activities.toFixed(1)} km</span>
+                  </div>
                   <div className="mt-3">
                     <svg viewBox="0 0 100 30" className="w-full h-8 overflow-visible">
                       <path d={sparklinePath} fill="none" strokeWidth={2} stroke="url(#gradWeek)" strokeLinecap="round" />
@@ -557,7 +562,10 @@ const HomePage = () => {
               <div className="space-y-8 xl:col-span-1">
                 <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-blue-300 via-cyan-200 to-sky-200 shadow">
                   <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">Actividad reciente</h2>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-lg font-semibold text-gray-800">Actividad reciente</h2>
+                      <img src={poweredByStrava} alt="Powered by Strava" className="h-4 w-auto" />
+                    </div>
                     {recentActivities.length === 0 && <p className="text-sm text-gray-500">Sin actividades recientes.</p>}
                     <ul className="space-y-3 text-sm">
                       {recentActivities.map(a => (

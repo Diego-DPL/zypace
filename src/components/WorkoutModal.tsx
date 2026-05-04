@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
+import poweredByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg';
 
 interface StravaActivityData {
   activity_id?: number;
@@ -263,15 +264,31 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
             <div className="border-t border-gray-100 pt-4">
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Datos de Strava</h4>
-                {loadingStrava && <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />}
+                <div className="flex items-center gap-2">
+                  {loadingStrava && <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />}
+                  <img src={poweredByStrava} alt="Powered by Strava" className="h-4 w-auto" />
+                </div>
               </div>
               {stravaActivities.length > 0 ? (
                 <div className="space-y-2">
                   {stravaActivities.map((a, i) => (
                     <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-orange-800 mb-2">
-                        {a.name || 'Actividad'}{a.sport_type ? ` · ${a.sport_type}` : ''}
-                      </p>
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs font-semibold text-orange-800">
+                          {a.name || 'Actividad'}{a.sport_type ? ` · ${a.sport_type}` : ''}
+                        </p>
+                        {a.activity_id && (
+                          <a
+                            href={`https://www.strava.com/activities/${a.activity_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-[11px] font-semibold underline flex-shrink-0 ml-2"
+                            style={{ color: '#FC5200' }}
+                          >
+                            Ver en Strava →
+                          </a>
+                        )}
+                      </div>
                       <div className="grid grid-cols-3 gap-1.5 text-xs">
                         <StatCell label="Distancia" value={`${Math.round((a.distance_m || 0) / 100) / 10} km`} />
                         <StatCell label="Duración" value={formatDuration(a.moving_time || 0)} />
