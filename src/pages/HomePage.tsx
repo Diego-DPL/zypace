@@ -261,55 +261,55 @@ const HomePage = () => {
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-lime-500 via-pink-600 to-purple-600 text-transparent bg-clip-text drop-shadow-sm">Tu Panel</h1>
-            {user && <p className="mt-2 text-sm text-gray-600">Hola <span className="font-semibold text-gray-800">{user.email}</span>, este es tu resumen de entrenamiento.</p>}
+            {user && <p className="mt-2 text-sm text-zinc-400">Hola <span className="font-semibold text-zinc-100">{user.email}</span>, este es tu resumen de entrenamiento.</p>}
           </div>
           {nextRace && (
-            <div className="px-5 py-4 rounded-2xl bg-white/70 backdrop-blur shadow-sm border border-white/60 flex flex-col items-start gap-1">
-              <span className="text-[11px] uppercase tracking-wide text-gray-500">Cuenta atrás</span>
+            <div className="px-5 py-4 rounded-2xl bg-zinc-900/70 backdrop-blur shadow-sm border border-white/60 flex flex-col items-start gap-1">
+              <span className="text-[11px] uppercase tracking-wide text-zinc-500">Cuenta atrás</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-gray-800 leading-none">{daysToRace}</span>
-                <span className="text-xs font-medium text-gray-500">días</span>
+                <span className="text-3xl font-black text-zinc-100 leading-none">{daysToRace}</span>
+                <span className="text-xs font-medium text-zinc-500">días</span>
               </div>
-              <p className="text-xs text-gray-600 mt-1 font-medium">{nextRace.name}</p>
-              <p className="text-[11px] text-gray-400">{new Date(nextRace.date).toLocaleDateString()}</p>
+              <p className="text-xs text-zinc-400 mt-1 font-medium">{nextRace.name}</p>
+              <p className="text-[11px] text-zinc-600">{new Date(nextRace.date).toLocaleDateString()}</p>
             </div>
           )}
         </div>
         {loading ? (
-          <p className="text-gray-500">Cargando datos...</p>
+          <p className="text-zinc-500">Cargando datos...</p>
         ) : (
           <div className="space-y-12">
             {/* Stat cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
               <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-lime-400 via-pink-500 to-purple-600 shadow-lg">
-                <div className="rounded-2xl h-full w-full bg-white/90 backdrop-blur-sm p-5 flex flex-col">
-                  <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Próxima carrera</span>
+                <div className="rounded-2xl h-full w-full bg-zinc-900/90 backdrop-blur-sm p-5 flex flex-col">
+                  <span className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Próxima carrera</span>
                   {nextRace ? (
                     <>
-                      <span className="font-semibold text-gray-800 line-clamp-1" title={nextRace.name}>{nextRace.name}</span>
-                      <span className="text-xs text-gray-600">{new Date(nextRace.date).toLocaleDateString()}</span>
+                      <span className="font-semibold text-zinc-100 line-clamp-1" title={nextRace.name}>{nextRace.name}</span>
+                      <span className="text-xs text-zinc-400">{new Date(nextRace.date).toLocaleDateString()}</span>
                       {daysToRace != null && <div className="mt-3 flex items-center gap-3">
                         <div className="relative w-14 h-14">
                           <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-lime-400 to-pink-500 opacity-20 animate-pulse" />
-                          <div className="absolute inset-0 rounded-full bg-white flex items-center justify-center font-bold text-gray-800 text-lg shadow-inner">{daysToRace}</div>
+                          <div className="absolute inset-0 rounded-full bg-zinc-900 flex items-center justify-center font-bold text-zinc-100 text-lg shadow-inner">{daysToRace}</div>
                         </div>
-                        <div className="text-xs font-medium text-gray-500 leading-tight">días para competir<br /><span className="text-lime-600 font-semibold">¡Vamos!</span></div>
+                        <div className="text-xs font-medium text-zinc-500 leading-tight">días para competir<br /><span className="text-lime-600 font-semibold">¡Vamos!</span></div>
                       </div>}
                     </>
-                  ) : <span className="text-gray-400 text-sm">Añade una carrera para iniciar</span>}
+                  ) : <span className="text-zinc-600 text-sm">Añade una carrera para iniciar</span>}
                 </div>
               </div>
               <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-600 shadow-lg">
-                <div className="rounded-2xl bg-white/90 h-full p-5 flex flex-col">
-                  <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Semana actual</span>
+                <div className="rounded-2xl bg-zinc-900/90 h-full p-5 flex flex-col">
+                  <span className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Semana actual</span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-gray-800">{weeklyKm.total.toFixed(1)}</span>
+                    <span className="text-2xl font-bold text-zinc-100">{weeklyKm.total.toFixed(1)}</span>
                     <span className="text-xs font-semibold text-emerald-600">km</span>
                   </div>
                   <div className="flex items-center gap-1 mt-1 flex-wrap">
-                    <span className="text-[11px] text-gray-500">Plan {weeklyKm.plan.toFixed(1)} km •</span>
+                    <span className="text-[11px] text-zinc-500">Plan {weeklyKm.plan.toFixed(1)} km •</span>
                     <img src={poweredByStrava} alt="Powered by Strava" className="h-3 w-auto" />
-                    <span className="text-[11px] text-gray-500">{weeklyKm.activities.toFixed(1)} km</span>
+                    <span className="text-[11px] text-zinc-500">{weeklyKm.activities.toFixed(1)} km</span>
                   </div>
                   <div className="mt-3">
                     <svg viewBox="0 0 100 30" className="w-full h-8 overflow-visible">
@@ -318,33 +318,33 @@ const HomePage = () => {
                         <linearGradient id="gradWeek" x1="0" x2="1" y1="0" y2="0"><stop offset="0%" stopColor="#059669" /><stop offset="100%" stopColor="#06b6d4" /></linearGradient>
                       </defs>
                     </svg>
-                    <div className="flex justify-between text-[10px] text-gray-400 mt-1">{weeklyTrend.map((v, i) => (<span key={i}>{v}</span>))}</div>
+                    <div className="flex justify-between text-[10px] text-zinc-600 mt-1">{weeklyTrend.map((v, i) => (<span key={i}>{v}</span>))}</div>
                   </div>
                 </div>
               </div>
               <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-indigo-400 via-violet-500 to-fuchsia-600 shadow-lg">
-                <div className="rounded-2xl bg-white/90 h-full p-5 flex flex-col">
-                  <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Últimos 28 días</span>
-                  <div className="flex items-baseline gap-2"><span className="text-2xl font-bold text-gray-800">{last28Km.total.toFixed(1)}</span><span className="text-xs font-semibold text-violet-600">km</span></div>
-                  <span className="text-[11px] text-gray-500 mt-1">Plan {last28Km.workouts.toFixed(1)} • Act {last28Km.activities.toFixed(1)}</span>
+                <div className="rounded-2xl bg-zinc-900/90 h-full p-5 flex flex-col">
+                  <span className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Últimos 28 días</span>
+                  <div className="flex items-baseline gap-2"><span className="text-2xl font-bold text-zinc-100">{last28Km.total.toFixed(1)}</span><span className="text-xs font-semibold text-violet-600">km</span></div>
+                  <span className="text-[11px] text-zinc-500 mt-1">Plan {last28Km.workouts.toFixed(1)} • Act {last28Km.activities.toFixed(1)}</span>
                   <div className="mt-3 grid grid-cols-4 gap-1">
                     {weeklyTrend.map((v, i) => { const pct = maxWeeklyTrend ? v / maxWeeklyTrend : 0; return (
                       <div key={i} className="h-12 relative overflow-hidden rounded bg-gradient-to-b from-gray-100 to-gray-50">
                         <div style={{ height: `${pct * 100}%` }} className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-fuchsia-500 to-violet-400 rounded-t transition-all" />
-                        <span className="absolute inset-x-0 top-0 text-[9px] text-center text-gray-400 pt-0.5">S{i + 1}</span>
+                        <span className="absolute inset-x-0 top-0 text-[9px] text-center text-zinc-600 pt-0.5">S{i + 1}</span>
                       </div>);
                     })}
                   </div>
                 </div>
               </div>
               <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-yellow-400 via-lime-400 to-red-500 shadow-lg">
-                <div className="rounded-2xl bg-white/90 h-full p-5 flex flex-col items-start">
-                  <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Progreso plan</span>
+                <div className="rounded-2xl bg-zinc-900/90 h-full p-5 flex flex-col items-start">
+                  <span className="text-[11px] uppercase tracking-wide text-zinc-500 mb-1">Progreso plan</span>
                   {planProgress ? (
                     <div className="flex items-center gap-4 w-full">
                       <div className="relative w-20 h-20">
                         <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-300 to-red-300 opacity-30" />
-                        <div className="absolute inset-0 rounded-full bg-white flex items-center justify-center text-xs font-semibold text-gray-600">{planProgress.percent}%</div>
+                        <div className="absolute inset-0 rounded-full bg-zinc-900 flex items-center justify-center text-xs font-semibold text-zinc-400">{planProgress.percent}%</div>
                         <svg className="absolute inset-0" viewBox="0 0 36 36">
                           <path className="text-gray-200" stroke="currentColor" strokeWidth="3.5" fill="none" d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31Z" />
                           <path strokeLinecap="round" stroke="url(#gradProg)" strokeWidth="3.5" fill="none" strokeDasharray="97" strokeDashoffset={97 - (97 * planProgress.percent) / 100} d="M18 2.5a15.5 15.5 0 1 1 0 31 15.5 15.5 0 0 1 0-31Z" />
@@ -352,12 +352,12 @@ const HomePage = () => {
                         </svg>
                       </div>
                       <div className="flex-1">
-                        <p className="text-xs text-gray-600">Entrenamientos completados</p>
-                        <p className="text-sm font-semibold text-gray-800 mt-1">{planProgress.done} / {planProgress.total}</p>
-                        <div className="mt-2 h-1.5 w-full rounded bg-gray-200 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-lime-400 to-red-500" style={{ width: `${planProgress.percent}%` }} /></div>
+                        <p className="text-xs text-zinc-400">Entrenamientos completados</p>
+                        <p className="text-sm font-semibold text-zinc-100 mt-1">{planProgress.done} / {planProgress.total}</p>
+                        <div className="mt-2 h-1.5 w-full rounded bg-zinc-700 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-lime-400 to-red-500" style={{ width: `${planProgress.percent}%` }} /></div>
                       </div>
                     </div>
-                  ) : <p className="text-gray-400 text-sm">No hay un plan activo.</p>}
+                  ) : <p className="text-zinc-600 text-sm">No hay un plan activo.</p>}
                 </div>
               </div>
             </div>
@@ -365,26 +365,26 @@ const HomePage = () => {
             {/* Intensity distribution panel */}
             {intensityWeeks.some(w => w.total > 0) && (
               <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-emerald-300 via-teal-200 to-cyan-300 shadow">
-                <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-800">Distribución de intensidad polarizada</h2>
-                      <p className="text-xs text-gray-500 mt-0.5">Entrenamientos completados · últimas 4 semanas</p>
+                      <h2 className="text-lg font-semibold text-zinc-100">Distribución de intensidad polarizada</h2>
+                      <p className="text-xs text-zinc-500 mt-0.5">Entrenamientos completados · últimas 4 semanas</p>
                     </div>
                     <div className="flex items-center gap-4 text-xs flex-wrap">
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0" /><span className="text-gray-600">Z1 Fácil/Largo</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-lime-300 inline-block shrink-0" /><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0" /><span className="text-gray-600">Z5 Series</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0" /><span className="text-zinc-400">Z1 Fácil/Largo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-lime-300 inline-block shrink-0" /><span className="text-zinc-400">Z4 Umbral/Tempo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0" /><span className="text-zinc-400">Z5 Series</span></span>
                     </div>
                   </div>
                   <div className="space-y-4">
                     {intensityWeeks.map((week, idx) => {
                       if (week.total === 0) return (
                         <div key={idx} className="flex items-center gap-3">
-                          <span className="text-[11px] text-gray-400 w-24 text-right shrink-0">{week.label}</span>
-                          <div className="flex-1 h-4 rounded-full bg-gray-100" />
-                          <span className="text-[11px] text-gray-400 w-12 shrink-0" />
-                          <span className="text-[11px] text-gray-300 w-14 text-right shrink-0">sin datos</span>
+                          <span className="text-[11px] text-zinc-600 w-24 text-right shrink-0">{week.label}</span>
+                          <div className="flex-1 h-4 rounded-full bg-zinc-800" />
+                          <span className="text-[11px] text-zinc-600 w-12 shrink-0" />
+                          <span className="text-[11px] text-zinc-600 w-14 text-right shrink-0">sin datos</span>
                         </div>
                       );
                       const tot  = week.total;
@@ -395,13 +395,13 @@ const HomePage = () => {
                       return (
                         <div key={idx}>
                           <div className="flex items-center gap-3">
-                            <span className="text-[11px] text-gray-500 w-24 text-right shrink-0">{week.label}</span>
-                            <div className="flex-1 h-4 rounded-full overflow-hidden bg-gray-100 flex">
+                            <span className="text-[11px] text-zinc-500 w-24 text-right shrink-0">{week.label}</span>
+                            <div className="flex-1 h-4 rounded-full overflow-hidden bg-zinc-800 flex">
                               {week.kmZ1 > 0 && <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(week.kmZ1 / tot) * 100}%` }} title={`Z1: ${week.kmZ1.toFixed(1)} km`} />}
                               {week.kmZ4 > 0 && <div className="h-full bg-lime-300 transition-all" style={{ width: `${(week.kmZ4 / tot) * 100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
                               {week.kmZ5 > 0 && <div className="h-full bg-red-400 transition-all"    style={{ width: `${(week.kmZ5 / tot) * 100}%` }} title={`Z5: ${week.kmZ5.toFixed(1)} km`} />}
                             </div>
-                            <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">{tot.toFixed(1)} km</span>
+                            <span className="text-xs font-medium text-zinc-200 w-12 text-right shrink-0">{tot.toFixed(1)} km</span>
                             <span className={`text-[10px] font-bold w-14 text-right shrink-0 ${onTarget ? 'text-emerald-600' : 'text-amber-600'}`}>
                               {pZ1}% Z1
                             </span>
@@ -415,10 +415,10 @@ const HomePage = () => {
                       );
                     })}
                   </div>
-                  <div className="mt-5 pt-4 border-t border-gray-100 flex items-center gap-2 text-xs text-gray-500">
+                  <div className="mt-5 pt-4 border-t border-zinc-800 flex items-center gap-2 text-xs text-zinc-500">
                     <div className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" />
                     <span>
-                      Objetivo <span className="font-semibold text-gray-700">polarizado / noruego</span>:
+                      Objetivo <span className="font-semibold text-zinc-200">polarizado / noruego</span>:
                       {' '}<span className="text-emerald-700 font-semibold">≥80% km en Z1</span> (fácil/largo) ·
                       {' '}<span className="text-lime-600 font-semibold">≤20% en Z4-Z5</span> (umbral/series)
                     </span>
@@ -430,11 +430,11 @@ const HomePage = () => {
             {/* Fitness model: CTL / ATL / TSB */}
             {fitnessData && (
               <div className="relative rounded-2xl p-[1px] bg-gradient-to-br from-violet-300 via-purple-200 to-indigo-300 shadow">
-                <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
                   <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 mb-5">
                     <div>
-                      <h2 className="text-lg font-semibold text-gray-800">Forma física</h2>
-                      <p className="text-xs text-gray-500 mt-0.5">Fitness crónico · fatiga aguda · balance — últimos 90 días</p>
+                      <h2 className="text-lg font-semibold text-zinc-100">Forma física</h2>
+                      <p className="text-xs text-zinc-500 mt-0.5">Fitness crónico · fatiga aguda · balance — últimos 90 días</p>
                     </div>
                     <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full ${
                       fitnessData.tsb >  10 ? 'bg-sky-100 text-sky-700'         :
@@ -496,8 +496,8 @@ const HomePage = () => {
                       </span>
                     </div>
                   )}
-                  <div className="bg-gray-50 rounded-xl px-3 pt-2 pb-1">
-                    <div className="flex justify-between text-[9px] text-gray-400 mb-0.5">
+                  <div className="bg-zinc-900 rounded-xl px-3 pt-2 pb-1">
+                    <div className="flex justify-between text-[9px] text-zinc-600 mb-0.5">
                       <span>90 días atrás</span>
                       <span className="flex items-center gap-3">
                         <span className="flex items-center gap-1"><span className="w-2 h-px bg-indigo-400 inline-block" />CTL</span>
@@ -507,7 +507,7 @@ const HomePage = () => {
                     </div>
                     <FitnessChart data={fitnessData.history} />
                   </div>
-                  <p className="text-[10px] text-gray-400 mt-3">
+                  <p className="text-[10px] text-zinc-600 mt-3">
                     CTL = fitness 42 días · ATL = fatiga 7 días · TSB = CTL−ATL · ACWR = ATL/CTL (óptimo 0.8–1.3) · TL calculado con RPE (Foster) o km×zona
                   </p>
                 </div>
@@ -518,21 +518,21 @@ const HomePage = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
               <div className="lg:col-span-2 space-y-8">
                 <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200 shadow">
-                  <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                  <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
                     <div className="flex justify-between items-center mb-4">
-                      <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">Entrenamientos de esta semana <span className="text-xs font-normal text-gray-400">(lunes-domingo)</span></h2>
+                      <h2 className="text-lg font-semibold text-zinc-100 flex items-center gap-2">Entrenamientos de esta semana <span className="text-xs font-normal text-zinc-600">(lunes-domingo)</span></h2>
                       <button onClick={loadData} className="text-xs font-medium text-lime-600 hover:text-lime-700">Refrescar</button>
                     </div>
-                    {weekWorkouts.length === 0 && <p className="text-sm text-gray-500">No hay entrenamientos en esta semana.</p>}
-                    <ul className="divide-y divide-gray-100">
+                    {weekWorkouts.length === 0 && <p className="text-sm text-zinc-500">No hay entrenamientos en esta semana.</p>}
+                    <ul className="divide-y divide-zinc-800">
                       {weekWorkouts.map(w => (
                         <li key={w.id} className="py-4 flex items-start justify-between gap-6">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
-                            <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
+                            <p className="text-sm font-medium text-zinc-200">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
+                            <p className="text-sm text-zinc-100 leading-snug max-w-prose">{w.description}</p>
                             {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-lime-50 text-lime-600 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{marking === w.id ? '...' : (w.is_completed ? 'Hecho' : 'Marcar')}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-zinc-700 text-zinc-200 hover:bg-zinc-600'}`}>{marking === w.id ? '...' : (w.is_completed ? 'Hecho' : 'Marcar')}</button>
                         </li>
                       ))}
                     </ul>
@@ -540,18 +540,18 @@ const HomePage = () => {
                 </div>
 
                 <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-orange-300 via-orange-200 to-yellow-200 shadow">
-                  <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4 flex items-center gap-2">Próximos entrenos {planProgress && <span className="text-[11px] font-normal text-gray-400">(siguientes 3)</span>}</h2>
-                    {upcomingWorkouts.length === 0 && <p className="text-sm text-gray-500">No hay próximos entrenos (o no hay plan).</p>}
+                  <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
+                    <h2 className="text-lg font-semibold text-zinc-100 mb-4 flex items-center gap-2">Próximos entrenos {planProgress && <span className="text-[11px] font-normal text-zinc-600">(siguientes 3)</span>}</h2>
+                    {upcomingWorkouts.length === 0 && <p className="text-sm text-zinc-500">No hay próximos entrenos (o no hay plan).</p>}
                     <ul className="space-y-3">
                       {upcomingWorkouts.map(w => (
                         <li key={w.id} className="flex justify-between items-start border border-lime-100 rounded-xl p-4 bg-gradient-to-br from-orange-50 to-white shadow-sm">
                           <div>
-                            <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
-                            <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
+                            <p className="text-sm font-medium text-zinc-200">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
+                            <p className="text-sm text-zinc-100 leading-snug max-w-prose">{w.description}</p>
                             {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-lime-100/60 text-lime-600 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-lime-100 text-gray-800 hover:bg-lime-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-lime-100 text-zinc-100 hover:bg-lime-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
                         </li>
                       ))}
                     </ul>
@@ -561,18 +561,18 @@ const HomePage = () => {
 
               <div className="space-y-8 xl:col-span-1">
                 <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-blue-300 via-cyan-200 to-sky-200 shadow">
-                  <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
+                  <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-lg font-semibold text-gray-800">Actividad reciente</h2>
+                      <h2 className="text-lg font-semibold text-zinc-100">Actividad reciente</h2>
                       <img src={poweredByStrava} alt="Powered by Strava" className="h-4 w-auto" />
                     </div>
-                    {recentActivities.length === 0 && <p className="text-sm text-gray-500">Sin actividades recientes.</p>}
+                    {recentActivities.length === 0 && <p className="text-sm text-zinc-500">Sin actividades recientes.</p>}
                     <ul className="space-y-3 text-sm">
                       {recentActivities.map(a => (
                         <li key={a.activity_id} className="flex justify-between items-center bg-gradient-to-r from-sky-50 to-white border border-sky-100 rounded-xl px-3 py-2">
                           <div className="pr-3">
-                            <p className="font-medium text-gray-700 leading-snug line-clamp-1" title={a.name}>{a.name || 'Actividad'}</p>
-                            <p className="text-[11px] text-gray-500">{new Date(a.start_date).toLocaleDateString()} • {a.sport_type || 'Run'}</p>
+                            <p className="font-medium text-zinc-200 leading-snug line-clamp-1" title={a.name}>{a.name || 'Actividad'}</p>
+                            <p className="text-[11px] text-zinc-500">{new Date(a.start_date).toLocaleDateString()} • {a.sport_type || 'Run'}</p>
                             <a href={`https://www.strava.com/activities/${a.activity_id}`} target="_blank" rel="noopener noreferrer" className="text-[11px] font-semibold underline" style={{ color: '#FC5200' }}>
                               Ver en Strava
                             </a>
@@ -585,9 +585,9 @@ const HomePage = () => {
                 </div>
 
                 <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-slate-300 via-slate-200 to-slate-300 shadow">
-                  <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
-                    <h2 className="text-lg font-semibold text-gray-800 mb-4">Consejos rápidos</h2>
-                    <ul className="space-y-3 text-xs text-gray-600">
+                  <div className="rounded-2xl bg-zinc-900/90 backdrop-blur-sm p-6">
+                    <h2 className="text-lg font-semibold text-zinc-100 mb-4">Consejos rápidos</h2>
+                    <ul className="space-y-3 text-xs text-zinc-400">
                       <li className="flex gap-2"><span className="text-lime-500">⚡</span><span>Marca tus entrenos para ver la evolución del plan.</span></li>
                       <li className="flex gap-2"><span className="text-sky-500">🔄</span><span>Sincroniza Strava tras cada sesión clave.</span></li>
                       <li className="flex gap-2"><span className="text-emerald-500">🛠️</span><span>Ajusta la disponibilidad y regenera si cambian tus semanas.</span></li>

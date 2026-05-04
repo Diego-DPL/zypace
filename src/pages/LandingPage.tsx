@@ -5,23 +5,44 @@ const features = [
   {
     title: 'Calendario Inteligente',
     desc: 'Centraliza carreras, entrenamientos planificados y actividades reales de Strava en una sola vista.',
-    icon: '🗓️'
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+        <rect x="3" y="4" width="18" height="18" rx="2" />
+        <path d="M16 2v4M8 2v4M3 10h18" />
+        <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+      </svg>
+    ),
   },
   {
     title: 'Planes con IA',
     desc: 'Genera planes personalizados adaptados a tu objetivo y fecha de carrera, con ajustes dinámicos.',
-    icon: '🤖'
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+        <path d="M12 2a4 4 0 0 1 4 4c0 1.5-.8 2.8-2 3.5V11h1a2 2 0 0 1 2 2v1h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1v-1a2 2 0 0 1 2-2h1V9.5A4 4 0 0 1 8 6a4 4 0 0 1 4-4z" />
+        <path d="M9 17v1M12 17v1M15 17v1" />
+      </svg>
+    ),
   },
   {
     title: 'Sincroniza con Strava',
     desc: 'Importa automáticamente tus actividades y marca entrenos como completados sin esfuerzo.',
-    icon: '⚡'
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+      </svg>
+    ),
   },
   {
     title: 'Progreso Claro',
     desc: 'Visualiza qué has hecho, qué falta y cómo avanza tu preparación semana a semana.',
-    icon: '📈'
-  }
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="w-7 h-7">
+        <path d="M3 17l4-4 4 2 4-5 4 3" />
+        <path d="M3 21h18" />
+        <path d="M3 3v18" />
+      </svg>
+    ),
+  },
 ];
 
 const steps = [
@@ -35,19 +56,19 @@ const faqs = [
   { q: '¿Necesito pagar para usarlo?', a: 'Actualmente la plataforma está en fase temprana y puedes probar las funciones base gratis.' },
   { q: '¿Puedo regenerar un plan?', a: 'Sí, puedes regenerar y reemplazarlo si cambian tus objetivos o la fecha.' },
   { q: '¿Soporta otros deportes?', a: 'De momento nos centramos en running. Próximamente añadiremos ciclismo y triatlón.' },
-  { q: '¿Cómo se calcula el progreso?', a: 'Comparamos tus entrenos planificados vs actividades reales y señalamos cumplimiento.' }
+  { q: '¿Cómo se calcula el progreso?', a: 'Comparamos tus entrenos planificados vs actividades reales y señalamos cumplimiento.' },
 ];
 
 const LandingPage = () => {
   return (
-    <div className="min-h-screen flex flex-col bg-white text-neutral-800">
+    <div className="min-h-screen flex flex-col bg-zinc-950 text-white">
       <LandingHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden bg-zinc-950">
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_30%_50%,rgba(163,230,53,0.12),transparent_65%)]" />
+      <section className="relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_30%_50%,rgba(163,230,53,0.10),transparent_65%)]" />
         <div className="max-w-6xl mx-auto px-6 pt-24 pb-32 text-center">
-          <span className="inline-block mb-6 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/30 text-lime-400 text-xs font-semibold tracking-widest uppercase">Entrenador personal con IA</span>
+          <span className="inline-block mb-6 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/20 text-lime-400 text-xs font-semibold tracking-widest uppercase">Entrenador personal con IA</span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-white">
             Entrena con foco.<br />
             <span className="text-lime-400">Llega listo a tu meta.</span>
@@ -57,22 +78,22 @@ const LandingPage = () => {
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/register" className="px-8 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Comenzar Gratis</Link>
-            <Link to="/login" className="px-8 py-4 rounded-xl font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/10 transition">Ya tengo cuenta</Link>
+            <Link to="/login" className="px-8 py-4 rounded-xl font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition">Ya tengo cuenta</Link>
           </div>
         </div>
       </section>
 
       {/* Features */}
-      <section className="py-24 bg-white">
+      <section className="py-24 bg-zinc-900">
         <div className="max-w-6xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-zinc-900">Todo lo que necesitas en un solo lugar</h2>
-          <p className="text-center text-neutral-500 mb-14">Menos hojas de cálculo. Más claridad. Más progreso.</p>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Todo lo que necesitas en un solo lugar</h2>
+          <p className="text-center text-zinc-500 mb-14">Menos hojas de cálculo. Más claridad. Más progreso.</p>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map(f => (
-              <div key={f.title} className="group relative p-6 rounded-2xl bg-white border border-neutral-200 shadow-sm hover:shadow-md hover:border-lime-400/60 transition">
-                <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="font-semibold text-lg mb-2 group-hover:text-lime-600 transition">{f.title}</h3>
-                <p className="text-sm text-neutral-600 leading-relaxed">{f.desc}</p>
+              <div key={f.title} className="group p-6 rounded-2xl bg-zinc-800 border border-zinc-700 hover:border-lime-400/50 transition-all hover:bg-zinc-800/80">
+                <div className="text-lime-400 mb-4">{f.icon}</div>
+                <h3 className="font-semibold text-base mb-2 text-white group-hover:text-lime-400 transition-colors">{f.title}</h3>
+                <p className="text-sm text-zinc-400 leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -83,12 +104,12 @@ const LandingPage = () => {
       <section className="py-24 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">¿Cómo funciona?</h2>
-          <p className="text-center text-zinc-400 mb-12">Un flujo simple para mantenerte constante.</p>
+          <p className="text-center text-zinc-500 mb-12">Un flujo simple para mantenerte constante.</p>
           <div className="grid md:grid-cols-4 gap-6">
             {steps.map(s => (
               <div key={s.step} className="relative p-5 bg-zinc-900 border border-zinc-800 rounded-xl">
-                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-lime-400 text-black font-bold mb-4">{s.step}</div>
-                <h3 className="font-semibold mb-2 text-white">{s.title}</h3>
+                <div className="w-10 h-10 flex items-center justify-center rounded-full bg-lime-400 text-black font-bold mb-4 text-sm">{s.step}</div>
+                <h3 className="font-semibold mb-2 text-white text-sm">{s.title}</h3>
                 <p className="text-sm text-zinc-400 leading-relaxed">{s.text}</p>
               </div>
             ))}
@@ -96,12 +117,12 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Value / CTA */}
-      <section className="py-24 bg-white">
+      {/* CTA */}
+      <section className="py-24 bg-zinc-900">
         <div className="max-w-5xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-zinc-900">Convierte tus actividades en progreso real</h2>
-          <p className="text-neutral-600 max-w-3xl mx-auto mb-10">La mayoría de los corredores pierden consistencia por falta de visibilidad. Aquí ves plan vs realidad cada día y la IA te ayuda a mantener el rumbo.</p>
-          <Link to="/register" className="inline-block px-10 py-4 rounded-xl font-semibold bg-zinc-900 hover:bg-zinc-800 text-lime-400 border border-lime-400/30 shadow-lg transition">Empieza Ahora</Link>
+          <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Convierte tus actividades en progreso real</h2>
+          <p className="text-zinc-400 max-w-3xl mx-auto mb-10">La mayoría de los corredores pierden consistencia por falta de visibilidad. Aquí ves plan vs realidad cada día y la IA te ayuda a mantener el rumbo.</p>
+          <Link to="/register" className="inline-block px-10 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Empieza Ahora</Link>
         </div>
       </section>
 
@@ -109,12 +130,12 @@ const LandingPage = () => {
       <section className="py-24 bg-zinc-950">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-white">Preguntas Frecuentes</h2>
-          <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-2xl overflow-hidden bg-zinc-900">
+          <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-2xl overflow-hidden">
             {faqs.map(item => (
-              <details key={item.q} className="group p-6 [&_summary::-webkit-details-marker]:hidden cursor-pointer">
+              <details key={item.q} className="group p-6 [&_summary::-webkit-details-marker]:hidden cursor-pointer bg-zinc-900">
                 <summary className="flex items-start justify-between">
-                  <span className="font-semibold text-white group-open:text-lime-400 transition pr-4">{item.q}</span>
-                  <span className="text-lime-400 group-open:rotate-45 transition text-xl leading-none">+</span>
+                  <span className="font-semibold text-zinc-200 group-open:text-lime-400 transition pr-4 text-sm">{item.q}</span>
+                  <span className="text-lime-400 group-open:rotate-45 transition text-xl leading-none flex-shrink-0">+</span>
                 </summary>
                 <p className="mt-3 text-sm text-zinc-400 leading-relaxed">{item.a}</p>
               </details>
@@ -124,9 +145,9 @@ const LandingPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="py-12 text-center text-sm bg-zinc-950 border-t border-zinc-800">
-        <p className="text-zinc-500">&copy; {new Date().getFullYear()} Zypace. Todos los derechos reservados.</p>
-        <p className="mt-2 text-zinc-600">Construido para runners que quieren claridad y consistencia.</p>
+      <footer className="py-10 text-center bg-zinc-950 border-t border-zinc-800">
+        <p className="text-zinc-600 text-sm">&copy; {new Date().getFullYear()} Zypace. Todos los derechos reservados.</p>
+        <p className="mt-1 text-zinc-700 text-xs">Construido para runners que quieren claridad y consistencia.</p>
       </footer>
     </div>
   );

@@ -53,7 +53,7 @@ const VERDICT_CONFIG = {
   on_track:    { label: 'En camino',              bg: 'bg-blue-100',   text: 'text-blue-800',   border: 'border-blue-300'   },
   great_week:  { label: 'Buena semana',           bg: 'bg-green-100',  text: 'text-green-800',  border: 'border-green-300'  },
   excellent:   { label: 'Semana sobresaliente',   bg: 'bg-purple-100', text: 'text-purple-800', border: 'border-purple-300' },
-  no_data:     { label: 'Sin datos suficientes',  bg: 'bg-gray-100',   text: 'text-gray-700',   border: 'border-gray-300'   },
+  no_data:     { label: 'Sin datos suficientes',  bg: 'bg-zinc-800',   text: 'text-zinc-200',   border: 'border-zinc-700'   },
 }
 
 const TYPE_LABEL: Record<string, string> = {
@@ -178,11 +178,11 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
   const cfg = result ? VERDICT_CONFIG[result.verdict] : null
 
   return (
-    <div className="mt-10 border border-gray-200 rounded-xl p-6 bg-white shadow-sm">
+    <div className="mt-10 border border-zinc-800 rounded-xl p-6 bg-white shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-lg font-bold text-gray-800">Análisis semanal</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
+          <h3 className="text-lg font-bold text-zinc-100">Análisis semanal</h3>
+          <p className="text-xs text-zinc-500 mt-0.5">
             Revisa cómo fue tu semana y aplica ajustes inteligentes a los próximos entrenamientos.
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
               <span className={`text-xs font-bold uppercase tracking-wide px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text} border ${cfg.border}`}>
                 {cfg.label}
               </span>
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-zinc-500">
                 Semana: {result.analysis.week}
               </span>
             </div>
@@ -338,7 +338,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
           {/* Sensaciones */}
           {result.analysis.feelings_summary.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-gray-500 font-medium">Sensaciones:</span>
+              <span className="text-xs text-zinc-500 font-medium">Sensaciones:</span>
               {result.analysis.feelings_summary
                 .sort((a, b) => b.count - a.count)
                 .map(({ feeling, count }) => (
@@ -347,7 +347,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                     className={`text-xs px-2 py-0.5 rounded-full border font-medium ${
                       feeling === 'great'     ? 'bg-green-50 border-green-200 text-green-800' :
                       feeling === 'good'      ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                      feeling === 'average'   ? 'bg-gray-50 border-gray-200 text-gray-700' :
+                      feeling === 'average'   ? 'bg-zinc-900 border-zinc-800 text-zinc-200' :
                       feeling === 'tired'     ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
                       'bg-red-50 border-red-200 text-red-800'
                     }`}
@@ -362,7 +362,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
           {/* Frescura al inicio */}
           {result.analysis.freshness_summary && result.analysis.freshness_summary.length > 0 && (
             <div className="flex flex-wrap gap-2 items-center">
-              <span className="text-xs text-gray-500 font-medium">Frescura al inicio:</span>
+              <span className="text-xs text-zinc-500 font-medium">Frescura al inicio:</span>
               {result.analysis.freshness_summary
                 .sort((a, b) => b.count - a.count)
                 .map(({ freshness, count }) => (
@@ -383,7 +383,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
           )}
 
           {!result.analysis.has_strava_data && (
-            <p className="text-xs text-gray-400 italic">
+            <p className="text-xs text-zinc-600 italic">
               Strava no conectado o sin actividades esta semana — el análisis de ritmos no está disponible.
               Conecta Strava en Ajustes y sincroniza para obtener análisis completo.
             </p>
@@ -393,7 +393,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
           {result.adjustments.length > 0 ? (
             <div>
               <div className="flex items-center justify-between mb-3">
-                <h4 className="font-semibold text-gray-800 text-sm">
+                <h4 className="font-semibold text-zinc-100 text-sm">
                   Ajustes sugeridos para la próxima semana
                 </h4>
                 {result.adjustments.some(a => !applied.has(a.workout_id)) && (
@@ -411,23 +411,23 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   const isApplied  = applied.has(adj.workout_id)
                   const isApplying = applyingId === adj.workout_id
                   return (
-                    <li key={adj.workout_id} className={`rounded-lg border p-3 text-sm transition-colors ${isApplied ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <li key={adj.workout_id} className={`rounded-lg border p-3 text-sm transition-colors ${isApplied ? 'bg-green-50 border-green-200' : 'bg-zinc-900 border-zinc-800'}`}>
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1 flex-wrap">
-                            <span className="text-xs font-medium text-gray-500">
+                            <span className="text-xs font-medium text-zinc-500">
                               {formatDate(adj.date)}
                             </span>
-                            <span className="text-xs bg-white border border-gray-200 px-1.5 py-0.5 rounded text-gray-600">
+                            <span className="text-xs bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded text-zinc-400">
                               {TYPE_LABEL[adj.type] || adj.type}
                             </span>
                           </div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="line-through text-gray-400 text-xs">{adj.original}</span>
-                            <span className="text-gray-400">→</span>
-                            <span className="font-semibold text-gray-800">{adj.suggested}</span>
+                            <span className="line-through text-zinc-600 text-xs">{adj.original}</span>
+                            <span className="text-zinc-600">→</span>
+                            <span className="font-semibold text-zinc-100">{adj.suggested}</span>
                           </div>
-                          <p className="text-xs text-gray-500 mt-1">{adj.reason}</p>
+                          <p className="text-xs text-zinc-500 mt-1">{adj.reason}</p>
                         </div>
                         <div className="flex-shrink-0">
                           {isApplied ? (
@@ -452,7 +452,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
             </div>
           ) : (
             result.verdict !== 'no_data' && (
-              <p className="text-sm text-gray-500 italic">
+              <p className="text-sm text-zinc-500 italic">
                 No se requieren ajustes para la próxima semana. Continúa con el plan previsto.
               </p>
             )
@@ -460,10 +460,10 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
 
           {/* ── Weekly check-in ─────────────────────────────── */}
           {result.verdict !== 'no_data' && (
-            <div className="border-t border-gray-200 pt-5 space-y-4">
+            <div className="border-t border-zinc-800 pt-5 space-y-4">
               <div>
-                <h4 className="font-semibold text-gray-800 text-sm mb-0.5">Check-in semanal</h4>
-                <p className="text-xs text-gray-500">¿Cómo llegas a la próxima semana? Esto ayuda a ajustar el siguiente bloque.</p>
+                <h4 className="font-semibold text-zinc-100 text-sm mb-0.5">Check-in semanal</h4>
+                <p className="text-xs text-zinc-500">¿Cómo llegas a la próxima semana? Esto ayuda a ajustar el siguiente bloque.</p>
               </div>
 
               {weekConfirmed ? (
@@ -474,13 +474,13 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                 <>
                   {/* Readiness */}
                   <div>
-                    <label className="text-xs text-gray-500 mb-2 block">¿Cómo te sientes para la próxima semana?</label>
+                    <label className="text-xs text-zinc-500 mb-2 block">¿Cómo te sientes para la próxima semana?</label>
                     <div className="flex gap-2 flex-wrap">
                       {READINESS_OPTIONS.map(opt => (
                         <button key={opt.value} type="button"
                           onClick={() => setReadiness(readiness === opt.value ? '' : opt.value)}
                           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                            readiness === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                            readiness === opt.value ? opt.active : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}>
                           <span>{opt.emoji}</span> {opt.label}
                         </button>
@@ -490,7 +490,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
 
                   {/* Life context */}
                   <div>
-                    <label className="text-xs text-gray-500 mb-2 block">Contexto de la semana que viene</label>
+                    <label className="text-xs text-zinc-500 mb-2 block">Contexto de la semana que viene</label>
                     <div className="flex gap-2 flex-wrap">
                       {LIFE_CONTEXT_OPTIONS.map(opt => (
                         <button key={opt.value} type="button"
@@ -498,7 +498,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                           className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
                             lifeContext === opt.value
                               ? 'bg-blue-100 border-blue-500 text-blue-800'
-                              : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                              : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                           }`}>
                           <span>{opt.emoji}</span> {opt.label}
                         </button>
@@ -508,13 +508,13 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
 
                   {/* Notes */}
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">Algo más que quieras añadir</label>
+                    <label className="text-xs text-zinc-500 mb-1 block">Algo más que quieras añadir</label>
                     <textarea
                       value={weekNotes}
                       onChange={e => setWeekNotes(e.target.value)}
                       rows={2}
                       placeholder="Lesiones, molestias, compromisos importantes…"
-                      className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
+                      className="w-full text-sm p-2.5 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
                     />
                   </div>
 
@@ -547,7 +547,7 @@ function Metric({ label, value, sub, color }: {
     yellow: 'bg-yellow-50 border-yellow-200 text-yellow-800',
     red:    'bg-red-50    border-red-200    text-red-800',
     blue:   'bg-blue-50   border-blue-200   text-blue-800',
-    gray:   'bg-gray-50   border-gray-200   text-gray-600',
+    gray:   'bg-zinc-900   border-zinc-800   text-zinc-400',
   }
   return (
     <div className={`rounded-lg border p-3 text-center ${colors[color]}`}>

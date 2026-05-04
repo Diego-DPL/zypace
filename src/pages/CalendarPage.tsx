@@ -55,7 +55,7 @@ const TYPE_STYLES: Record<string, { bg: string; border: string; dot: string; tex
   umbral:   { bg: 'bg-amber-50',  border: 'border-amber-200',  dot: 'bg-amber-400',  text: 'text-amber-700',  label: 'Umbral', color: '#fbbf24' },
   tempo:    { bg: 'bg-lime-50', border: 'border-lime-200', dot: 'bg-lime-300', text: 'text-lime-700', label: 'Tempo',  color: '#fb923c' },
   fuerza:   { bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', text: 'text-purple-700', label: 'Fuerza', color: '#c084fc' },
-  descanso: { bg: 'bg-gray-50',   border: 'border-gray-200',   dot: 'bg-gray-300',   text: 'text-gray-400',   label: 'Desc.', color: '#d1d5db' },
+  descanso: { bg: 'bg-zinc-900',   border: 'border-zinc-800',   dot: 'bg-gray-300',   text: 'text-zinc-600',   label: 'Desc.', color: '#d1d5db' },
 };
 
 function groupByWeek(workouts: Workout[]): Array<{ key: string; label: string; range: string; items: Workout[] }> {
@@ -174,8 +174,8 @@ const CalendarPage = () => {
       {/* Page header */}
       <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Calendario</h1>
-          <p className="text-sm text-gray-500 mt-0.5">Tu plan de entrenamiento día a día</p>
+          <h1 className="text-3xl font-bold text-zinc-100">Calendario</h1>
+          <p className="text-sm text-zinc-500 mt-0.5">Tu plan de entrenamiento día a día</p>
         </div>
         {plan && (
           <Link to={`/training-plan?race=${selectedRace}`}
@@ -190,7 +190,7 @@ const CalendarPage = () => {
         <select
           value={selectedRace}
           onChange={e => setSelectedRace(e.target.value)}
-          className="w-full sm:w-72 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-white text-gray-800 text-sm"
+          className="w-full sm:w-72 p-2.5 border border-zinc-700 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-zinc-900 text-zinc-100 text-sm"
         >
           <option value="">-- Selecciona una carrera --</option>
           {races.map(r => (
@@ -202,7 +202,7 @@ const CalendarPage = () => {
       </div>
 
       {loadingPlan && (
-        <div className="flex items-center gap-2 text-gray-500 text-sm py-8">
+        <div className="flex items-center gap-2 text-zinc-500 text-sm py-8">
           <div className="w-4 h-4 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />
           Cargando plan…
         </div>
@@ -217,10 +217,10 @@ const CalendarPage = () => {
         return (
           <div>
             {/* Compact plan strip */}
-            <div className="mb-5 px-4 py-3 bg-white rounded-xl border border-gray-100 shadow-sm flex flex-wrap items-center justify-between gap-3">
+            <div className="mb-5 px-4 py-3 bg-zinc-900 rounded-xl border border-zinc-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-gray-800">{selectedRaceDetails?.name}</h2>
+                  <h2 className="text-base font-bold text-zinc-100">{selectedRaceDetails?.name}</h2>
                   {plan.mesocycle_number && plan.total_mesocycles && (
                     <span className="text-[11px] font-semibold bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded-full">
                       Meso {plan.mesocycle_number}/{plan.total_mesocycles}
@@ -232,14 +232,14 @@ const CalendarPage = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-0.5">{plan.goal}</p>
+                <p className="text-xs text-zinc-500 mt-0.5">{plan.goal}</p>
               </div>
               {allTrain.length > 0 && (
                 <div className="flex items-center gap-2">
-                  <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <div className="w-24 h-2 bg-zinc-700 rounded-full overflow-hidden">
                     <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                   </div>
-                  <span className="text-xs text-gray-600 font-semibold tabular-nums">{doneTrain.length}/{allTrain.length}</span>
+                  <span className="text-xs text-zinc-400 font-semibold tabular-nums">{doneTrain.length}/{allTrain.length}</span>
                 </div>
               )}
             </div>
@@ -251,7 +251,7 @@ const CalendarPage = () => {
                   className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                     (v === 'calendario') === calendarView
                       ? 'bg-lime-400 text-black border-lime-400'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-lime-400'
+                      : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-lime-400'
                   }`}>
                   {v === 'calendario' ? '▦ Calendario' : '≡ Lista'}
                 </button>
@@ -286,7 +286,7 @@ const CalendarPage = () => {
                         { label: 'Mañana', w: tomorrowWorkout, iso: tomorrowISO, accent: false },
                       ] as { label: string; w: Workout | undefined; iso: string; accent: boolean }[]).map(({ label, w, iso, accent }) => {
                         if (!w) return (
-                          <div key={iso} className="rounded-xl border border-dashed border-gray-200 p-4 flex items-center justify-center text-gray-400 text-sm min-h-[100px]">
+                          <div key={iso} className="rounded-xl border border-dashed border-zinc-800 p-4 flex items-center justify-center text-zinc-600 text-sm min-h-[100px]">
                             {label} — sin entrenamiento
                           </div>
                         );
@@ -298,7 +298,7 @@ const CalendarPage = () => {
                             style={{ border: accent ? `2px solid ${st.color}` : `1px solid ${st.color}40`, borderLeftWidth: 5, borderLeftColor: st.color }}>
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-xs font-black uppercase tracking-widest ${accent ? 'text-lime-600' : 'text-gray-500'}`}>{label}</span>
+                                <span className={`text-xs font-black uppercase tracking-widest ${accent ? 'text-lime-600' : 'text-zinc-500'}`}>{label}</span>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${st.bg} ${st.text} ${st.border}`}>{st.label}</span>
                               </div>
                               {!isRest && (
@@ -306,25 +306,25 @@ const CalendarPage = () => {
                                   onClick={() => handleToggleComplete(w.id, w.is_completed)}
                                   title={w.is_completed ? 'Marcar pendiente' : 'Marcar completado'}
                                   className={`flex-shrink-0 w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-bold transition-colors ${
-                                    w.is_completed ? 'bg-green-500 border-green-500 text-white' : 'bg-white border-gray-300 text-gray-300 hover:border-green-400 hover:text-green-400'
+                                    w.is_completed ? 'bg-green-500 border-green-500 text-white' : 'bg-zinc-900 border-zinc-700 text-zinc-600 hover:border-green-400 hover:text-green-400'
                                   }`}
                                 >✓</button>
                               )}
                             </div>
-                            <p className={`text-sm font-semibold leading-snug mb-1.5 ${w.is_completed ? 'line-through text-gray-400' : 'text-gray-800'}`}>
+                            <p className={`text-sm font-semibold leading-snug mb-1.5 ${w.is_completed ? 'line-through text-zinc-600' : 'text-zinc-100'}`}>
                               {w.description}
                             </p>
                             {w.explanation_json?.purpose && (
-                              <p className="text-[11px] text-gray-500 italic mb-2">{w.explanation_json.purpose}</p>
+                              <p className="text-[11px] text-zinc-500 italic mb-2">{w.explanation_json.purpose}</p>
                             )}
                             <div className="flex items-center justify-between">
-                              <div className="flex gap-3 text-[11px] font-mono text-gray-500">
+                              <div className="flex gap-3 text-[11px] font-mono text-zinc-500">
                                 {w.distance_km && <span>{w.distance_km} km</span>}
                                 {w.duration_min && <span>{w.duration_min} min</span>}
                               </div>
                               <button
                                 onClick={() => { setModalWorkout(w); setShowModal(true); }}
-                                className="text-[11px] text-gray-400 hover:text-gray-600 underline"
+                                className="text-[11px] text-zinc-600 hover:text-zinc-400 underline"
                               >Ver detalle →</button>
                             </div>
                           </div>
@@ -339,7 +339,7 @@ const CalendarPage = () => {
                       <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 mb-1 px-1">
                         <div />
                         {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-                          <div key={d} className="text-center text-[11px] font-bold text-gray-400 py-1">{d}</div>
+                          <div key={d} className="text-center text-[11px] font-bold text-zinc-600 py-1">{d}</div>
                         ))}
                       </div>
 
@@ -358,19 +358,19 @@ const CalendarPage = () => {
                           <div key={key} className={`mb-3 rounded-xl overflow-hidden transition-opacity ${isPastWeek ? 'opacity-60' : ''}`}
                             style={{ border: isCurrentWeek ? '1.5px solid #a3e635' : '1px solid #f3f4f6' }}>
                             {/* Week header */}
-                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-50' : 'bg-gray-50'}`}>
+                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-50' : 'bg-zinc-900'}`}>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-600' : 'text-gray-500'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-600' : 'text-zinc-500'}`}>
                                   {isCurrentWeek ? 'Esta semana' : label}
                                 </span>
-                                <span className="text-[10px] text-gray-400">{range}</span>
+                                <span className="text-[10px] text-zinc-600">{range}</span>
                                 {allDone && trainDays.length > 0 && (
                                   <span className="text-[10px] font-bold text-green-600 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded-full">✓ Completa</span>
                                 )}
                               </div>
                               <div className="flex items-center gap-3">
                                 {weeklyKm > 0 && (
-                                  <span className="text-[11px] font-mono font-semibold text-gray-600">
+                                  <span className="text-[11px] font-mono font-semibold text-zinc-400">
                                     {weeklyKm.toFixed(0)} km
                                     {doneKm > 0 && doneKm < weeklyKm && (
                                       <span className="text-green-600 font-normal ml-1">({doneKm.toFixed(0)} hecho)</span>
@@ -378,14 +378,14 @@ const CalendarPage = () => {
                                   </span>
                                 )}
                                 {weeklyMin > 0 && weeklyKm === 0 && (
-                                  <span className="text-[11px] font-mono text-gray-500">{weeklyMin} min</span>
+                                  <span className="text-[11px] font-mono text-zinc-500">{weeklyMin} min</span>
                                 )}
                                 {trainDays.length > 0 && (
                                   <div className="flex items-center gap-1.5">
-                                    <div className="w-14 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="w-14 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                                       <div className={`h-full rounded-full transition-all ${allDone ? 'bg-green-500' : 'bg-lime-300'}`} style={{ width: `${pctW}%` }} />
                                     </div>
-                                    <span className={`text-[10px] font-semibold tabular-nums ${allDone ? 'text-green-600' : 'text-gray-500'}`}>{doneDays.length}/{trainDays.length}</span>
+                                    <span className={`text-[10px] font-semibold tabular-nums ${allDone ? 'text-green-600' : 'text-zinc-500'}`}>{doneDays.length}/{trainDays.length}</span>
                                   </div>
                                 )}
                               </div>
@@ -394,13 +394,13 @@ const CalendarPage = () => {
                             {/* Day cells */}
                             <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 p-2 bg-white">
                               <div className="flex flex-col justify-center gap-0.5 pr-1">
-                                {weeklyKm > 0 && <span className="text-[10px] text-gray-400 font-mono">{weeklyKm.toFixed(0)} km</span>}
-                                {weeklyMin > 0 && weeklyKm === 0 && <span className="text-[10px] text-gray-400 font-mono">{weeklyMin} min</span>}
+                                {weeklyKm > 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyKm.toFixed(0)} km</span>}
+                                {weeklyMin > 0 && weeklyKm === 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyMin} min</span>}
                               </div>
                               {Array.from({ length: 7 }, (_, col) => {
                                 const w = items.find(x => getWeekday(x.workout_date) === col);
                                 if (!w) return (
-                                  <div key={col} className="h-[90px] rounded-lg bg-gray-50 border border-dashed border-gray-100" />
+                                  <div key={col} className="h-[90px] rounded-lg bg-zinc-900 border border-dashed border-zinc-800" />
                                 );
                                 const type    = getWorkoutType(w);
                                 const st      = TYPE_STYLES[type] ?? TYPE_STYLES.suave;
@@ -422,15 +422,15 @@ const CalendarPage = () => {
                                       style={{ border: '1px solid #e5e7eb', borderLeftWidth: 3, borderLeftColor: st.color }}
                                     >
                                       <div className="flex items-center justify-between">
-                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-600' : 'text-gray-500'}`}>{dayNum}</span>
+                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-600' : 'text-zinc-500'}`}>{dayNum}</span>
                                         {w.is_completed && !isRest && <span className="text-[9px] text-green-500 font-black leading-none">✓</span>}
                                       </div>
                                       <div className="flex-1" />
                                       <div className={`text-[10px] font-bold leading-tight truncate ${st.text}`}>{st.label}</div>
                                       {w.distance_km ? (
-                                        <div className="text-[10px] text-gray-500 font-mono leading-tight">{w.distance_km}km</div>
+                                        <div className="text-[10px] text-zinc-500 font-mono leading-tight">{w.distance_km}km</div>
                                       ) : w.duration_min ? (
-                                        <div className="text-[10px] text-gray-500 font-mono leading-tight">{w.duration_min}min</div>
+                                        <div className="text-[10px] text-zinc-500 font-mono leading-tight">{w.duration_min}min</div>
                                       ) : null}
                                     </div>
                                     {canToggle && (
@@ -440,7 +440,7 @@ const CalendarPage = () => {
                                         className={`absolute bottom-1.5 right-1.5 w-5 h-5 rounded-full border-2 flex items-center justify-center text-[9px] font-bold transition-colors z-10 ${
                                           w.is_completed
                                             ? 'bg-green-500 border-green-500 text-white'
-                                            : 'bg-white border-gray-300 text-gray-300 hover:border-green-400 hover:text-green-400'
+                                            : 'bg-zinc-900 border-zinc-700 text-zinc-600 hover:border-green-400 hover:text-green-400'
                                         }`}
                                       >✓</button>
                                     )}
@@ -478,22 +478,22 @@ const CalendarPage = () => {
                   const hasToday  = items.some(w => w.workout_date === todayISO);
 
                   return (
-                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-lime-200' : 'border-gray-200'}`}>
-                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-50' : 'bg-gray-50'}`}>
+                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-lime-200' : 'border-zinc-800'}`}>
+                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-50' : 'bg-zinc-900'}`}>
                         <div>
-                          <span className="font-semibold text-sm text-gray-700">{label}</span>
-                          <span className="text-xs text-gray-500 ml-2">{range}</span>
+                          <span className="font-semibold text-sm text-zinc-200">{label}</span>
+                          <span className="text-xs text-zinc-500 ml-2">{range}</span>
                         </div>
                         {trainDays.length > 0 && (
                           <div className="flex items-center gap-2">
-                            <div className="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                            <div className="w-20 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                               <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pctL}%` }} />
                             </div>
-                            <span className={`text-xs font-semibold ${allDone ? 'text-green-600' : 'text-gray-500'}`}>{doneDays.length}/{trainDays.length}</span>
+                            <span className={`text-xs font-semibold ${allDone ? 'text-green-600' : 'text-zinc-500'}`}>{doneDays.length}/{trainDays.length}</span>
                           </div>
                         )}
                       </div>
-                      <ul className="divide-y divide-gray-100">
+                      <ul className="divide-y divide-zinc-800">
                         {items.map(w => {
                           const isRest  = /descanso|rest/i.test(w.description);
                           const isToday = w.workout_date === todayISO;
@@ -501,7 +501,7 @@ const CalendarPage = () => {
                           return (
                             <li key={w.id}
                               className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer
-                                ${w.is_completed ? 'bg-green-50/60 hover:bg-green-50' : isToday ? 'bg-lime-50/50 hover:bg-lime-50' : 'hover:bg-gray-50'}
+                                ${w.is_completed ? 'bg-green-50/60 hover:bg-green-50' : isToday ? 'bg-lime-50/50 hover:bg-lime-50' : 'hover:bg-zinc-900'}
                               `}
                               onClick={() => { setModalWorkout(w); setShowModal(true); }}
                             >
@@ -513,24 +513,24 @@ const CalendarPage = () => {
                                     ${w.is_completed
                                       ? 'bg-green-500 border-green-500 text-white'
                                       : isPast
-                                        ? 'border-gray-300 text-gray-300 hover:border-green-400 hover:text-green-400'
-                                        : 'border-gray-300 text-transparent hover:border-green-400 hover:text-green-300'
+                                        ? 'border-zinc-700 text-zinc-600 hover:border-green-400 hover:text-green-400'
+                                        : 'border-zinc-700 text-transparent hover:border-green-400 hover:text-green-300'
                                     }`}
                                 >✓</button>
                               ) : (
-                                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-gray-300 text-xs">—</div>
+                                <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-zinc-600 text-xs">—</div>
                               )}
                               <div className="flex-shrink-0 w-28">
-                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-lime-600' : 'text-gray-500'}`}>
+                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-lime-600' : 'text-zinc-500'}`}>
                                   {new Date(w.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                                 </div>
                                 {isToday && <span className="text-[10px] font-bold text-lime-500 uppercase tracking-wide">Hoy</span>}
                               </div>
-                              <span className={`flex-1 text-sm min-w-0 ${w.is_completed ? 'line-through text-gray-400' : isRest ? 'text-gray-400 italic' : 'text-gray-800'}`}>
+                              <span className={`flex-1 text-sm min-w-0 ${w.is_completed ? 'line-through text-zinc-600' : isRest ? 'text-zinc-600 italic' : 'text-zinc-100'}`}>
                                 {w.description}
                               </span>
                               {(w.distance_km || w.duration_min) && (
-                                <span className="flex-shrink-0 text-xs text-gray-400 font-mono">
+                                <span className="flex-shrink-0 text-xs text-zinc-600 font-mono">
                                   {w.distance_km ? `${w.distance_km}km` : ''}{w.distance_km && w.duration_min ? ' · ' : ''}{w.duration_min ? `${w.duration_min}min` : ''}
                                 </span>
                               )}
@@ -560,8 +560,8 @@ const CalendarPage = () => {
       {!loadingPlan && selectedRace && !plan && (
         <div className="text-center py-16 px-4">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-lime-50 flex items-center justify-center text-2xl">📋</div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
-          <p className="text-sm text-gray-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
+          <p className="text-sm text-zinc-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
           <Link to={`/training-plan?race=${selectedRace}`}
             className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors">
             Crear plan de entrenamiento →
@@ -572,9 +572,9 @@ const CalendarPage = () => {
       {/* No races at all */}
       {!loadingPlan && races.length === 0 && (
         <div className="text-center py-16 px-4">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gray-50 flex items-center justify-center text-2xl">🏁</div>
-          <h2 className="text-lg font-semibold text-gray-800 mb-2">Añade tu primera carrera</h2>
-          <p className="text-sm text-gray-500 mb-6">Primero añade una carrera para poder crear un plan de entrenamiento.</p>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center text-2xl">🏁</div>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Añade tu primera carrera</h2>
+          <p className="text-sm text-zinc-500 mb-6">Primero añade una carrera para poder crear un plan de entrenamiento.</p>
           <Link to="/races"
             className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-900 transition-colors">
             Ir a Carreras →

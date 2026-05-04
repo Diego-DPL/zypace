@@ -80,7 +80,7 @@ function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center bg-white/60 rounded-lg px-2 py-1.5">
       <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-700 opacity-80">{label}</div>
-      <div className="font-bold text-gray-800 text-sm mt-0.5">{value}</div>
+      <div className="font-bold text-zinc-100 text-sm mt-0.5">{value}</div>
     </div>
   );
 }
@@ -154,15 +154,15 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className={`bg-white rounded-xl shadow-xl max-w-lg w-full relative flex flex-col max-h-[90vh] ${workout.is_completed ? 'ring-2 ring-green-400' : ''}`}>
+      <div className={`bg-zinc-900 rounded-xl shadow-xl max-w-lg w-full relative flex flex-col max-h-[90vh] ${workout.is_completed ? 'ring-2 ring-green-400' : ''}`}>
 
         {/* Header */}
         <div className="flex items-start justify-between gap-3 p-5 pb-3 flex-shrink-0">
           <div>
-            <h3 className="text-xl font-bold text-gray-800">
+            <h3 className="text-xl font-bold text-zinc-100">
               {isRest ? 'Día de descanso' : 'Entrenamiento'}
             </h3>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-sm text-zinc-500 mt-0.5">
               {new Date(workout.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
@@ -173,14 +173,14 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold border transition-colors ${
                   workout.is_completed
                     ? 'bg-green-500 border-green-500 text-white hover:bg-green-600'
-                    : 'bg-white border-gray-300 text-gray-600 hover:border-green-400 hover:text-green-600'
+                    : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-green-400 hover:text-green-600'
                 }`}
               >
                 <span>{workout.is_completed ? '✓' : '○'}</span>
                 <span>{workout.is_completed ? 'Completado' : 'Marcar completado'}</span>
               </button>
             )}
-            <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none p-1">✕</button>
+            <button onClick={onClose} className="text-zinc-600 hover:text-zinc-400 text-xl leading-none p-1">✕</button>
           </div>
         </div>
 
@@ -188,7 +188,7 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
         <div className="px-5 pb-5 space-y-4 overflow-y-auto flex-1">
 
           {/* Description */}
-          <p className={`font-medium ${workout.is_completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
+          <p className={`font-medium ${workout.is_completed ? 'text-zinc-600 line-through' : 'text-zinc-100'}`}>
             {workout.description}
           </p>
 
@@ -197,21 +197,21 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
             <div className="space-y-2 text-sm">
               <div className="flex flex-wrap gap-2">
                 {exp.phase && (
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[exp.phase] || 'bg-gray-100 text-gray-600'}`}>
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PHASE_COLORS[exp.phase] || 'bg-zinc-800 text-zinc-400'}`}>
                     {PHASE_LABELS[exp.phase] || exp.phase}
                   </span>
                 )}
-                {exp.type && <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full capitalize">{exp.type}</span>}
+                {exp.type && <span className="text-xs bg-zinc-800 text-zinc-400 px-2 py-0.5 rounded-full capitalize">{exp.type}</span>}
               </div>
               {exp.purpose && (
-                <p className="text-gray-700">
-                  <span className="font-semibold text-gray-900">Objetivo:</span> {exp.purpose}
+                <p className="text-zinc-200">
+                  <span className="font-semibold text-white">Objetivo:</span> {exp.purpose}
                 </p>
               )}
               {exp.details && (
                 <div className="bg-lime-50 border border-lime-200 rounded-lg p-3">
                   <span className="text-xs font-bold uppercase tracking-wide text-lime-700 block mb-1.5">Cómo ejecutarlo</span>
-                  <p className="text-gray-800 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
+                  <p className="text-zinc-100 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
                 </div>
               )}
               {exp.intensity && (
@@ -224,15 +224,15 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
           )}
 
           {isRest && (
-            <p className="text-sm text-gray-400 italic text-center py-2 bg-gray-50 rounded-lg">
+            <p className="text-sm text-zinc-600 italic text-center py-2 bg-zinc-900 rounded-lg">
               Día de descanso activo — prioriza el sueño y la nutrición.
             </p>
           )}
 
           {/* Sleep quality — shown for all past days */}
           {isPast && (
-            <div className="border-t border-gray-100 pt-4 space-y-2">
-              <label className="text-xs text-gray-500 block font-semibold">
+            <div className="border-t border-zinc-800 pt-4 space-y-2">
+              <label className="text-xs text-zinc-500 block font-semibold">
                 Calidad del sueño{sleepQuality != null ? ` — ${SLEEP_OPTIONS.find(o => o.value === sleepQuality)?.emoji} ${SLEEP_OPTIONS.find(o => o.value === sleepQuality)?.label}` : ''}
               </label>
               <div className="flex gap-2 flex-wrap">
@@ -240,7 +240,7 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                   <button key={opt.value} type="button"
                     onClick={() => setSleepQuality(sleepQuality === opt.value ? null : opt.value)}
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                      sleepQuality === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                      sleepQuality === opt.value ? opt.active : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                     }`}>
                     <span>{opt.emoji}</span> {opt.label}
                   </button>
@@ -261,9 +261,9 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
           {/* Strava data */}
           {isPast && (
-            <div className="border-t border-gray-100 pt-4">
+            <div className="border-t border-zinc-800 pt-4">
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-sm font-semibold text-gray-700">Datos de Strava</h4>
+                <h4 className="text-sm font-semibold text-zinc-200">Datos de Strava</h4>
                 <div className="flex items-center gap-2">
                   {loadingStrava && <div className="w-3 h-3 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />}
                   <img src={poweredByStrava} alt="Powered by Strava" className="h-4 w-auto" />
@@ -316,7 +316,7 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                   ))}
                 </div>
               ) : !loadingStrava ? (
-                <p className="text-xs text-gray-400 italic">
+                <p className="text-xs text-zinc-600 italic">
                   Sin actividad Strava para este día. Sincroniza en Ajustes para ver métricas.
                 </p>
               ) : null}
@@ -325,18 +325,18 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
           {/* Sensaciones log */}
           {showLog && (
-            <div className="border-t border-gray-100 pt-4 space-y-4">
-              <h4 className="text-sm font-semibold text-gray-700">¿Cómo fue el entrenamiento?</h4>
+            <div className="border-t border-zinc-800 pt-4 space-y-4">
+              <h4 className="text-sm font-semibold text-zinc-200">¿Cómo fue el entrenamiento?</h4>
 
               {/* Feeling */}
               <div>
-                <label className="text-xs text-gray-500 mb-2 block">Sensación general</label>
+                <label className="text-xs text-zinc-500 mb-2 block">Sensación general</label>
                 <div className="flex gap-2 flex-wrap">
                   {FEELING_OPTIONS.map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setFeeling(feeling === opt.value ? '' : opt.value)}
                       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                        feeling === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        feeling === opt.value ? opt.active : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}>
                       <span>{opt.emoji}</span> {opt.label}
                     </button>
@@ -346,14 +346,14 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
               {/* RPE */}
               <div>
-                <label className="text-xs text-gray-500 mb-2 block">
+                <label className="text-xs text-zinc-500 mb-2 block">
                   Esfuerzo percibido (RPE){rpe > 0 ? ` — ${rpe}/10 · ${RPE_LABELS[rpe]}` : ' — sin registrar'}
                 </label>
                 <div className="flex gap-1">
                   {[1,2,3,4,5,6,7,8,9,10].map(n => (
                     <button key={n} type="button" onClick={() => setRpe(rpe === n ? 0 : n)}
                       className={`flex-1 h-8 rounded text-xs font-bold transition-colors ${
-                        rpe >= n ? RPE_COLORS[n] + ' text-white' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'
+                        rpe >= n ? RPE_COLORS[n] + ' text-white' : 'bg-zinc-800 text-zinc-600 hover:bg-zinc-700'
                       }`}>
                       {n}
                     </button>
@@ -363,13 +363,13 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
               {/* Freshness at start */}
               <div>
-                <label className="text-xs text-gray-500 mb-2 block">¿Cómo llegaste al entreno?</label>
+                <label className="text-xs text-zinc-500 mb-2 block">¿Cómo llegaste al entreno?</label>
                 <div className="flex gap-2 flex-wrap">
                   {FRESHNESS_OPTIONS.map(opt => (
                     <button key={opt.value} type="button"
                       onClick={() => setFreshnessStart(freshnessStart === opt.value ? '' : opt.value)}
                       className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${
-                        freshnessStart === opt.value ? opt.active : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        freshnessStart === opt.value ? opt.active : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700'
                       }`}>
                       <span>{opt.emoji}</span> {opt.label}
                     </button>
@@ -379,13 +379,13 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
               {/* Notes */}
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Notas libres</label>
+                <label className="text-xs text-zinc-500 mb-1 block">Notas libres</label>
                 <textarea
                   value={notes}
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Sensaciones, observaciones, lo que quieras recordar…"
-                  className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
+                  className="w-full text-sm p-2.5 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
                 />
               </div>
 
@@ -401,13 +401,13 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
           {/* Show saved sensaciones if they exist */}
           {isPast && !isRest && !showLog === false && (workout.rpe || workout.feeling || workout.notes || workout.sleep_quality || workout.freshness_start) && !saved && (
-            <div className="border-t border-gray-100 pt-3 text-sm text-gray-600 space-y-1">
-              <p className="font-semibold text-xs text-gray-500 uppercase tracking-wide">Sensaciones registradas</p>
+            <div className="border-t border-zinc-800 pt-3 text-sm text-zinc-400 space-y-1">
+              <p className="font-semibold text-xs text-zinc-500 uppercase tracking-wide">Sensaciones registradas</p>
               {workout.feeling && <p>{FEELING_OPTIONS.find(f => f.value === workout.feeling)?.emoji} {FEELING_OPTIONS.find(f => f.value === workout.feeling)?.label}</p>}
               {workout.freshness_start && <p>{FRESHNESS_OPTIONS.find(f => f.value === workout.freshness_start)?.emoji} Llegó {FRESHNESS_OPTIONS.find(f => f.value === workout.freshness_start)?.label.toLowerCase()}</p>}
               {workout.rpe > 0 && <p>RPE: {workout.rpe}/10 · {RPE_LABELS[workout.rpe]}</p>}
               {workout.sleep_quality != null && <p>{SLEEP_OPTIONS.find(s => s.value === workout.sleep_quality)?.emoji} Sueño {SLEEP_OPTIONS.find(s => s.value === workout.sleep_quality)?.label.toLowerCase()}</p>}
-              {workout.notes && <p className="italic text-gray-500">"{workout.notes}"</p>}
+              {workout.notes && <p className="italic text-zinc-500">"{workout.notes}"</p>}
             </div>
           )}
 

@@ -42,14 +42,14 @@ const RacesPage = () => {
   return (
     <main className="container mx-auto p-4 sm:p-6 lg:p-8">
       <header className="mb-8">
-        <h1 className="text-4xl font-bold text-gray-800">Calendario de Carreras</h1>
-        <p className="text-lg text-gray-600 mt-2">Planifica y visualiza tus próximas competiciones.</p>
+        <h1 className="text-4xl font-bold text-zinc-100">Calendario de Carreras</h1>
+        <p className="text-lg text-zinc-400 mt-2">Planifica y visualiza tus próximas competiciones.</p>
       </header>
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-lg">
+        <div className="lg:col-span-2 bg-zinc-900 p-6 rounded-xl shadow-lg">
           {loading ? (
             <div className="flex justify-center items-center h-full">
-              <p className="text-gray-500">Cargando calendario...</p>
+              <p className="text-zinc-500">Cargando calendario...</p>
             </div>
           ) : (
             <RaceCalendar races={races} />

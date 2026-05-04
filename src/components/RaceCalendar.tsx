@@ -194,16 +194,16 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
   };
 
   return (
-    <div className="h-[650px] p-3 bg-gray-50 rounded-lg flex flex-col text-gray-800">
+    <div className="h-[650px] p-3 bg-zinc-900 rounded-lg flex flex-col text-zinc-100">
       <div className="flex flex-col gap-2 mb-2 text-xs sm:text-sm">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-3">
-            {loadingWorkouts ? <span className="text-gray-500">Entrenamientos...</span> : <span className="text-gray-500">Workouts: {workouts.length}</span>}
-            {loadingActivities ? <span className="text-gray-500">Actividades...</span> : <span className="text-gray-500">Act: {activities.length}</span>}
-            <span className="text-gray-600 font-medium">Semana {weekStart.format('DD/MM')} - {weekEnd.format('DD/MM')}:</span>
-            <span className="text-gray-700">Plan {workoutsWeekKm.toFixed(1)} km</span>
-            <span className="text-gray-700">Strava {activitiesWeekKm.toFixed(1)} km</span>
-            <span className="text-gray-900 font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
+            {loadingWorkouts ? <span className="text-zinc-500">Entrenamientos...</span> : <span className="text-zinc-500">Workouts: {workouts.length}</span>}
+            {loadingActivities ? <span className="text-zinc-500">Actividades...</span> : <span className="text-zinc-500">Act: {activities.length}</span>}
+            <span className="text-zinc-400 font-medium">Semana {weekStart.format('DD/MM')} - {weekEnd.format('DD/MM')}:</span>
+            <span className="text-zinc-200">Plan {workoutsWeekKm.toFixed(1)} km</span>
+            <span className="text-zinc-200">Strava {activitiesWeekKm.toFixed(1)} km</span>
+            <span className="text-white font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex gap-2">
             <button onClick={() => syncStrava()} className="px-2 py-1 bg-lime-400 text-white rounded text-[10px] sm:text-xs hover:bg-lime-500" title="Sincronizar actividades recientes de Strava">Sync</button>
@@ -250,14 +250,14 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
           eventPropGetter={eventStyleGetter}
         />
       </div>
-      <p className="text-xs text-gray-400 mt-2">Filtros arriba. Click en un workout para ver detalle. Las actividades abren "Ver en Strava".</p>
+      <p className="text-xs text-zinc-600 mt-2">Filtros arriba. Click en un workout para ver detalle. Las actividades abren "Ver en Strava".</p>
       {showModal && modalWorkout && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full p-6 relative">
-            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Detalle Entrenamiento</h3>
-            <p className="text-sm text-gray-500 mb-2">{new Date(modalWorkout.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-            <p className="text-gray-800 font-medium mb-4">{modalWorkout.description}</p>
+          <div className="bg-zinc-900 rounded-xl shadow-xl max-w-lg w-full p-6 relative">
+            <button onClick={() => setShowModal(false)} className="absolute top-2 right-2 text-zinc-600 hover:text-zinc-400">✕</button>
+            <h3 className="text-xl font-bold text-zinc-100 mb-2">Detalle Entrenamiento</h3>
+            <p className="text-sm text-zinc-500 mb-2">{new Date(modalWorkout.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+            <p className="text-zinc-100 font-medium mb-4">{modalWorkout.description}</p>
             {modalWorkout.explanation_json && (
               <div className="space-y-3 text-sm">
                 {modalWorkout.explanation_json.type && <p><span className="font-semibold">Tipo:</span> {modalWorkout.explanation_json.type}</p>}
@@ -266,7 +266,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
                 {modalWorkout.explanation_json.intensity && <p><span className="font-semibold">Intensidad:</span> {modalWorkout.explanation_json.intensity}</p>}
               </div>
             )}
-            {!modalWorkout.explanation_json && <p className="text-sm text-gray-500">Sin explicación detallada disponible.</p>}
+            {!modalWorkout.explanation_json && <p className="text-sm text-zinc-500">Sin explicación detallada disponible.</p>}
             <div className="mt-6 flex justify-between items-center">
               <button
                 onClick={() => { toggleCompleted(modalWorkout.id, modalWorkout.is_completed); setModalWorkout({ ...modalWorkout, is_completed: !modalWorkout.is_completed }); }}

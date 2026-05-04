@@ -81,7 +81,7 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen flex justify-center items-start py-10 bg-gradient-to-br from-orange-50 via-white to-rose-50">
-      <div className="w-full max-w-3xl p-8 space-y-8 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50">
+      <div className="w-full max-w-3xl p-8 space-y-8 bg-zinc-900/90 backdrop-blur rounded-2xl shadow-lg border border-white/50">
         <h1 className="text-3xl font-extrabold text-center bg-gradient-to-r from-lime-500 via-pink-600 to-purple-600 text-transparent bg-clip-text">
           Crear Cuenta
         </h1>
@@ -98,38 +98,38 @@ const RegisterPage = () => {
           <form onSubmit={handleRegister} className="space-y-10">
             {/* Acceso */}
             <fieldset className="grid md:grid-cols-2 gap-6">
-              <div className="md:col-span-2"><h2 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">Acceso</h2></div>
+              <div className="md:col-span-2"><h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Acceso</h2></div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">Email</label>
+                <label className="block text-xs font-medium text-zinc-400">Email</label>
                 <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">Contraseña</label>
+                <label className="block text-xs font-medium text-zinc-400">Contraseña</label>
                 <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
             </fieldset>
 
             {/* Perfil */}
             <fieldset className="grid md:grid-cols-3 gap-6">
-              <div className="md:col-span-3"><h2 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">Perfil</h2></div>
+              <div className="md:col-span-3"><h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Perfil</h2></div>
               {[['Nombre','first_name'],['Apellidos','last_name']].map(([label, field]) => (
                 <div key={field}>
-                  <label className="block text-xs font-medium text-gray-600">{label}</label>
+                  <label className="block text-xs font-medium text-zinc-400">{label}</label>
                   <input value={(profile as any)[field]} onChange={e => setProfile(p => ({...p, [field]: e.target.value}))}
-                    className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                    className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
                 </div>
               ))}
               <div>
-                <label className="block text-xs font-medium text-gray-600">Fecha nacimiento</label>
+                <label className="block text-xs font-medium text-zinc-400">Fecha nacimiento</label>
                 <input type="date" value={profile.birth_date} onChange={e => setProfile(p => ({...p, birth_date: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">Género</label>
+                <label className="block text-xs font-medium text-zinc-400">Género</label>
                 <select value={profile.gender} onChange={e => setProfile(p => ({...p, gender: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900">
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white">
                   <option value="">-</option>
                   <option value="male">Masculino</option>
                   <option value="female">Femenino</option>
@@ -138,14 +138,14 @@ const RegisterPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">País</label>
+                <label className="block text-xs font-medium text-zinc-400">País</label>
                 <input value={profile.country} onChange={e => setProfile(p => ({...p, country: e.target.value}))} placeholder="España"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">Nivel</label>
+                <label className="block text-xs font-medium text-zinc-400">Nivel</label>
                 <select value={profile.experience_level} onChange={e => setProfile(p => ({...p, experience_level: e.target.value}))}
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900">
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white">
                   <option value="beginner">Principiante</option>
                   <option value="intermedio">Intermedio</option>
                   <option value="avanzado">Avanzado</option>
@@ -153,26 +153,26 @@ const RegisterPage = () => {
                 </select>
               </div>
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-gray-600">Objetivo principal</label>
+                <label className="block text-xs font-medium text-zinc-400">Objetivo principal</label>
                 <input value={profile.primary_goal} onChange={e => setProfile(p => ({...p, primary_goal: e.target.value}))}
                   placeholder="Acabar mi primer 10K, bajar de 45', etc"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
               <div>
-                <label className="block text-xs font-medium text-gray-600">Marca 10K (mm:ss)</label>
+                <label className="block text-xs font-medium text-zinc-400">Marca 10K (mm:ss)</label>
                 <input value={profile.last_10k_time} onChange={e => setProfile(p => ({...p, last_10k_time: e.target.value}))}
                   placeholder="45:30" pattern="^[0-9]{1,2}:[0-5][0-9]$"
-                  className="mt-1 w-full rounded-md border border-gray-300 px-3 py-2 text-sm bg-white text-gray-900" />
+                  className="mt-1 w-full rounded-md border border-zinc-700 px-3 py-2 text-sm bg-zinc-900 text-white" />
               </div>
             </fieldset>
 
             {/* Disponibilidad */}
             <fieldset className="space-y-4">
-              <h2 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">Disponibilidad semanal</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Disponibilidad semanal</h2>
               <div className="grid grid-cols-7 gap-2 text-center">
                 {(['mon','tue','wed','thu','fri','sat','sun'] as string[]).map(day => (
                   <button type="button" key={day} onClick={() => toggleDay(day)}
-                    className={`py-2 rounded-md text-[11px] font-medium border transition ${profile.availability_days[day] ? 'bg-lime-400 text-white border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}>
+                    className={`py-2 rounded-md text-[11px] font-medium border transition ${profile.availability_days[day] ? 'bg-lime-400 text-white border-lime-400' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:bg-zinc-900'}`}>
                     {day.slice(0, 3).toUpperCase()}
                   </button>
                 ))}
@@ -181,12 +181,12 @@ const RegisterPage = () => {
 
             {/* Términos */}
             <fieldset className="space-y-4">
-              <h2 className="text-sm font-semibold tracking-wide text-gray-500 uppercase">Términos</h2>
+              <h2 className="text-sm font-semibold tracking-wide text-zinc-500 uppercase">Términos</h2>
               <div className="flex items-start gap-3">
                 <input id="terms" type="checkbox" checked={profile.accepted_terms}
                   onChange={e => setProfile(p => ({...p, accepted_terms: e.target.checked}))}
-                  className="mt-1 h-4 w-4 text-lime-600 border-gray-300 rounded" required />
-                <label htmlFor="terms" className="text-xs text-gray-600">
+                  className="mt-1 h-4 w-4 text-lime-600 border-zinc-700 rounded" required />
+                <label htmlFor="terms" className="text-xs text-zinc-400">
                   Acepto los{' '}
                   <button type="button" onClick={() => setShowTerms(true)} className="underline text-lime-600">
                     términos y condiciones
@@ -203,15 +203,15 @@ const RegisterPage = () => {
           </form>
         )}
 
-        <p className="text-sm text-center text-gray-600">
+        <p className="text-sm text-center text-zinc-400">
           ¿Ya tienes cuenta? <Link to="/login" className="font-medium text-blue-600 hover:underline">Inicia Sesión</Link>
         </p>
 
         {showTerms && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div className="bg-white max-w-lg w-full rounded-xl shadow-xl p-6 space-y-4 relative">
-              <h3 className="text-lg font-semibold text-gray-800">Términos y Condiciones (v1)</h3>
-              <div className="h-60 overflow-y-auto pr-2 text-xs leading-relaxed text-gray-600 space-y-3">
+            <div className="bg-zinc-900 max-w-lg w-full rounded-xl shadow-xl p-6 space-y-4 relative">
+              <h3 className="text-lg font-semibold text-zinc-100">Términos y Condiciones (v1)</h3>
+              <div className="h-60 overflow-y-auto pr-2 text-xs leading-relaxed text-zinc-400 space-y-3">
                 <p><strong>Uso:</strong> Plataforma para gestionar planes y actividades de entrenamiento personal. No es asesoramiento médico.</p>
                 <p><strong>Privacidad:</strong> Aceptas el procesamiento de datos para personalizar tu experiencia. Puedes solicitar eliminación de cuenta.</p>
                 <p><strong>Responsabilidad:</strong> Consulta con un profesional antes de iniciar un plan exigente.</p>
@@ -219,7 +219,7 @@ const RegisterPage = () => {
                 <p><strong>Modificaciones:</strong> Podemos actualizar estos términos. Continuar usando el servicio implica aceptación.</p>
               </div>
               <div className="flex justify-end">
-                <button onClick={() => setShowTerms(false)} className="px-4 py-2 text-sm rounded-md border border-gray-300 hover:bg-gray-50">Cerrar</button>
+                <button onClick={() => setShowTerms(false)} className="px-4 py-2 text-sm rounded-md border border-zinc-700 hover:bg-zinc-900">Cerrar</button>
               </div>
             </div>
           </div>

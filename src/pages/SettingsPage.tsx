@@ -283,20 +283,20 @@ const SettingsPage = () => {
 
   return (
     <main className="container mx-auto p-8 space-y-8">
-      <h1 className="text-4xl font-bold text-gray-800">Ajustes</h1>
+      <h1 className="text-4xl font-bold text-zinc-100">Ajustes</h1>
 
       {/* ── Integración Strava ── */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Integraciones</h2>
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg">
+        <h2 className="text-2xl font-bold text-zinc-100 mb-4">Integraciones</h2>
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
           <div className="flex items-center gap-3">
             <img src={compatibleWithStrava} alt="Compatible with Strava" className="h-6 w-auto" />
-            <p className="text-sm sm:text-base font-medium text-gray-700">
+            <p className="text-sm sm:text-base font-medium text-zinc-200">
               {isStravaConnected ? 'Conectado a Strava' : 'Conecta tu cuenta de Strava para sincronizar actividades.'}
             </p>
           </div>
           {loading ? (
-            <p className="text-sm text-gray-500">Cargando…</p>
+            <p className="text-sm text-zinc-500">Cargando…</p>
           ) : isStravaConnected ? (
             <button onClick={handleDisconnectFromStrava} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
               Desconectar
@@ -310,15 +310,15 @@ const SettingsPage = () => {
             </>
           )}
         </div>
-        <p className="text-xs text-gray-400 mt-4">Siguiendo las Strava API Brand Guidelines.</p>
+        <p className="text-xs text-zinc-600 mt-4">Siguiendo las Strava API Brand Guidelines.</p>
       </div>
 
       {/* ── Perfil de Rendimiento / Zonas ── */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-5">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Perfil de Rendimiento</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-2xl font-bold text-zinc-100">Perfil de Rendimiento</h2>
+            <p className="text-sm text-zinc-500 mt-1">
               Tus zonas de entrenamiento personalizadas, calculadas desde tus actividades reales de Strava.
               Se usan automáticamente al generar planes cuando no tienes un tiempo objetivo definido.
             </p>
@@ -335,7 +335,7 @@ const SettingsPage = () => {
             <button
               onClick={() => setShowManualForm(s => !s)}
               disabled={calibrating}
-              className="flex-shrink-0 px-4 py-2 bg-white border border-gray-300 hover:border-lime-400 text-gray-700 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+              className="flex-shrink-0 px-4 py-2 bg-zinc-900 border border-zinc-700 hover:border-lime-400 text-zinc-200 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
             >
               Introducir marca personal
             </button>
@@ -349,9 +349,9 @@ const SettingsPage = () => {
             <p className="text-xs text-blue-700 mb-3">Introduce tu mejor marca reciente en una carrera o test. Es más preciso que el análisis de entrenamientos.</p>
             <div className="flex flex-wrap items-end gap-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Distancia</label>
+                <label className="block text-xs text-zinc-400 mb-1">Distancia</label>
                 <select value={manualDistKm} onChange={e => setManualDistKm(e.target.value)}
-                  className="p-2 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm">
+                  className="p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm">
                   <option value="5">5 km</option>
                   <option value="10">10 km</option>
                   <option value="15">15 km</option>
@@ -360,9 +360,9 @@ const SettingsPage = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">Tiempo (MM:SS o H:MM:SS)</label>
+                <label className="block text-xs text-zinc-400 mb-1">Tiempo (MM:SS o H:MM:SS)</label>
                 <input type="text" placeholder="52:30" value={manualTime} onChange={e => setManualTime(e.target.value)}
-                  className="w-32 p-2 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm placeholder-gray-400" />
+                  className="w-32 p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm placeholder-gray-400" />
               </div>
               <button
                 onClick={handleCalibrateManual}
@@ -376,7 +376,7 @@ const SettingsPage = () => {
         )}
 
         {!isStravaConnected && !showManualForm && (
-          <div className="bg-gray-50 border border-gray-200 rounded-lg px-4 py-3 text-sm text-gray-600 mb-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-lg px-4 py-3 text-sm text-zinc-400 mb-4">
             Conecta Strava para calibrar automáticamente, o introduce una marca personal con el botón de arriba.
           </div>
         )}
@@ -406,12 +406,12 @@ const SettingsPage = () => {
                 </span>
               )}
               {zoneProfile.zones_source === 'strava' && zoneProfile.zones_activities && (
-                <span className="text-xs text-gray-500">
+                <span className="text-xs text-zinc-500">
                   {zoneProfile.zones_activities} actividades analizadas
                 </span>
               )}
               {zoneProfile.zones_calibrated_at && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-zinc-600">
                   Calibrado {timeAgo(zoneProfile.zones_calibrated_at)}
                 </span>
               )}
@@ -444,35 +444,35 @@ const SettingsPage = () => {
 
             {/* Tiempos estimados */}
             {(zoneProfile.estimated_5k_sec || zoneProfile.estimated_10k_sec) && (
-              <div className="border-t border-gray-100 pt-4">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Marcas estimadas de tu forma actual</p>
+              <div className="border-t border-zinc-800 pt-4">
+                <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wide mb-3">Marcas estimadas de tu forma actual</p>
                 <div className="flex flex-wrap gap-4">
                   {zoneProfile.estimated_5k_sec && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">5 km</span>
-                      <span className="font-mono font-bold text-gray-800 text-lg">
+                      <span className="text-xs text-zinc-500">5 km</span>
+                      <span className="font-mono font-bold text-zinc-100 text-lg">
                         {totalSecToDisplay(zoneProfile.estimated_5k_sec)}
                       </span>
                     </div>
                   )}
                   {zoneProfile.estimated_10k_sec && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">10 km</span>
-                      <span className="font-mono font-bold text-gray-800 text-lg">
+                      <span className="text-xs text-zinc-500">10 km</span>
+                      <span className="font-mono font-bold text-zinc-100 text-lg">
                         {totalSecToDisplay(zoneProfile.estimated_10k_sec)}
                       </span>
                     </div>
                   )}
                   {zoneProfile.estimated_10k_sec && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-gray-500">Media maratón (estimado)</span>
-                      <span className="font-mono font-bold text-gray-800 text-lg">
+                      <span className="text-xs text-zinc-500">Media maratón (estimado)</span>
+                      <span className="font-mono font-bold text-zinc-100 text-lg">
                         {totalSecToDisplay(Math.round(zoneProfile.estimated_10k_sec * Math.pow(21.0975 / 10, 1.06)))}
                       </span>
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
+                <p className="text-xs text-zinc-600 mt-2">
                   Estimaciones basadas en tus mejores esfuerzos recientes. No son marcas oficiales.
                 </p>
               </div>
@@ -480,9 +480,9 @@ const SettingsPage = () => {
           </>
         ) : (
           isStravaConnected && !calibrating && (
-            <div className="text-center py-8 text-gray-400">
+            <div className="text-center py-8 text-zinc-600">
               <div className="text-4xl mb-3">📊</div>
-              <p className="font-medium text-gray-600">Sin zonas calibradas</p>
+              <p className="font-medium text-zinc-400">Sin zonas calibradas</p>
               <p className="text-sm mt-1">
                 Pulsa "Calibrar zonas desde Strava" para analizar tus actividades y obtener ritmos personalizados.
               </p>
@@ -491,14 +491,14 @@ const SettingsPage = () => {
         )}
       </div>
       {/* ── Perfil de Corredor ── */}
-      <div className="bg-white p-6 rounded-xl shadow-lg">
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-5">
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Perfil de Corredor</h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <h2 className="text-2xl font-bold text-zinc-100">Perfil de Corredor</h2>
+            <p className="text-sm text-zinc-500 mt-1">
               Tu perfil se usa para personalizar todos los planes y adaptar la carga a tu nivel real.
               {runnerProfile.updated_at && (
-                <span className="ml-2 text-gray-400">Actualizado {timeAgo(runnerProfile.updated_at)}</span>
+                <span className="ml-2 text-zinc-600">Actualizado {timeAgo(runnerProfile.updated_at)}</span>
               )}
             </p>
           </div>
@@ -513,22 +513,22 @@ const SettingsPage = () => {
           {/* Nivel y edad */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Nivel de experiencia</label>
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">Nivel de experiencia</label>
               <div className="flex flex-wrap gap-2">
                 {([['beginner','Principiante'],['intermediate','Intermedio'],['advanced','Avanzado'],['elite','Élite']] as const).map(([v, label]) => (
                   <button key={v} type="button"
                     onClick={() => setRunnerProfile(p => ({ ...p, experience_level: v }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.experience_level === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:border-lime-300'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.experience_level === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-lime-300'}`}>
                     {label}
                   </button>
                 ))}
               </div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Rango de edad</label>
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">Rango de edad</label>
               <select value={runnerProfile.age_range}
                 onChange={e => setRunnerProfile(p => ({ ...p, age_range: e.target.value }))}
-                className="w-full p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm">
+                className="w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm">
                 {['18-24','25-29','30-34','35-39','40-44','45-49','50-54','55-59','60+'].map(r => (
                   <option key={r} value={r}>{r} años</option>
                 ))}
@@ -539,45 +539,45 @@ const SettingsPage = () => {
           {/* Volumen y rodaje largo */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">
                 Km semanales actuales: <span className="text-lime-500 font-bold">{runnerProfile.current_weekly_km} km</span>
               </label>
               <input type="range" min={10} max={150} step={5}
                 value={runnerProfile.current_weekly_km}
                 onChange={e => setRunnerProfile(p => ({ ...p, current_weekly_km: Number(e.target.value) }))}
                 className="w-full accent-orange-500" />
-              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>10</span><span>150 km</span></div>
+              <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>10</span><span>150 km</span></div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">
                 Rodaje largo reciente: <span className="text-lime-500 font-bold">{runnerProfile.longest_recent_run_km} km</span>
               </label>
               <input type="range" min={5} max={42} step={1}
                 value={runnerProfile.longest_recent_run_km}
                 onChange={e => setRunnerProfile(p => ({ ...p, longest_recent_run_km: Number(e.target.value) }))}
                 className="w-full accent-orange-500" />
-              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>5</span><span>42 km</span></div>
+              <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>5</span><span>42 km</span></div>
             </div>
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <label className="block text-sm font-semibold text-zinc-200 mb-2">
                 Tiempo máximo/sesión: <span className="text-lime-500 font-bold">{runnerProfile.max_session_minutes} min</span>
               </label>
               <input type="range" min={30} max={240} step={10}
                 value={runnerProfile.max_session_minutes}
                 onChange={e => setRunnerProfile(p => ({ ...p, max_session_minutes: Number(e.target.value) }))}
                 className="w-full accent-orange-500" />
-              <div className="flex justify-between text-xs text-gray-400 mt-1"><span>30</span><span>240 min</span></div>
+              <div className="flex justify-between text-xs text-zinc-600 mt-1"><span>30</span><span>240 min</span></div>
             </div>
           </div>
 
           {/* Momento preferido */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Momento de entrenamiento preferido</label>
+            <label className="block text-sm font-semibold text-zinc-200 mb-2">Momento de entrenamiento preferido</label>
             <div className="flex flex-wrap gap-2">
               {([['morning','Mañana'],['afternoon','Tarde'],['evening','Noche'],['any','Flexible']] as const).map(([v, label]) => (
                 <button key={v} type="button"
                   onClick={() => setRunnerProfile(p => ({ ...p, preferred_training_time: v }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.preferred_training_time === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:border-lime-300'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.preferred_training_time === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-lime-300'}`}>
                   {label}
                 </button>
               ))}
@@ -586,7 +586,7 @@ const SettingsPage = () => {
 
           {/* Lesiones crónicas */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">Zonas de lesión crónica o historial</label>
+            <label className="block text-sm font-semibold text-zinc-200 mb-2">Zonas de lesión crónica o historial</label>
             <div className="flex flex-wrap gap-2">
               {INJURY_AREA_OPTIONS.map(area => (
                 <button key={area} type="button"
@@ -599,7 +599,7 @@ const SettingsPage = () => {
                   className={`px-2.5 py-1 rounded-full text-xs font-medium border transition-colors ${
                     runnerProfile.injury_areas.includes(area)
                       ? area === 'Sin lesiones conocidas' ? 'bg-green-100 border-green-400 text-green-800' : 'bg-red-100 border-red-400 text-red-800'
-                      : 'bg-gray-50 border-gray-300 text-gray-600 hover:border-gray-400'
+                      : 'bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-gray-400'
                   }`}>
                   {area}
                 </button>
@@ -610,7 +610,7 @@ const SettingsPage = () => {
           {/* Lesión reciente */}
           <div className="border border-amber-200 rounded-xl p-4 bg-amber-50/50">
             <div className="flex items-center gap-3 mb-3">
-              <span className="text-sm font-semibold text-gray-800">¿Tienes alguna lesión reciente activa?</span>
+              <span className="text-sm font-semibold text-zinc-100">¿Tienes alguna lesión reciente activa?</span>
               <button type="button"
                 onClick={() => setRunnerProfile(p => ({ ...p, has_recent_injury: !p.has_recent_injury }))}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${runnerProfile.has_recent_injury ? 'bg-lime-400' : 'bg-gray-300'}`}>
@@ -621,7 +621,7 @@ const SettingsPage = () => {
               <input type="text" placeholder="Describe brevemente la lesión (ej: dolor rodilla derecha 2 semanas)"
                 value={runnerProfile.recent_injury_detail}
                 onChange={e => setRunnerProfile(p => ({ ...p, recent_injury_detail: e.target.value }))}
-                className="w-full p-2.5 border border-amber-300 rounded-lg bg-white text-gray-800 text-sm placeholder-gray-400" />
+                className="w-full p-2.5 border border-amber-300 rounded-lg bg-zinc-900 text-zinc-100 text-sm placeholder-gray-400" />
             )}
           </div>
 
@@ -659,10 +659,10 @@ function ZoneCard({ zone, label, pace, description, color }: {
     <div className={`rounded-xl border p-4 ${c.bg} ${c.border}`}>
       <div className="flex items-center gap-2 mb-2">
         <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${c.badge}`}>{zone}</span>
-        <span className="text-sm font-semibold text-gray-700">{label}</span>
+        <span className="text-sm font-semibold text-zinc-200">{label}</span>
       </div>
       <div className={`text-2xl font-mono font-bold ${c.paceText} mb-1`}>{pace}</div>
-      <p className="text-xs text-gray-500">{description}</p>
+      <p className="text-xs text-zinc-500">{description}</p>
     </div>
   );
 }

@@ -110,7 +110,7 @@ const TrainingPlanPage = () => {
   const ProgressPortal = ({ message }: { message: string }) => {
     const content = (
       <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 select-none">
-        <div className="bg-white relative rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center overflow-hidden">
+        <div className="bg-zinc-900 relative rounded-2xl shadow-2xl max-w-sm w-full p-6 flex flex-col items-center text-center overflow-hidden">
           <div className="absolute inset-0 bg-gradient-to-br from-orange-100/60 via-white to-white pointer-events-none z-0" />
           <div className="relative z-10 flex flex-col items-center w-full">
             <div className="w-16 h-16 mb-4 relative">
@@ -118,9 +118,9 @@ const TrainingPlanPage = () => {
               <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-orange-500 animate-spin" />
               <div className="absolute inset-2 rounded-full bg-lime-50 animate-pulse" />
             </div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-2">Generando mesociclo</h3>
-            <p className="text-sm text-gray-700 font-medium min-h-[44px] leading-relaxed transition-opacity duration-700 px-1">{message}</p>
-            <p className="mt-3 text-[11px] text-gray-500">Puede tardar un momento. No cierres esta pestaña.</p>
+            <h3 className="text-lg font-semibold text-zinc-100 mb-2">Generando mesociclo</h3>
+            <p className="text-sm text-zinc-200 font-medium min-h-[44px] leading-relaxed transition-opacity duration-700 px-1">{message}</p>
+            <p className="mt-3 text-[11px] text-zinc-500">Puede tardar un momento. No cierres esta pestaña.</p>
           </div>
         </div>
       </div>
@@ -603,19 +603,19 @@ const TrainingPlanPage = () => {
   };
 
   return (
-    <main className="container mx-auto p-8 text-gray-800">
-      <h1 className="text-4xl font-bold text-gray-800 mb-8">Mi Plan de Entrenamiento</h1>
+    <main className="container mx-auto p-8 text-zinc-100">
+      <h1 className="text-4xl font-bold text-zinc-100 mb-8">Mi Plan de Entrenamiento</h1>
 
-      <div className="bg-white p-8 rounded-xl shadow-lg mb-12">
+      <div className="bg-zinc-900 p-8 rounded-xl shadow-lg mb-12">
         <div className="mb-6">
-          <label htmlFor="race" className="block text-lg font-medium text-gray-700 mb-2">
+          <label htmlFor="race" className="block text-lg font-medium text-zinc-200 mb-2">
             Selecciona una carrera para ver o crear un plan
           </label>
           <select
             id="race"
             value={selectedRace}
             onChange={(e) => setSelectedRace(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-white text-gray-800"
+            className="w-full p-3 border border-zinc-700 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-zinc-900 text-zinc-100"
           >
             <option value="">-- Elige una carrera --</option>
             {races.map(race => (
@@ -632,15 +632,15 @@ const TrainingPlanPage = () => {
           <div>
             <div className="flex justify-between items-center mb-4 flex-wrap gap-3">
               <div>
-                <h2 className="text-2xl font-bold text-gray-800">Plan para {selectedRaceDetails?.name}</h2>
-                <p className="text-gray-600">Objetivo: {plan.goal}</p>
+                <h2 className="text-2xl font-bold text-zinc-100">Plan para {selectedRaceDetails?.name}</h2>
+                <p className="text-zinc-400">Objetivo: {plan.goal}</p>
                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                   {planMeta?.methodology && (
                     <span className="bg-lime-100 text-orange-800 px-2 py-1 rounded font-semibold uppercase tracking-wide">
                       {planMeta.methodology === 'polarized' ? 'Polarizado' : planMeta.methodology === 'norwegian' ? 'Noruego' : 'Clásico'}
                     </span>
                   )}
-                  {plan.model && <span className="bg-gray-100 text-gray-700 px-2 py-1 rounded">Modelo: {plan.model}</span>}
+                  {plan.model && <span className="bg-zinc-800 text-zinc-200 px-2 py-1 rounded">Modelo: {plan.model}</span>}
                   {plan.used_fallback && <span className="bg-lime-100 text-lime-700 px-2 py-1 rounded">Algoritmo local</span>}
                 </div>
               </div>
@@ -702,7 +702,7 @@ const TrainingPlanPage = () => {
                       <div className="flex-1 h-1.5 bg-indigo-100 rounded-full overflow-hidden">
                         <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
                       </div>
-                      <span className="text-xs text-gray-500 flex-shrink-0">{done.length}/{allTrain.length} completados</span>
+                      <span className="text-xs text-zinc-500 flex-shrink-0">{done.length}/{allTrain.length} completados</span>
                     </div>
                   );
                 })()}
@@ -747,8 +747,8 @@ const TrainingPlanPage = () => {
 
             {/* Phases */}
             {planMeta?.phases && planMeta.phases.length > 0 && (
-              <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                <h3 className="text-sm font-semibold text-gray-700 mb-2">Periodización del plan completo</h3>
+              <div className="mb-6 p-4 bg-zinc-900 border border-zinc-800 rounded-lg">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-2">Periodización del plan completo</h3>
                 <div className="flex flex-wrap gap-2">
                   {planMeta.phases.map((ph: any) => {
                     const colors: Record<string, string> = {
@@ -762,7 +762,7 @@ const TrainingPlanPage = () => {
                       especifico: 'Específico', taper: 'Taper',
                     };
                     return (
-                      <span key={ph.name} className={`text-xs px-3 py-1 rounded-full border font-medium ${colors[ph.name] || 'bg-gray-100 text-gray-700'}`}>
+                      <span key={ph.name} className={`text-xs px-3 py-1 rounded-full border font-medium ${colors[ph.name] || 'bg-zinc-800 text-zinc-200'}`}>
                         {labels[ph.name] || ph.name} · sem {ph.startWeek}–{ph.endWeek}
                       </span>
                     );
@@ -773,18 +773,18 @@ const TrainingPlanPage = () => {
 
             {/* Mesocycle history */}
             {mesoHistory.length > 0 && (
-              <div className="mb-6 p-4 bg-white border border-gray-200 rounded-xl">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">Historial de mesociclos</h3>
+              <div className="mb-6 p-4 bg-zinc-900 border border-zinc-800 rounded-xl">
+                <h3 className="text-sm font-semibold text-zinc-200 mb-3">Historial de mesociclos</h3>
                 <div className="space-y-2">
                   {mesoHistory.map((h: any) => {
                     const adh = h.adherence_pct ?? null;
                     const fatigue = h.fatigue_index ?? null;
-                    const adhColor = adh === null ? 'text-gray-400' : adh >= 90 ? 'text-green-600' : adh >= 70 ? 'text-amber-600' : 'text-red-600';
-                    const fatColor = fatigue === null ? 'text-gray-400' : fatigue >= 75 ? 'text-red-600' : fatigue >= 55 ? 'text-amber-600' : 'text-green-600';
+                    const adhColor = adh === null ? 'text-zinc-600' : adh >= 90 ? 'text-green-600' : adh >= 70 ? 'text-amber-600' : 'text-red-600';
+                    const fatColor = fatigue === null ? 'text-zinc-600' : fatigue >= 75 ? 'text-red-600' : fatigue >= 55 ? 'text-amber-600' : 'text-green-600';
                     return (
-                      <div key={h.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs px-3 py-2 rounded-lg bg-gray-50 border border-gray-100">
+                      <div key={h.id} className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs px-3 py-2 rounded-lg bg-zinc-900 border border-zinc-800">
                         <span className="font-semibold text-indigo-700 w-20 shrink-0">Meso {h.mesocycle_number}</span>
-                        <span className="text-gray-500 shrink-0">
+                        <span className="text-zinc-500 shrink-0">
                           {h.start_date ? new Date(h.start_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—'}
                           {' → '}
                           {h.end_date ? new Date(h.end_date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '—'}
@@ -792,9 +792,9 @@ const TrainingPlanPage = () => {
                         <span className={`font-semibold ${adhColor}`}>
                           {adh !== null ? `${adh}% adherencia` : 'sin adherencia'}
                         </span>
-                        {h.total_km > 0 && <span className="text-gray-600">{h.total_km} km</span>}
+                        {h.total_km > 0 && <span className="text-zinc-400">{h.total_km} km</span>}
                         {h.avg_rpe !== null && h.avg_rpe !== undefined && (
-                          <span className="text-gray-600">RPE {h.avg_rpe}/10</span>
+                          <span className="text-zinc-400">RPE {h.avg_rpe}/10</span>
                         )}
                         {fatigue !== null && (
                           <span className={`font-medium ${fatColor}`}>
@@ -817,13 +817,13 @@ const TrainingPlanPage = () => {
             {/* Versions */}
             <div className="mt-10">
               <h3 className="text-lg font-semibold mb-2">Versiones Anteriores</h3>
-              {loadingVersions && <p className="text-sm text-gray-500">Cargando versiones...</p>}
-              {!loadingVersions && versions.length === 0 && <p className="text-sm text-gray-500">Sin versiones aún.</p>}
+              {loadingVersions && <p className="text-sm text-zinc-500">Cargando versiones...</p>}
+              {!loadingVersions && versions.length === 0 && <p className="text-sm text-zinc-500">Sin versiones aún.</p>}
               {!loadingVersions && versions.length > 0 && (
                 <ul className="space-y-2 text-sm">
                   {versions.map(v => (
                     <li key={v.id}
-                      className="flex items-center justify-between border rounded px-3 py-2 bg-gray-50 cursor-pointer hover:bg-gray-100"
+                      className="flex items-center justify-between border rounded px-3 py-2 bg-zinc-900 cursor-pointer hover:bg-zinc-800"
                       onClick={() => handleLoadVersion(v.id)}>
                       <span>{v.generated_at?.toDate ? v.generated_at.toDate().toLocaleString() : '—'} • {v.model || '—'} {v.used_fallback ? '(fallback)' : ''}</span>
                     </li>
@@ -834,7 +834,7 @@ const TrainingPlanPage = () => {
                 <div className="mt-4 border rounded p-4 bg-white shadow-sm">
                   <div className="flex justify-between items-center mb-2">
                     <h4 className="font-semibold">Versión del {versionPreview.generated_at?.toDate ? versionPreview.generated_at.toDate().toLocaleString() : '—'}</h4>
-                    <button onClick={() => setVersionPreview(null)} className="text-xs text-gray-500 hover:text-gray-700">Cerrar</button>
+                    <button onClick={() => setVersionPreview(null)} className="text-xs text-zinc-500 hover:text-zinc-200">Cerrar</button>
                   </div>
                   <ul className="space-y-2 max-h-60 overflow-auto pr-2 text-sm">
                     {(versionPreview.plan_json?.workouts || []).map((w: any, idx: number) => (
@@ -855,20 +855,20 @@ const TrainingPlanPage = () => {
         {!loadingPlan && selectedRace && !plan && (
           <div>
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-gray-800 mb-1">Configura tu plan personalizado</h2>
-              <p className="text-sm text-gray-500">Completa tu perfil para que el entrenador IA genere un plan completamente adaptado a ti.</p>
+              <h2 className="text-2xl font-bold text-zinc-100 mb-1">Configura tu plan personalizado</h2>
+              <p className="text-sm text-zinc-500">Completa tu perfil para que el entrenador IA genere un plan completamente adaptado a ti.</p>
             </div>
             <form onSubmit={(e) => { e.preventDefault(); startGeneration(); }} className="space-y-6">
 
               {/* SECTION 1: Perfil del corredor */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-white">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-white">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
-                  <h3 className="text-base font-semibold text-gray-800">Tu perfil como corredor</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Tu perfil como corredor</h3>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nivel de experiencia</label>
+                    <label className="block text-sm font-medium text-zinc-200 mb-2">Nivel de experiencia</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {([
                         { value: 'beginner',     label: 'Principiante',    desc: 'Menos de 1 año corriendo' },
@@ -876,22 +876,22 @@ const TrainingPlanPage = () => {
                         { value: 'advanced',     label: 'Avanzado',        desc: '3+ años, medias y maratones' },
                         { value: 'elite',        label: 'Élite/Sub-élite', desc: 'Competitivo, alto volumen' },
                       ] as const).map(lvl => (
-                        <label key={lvl.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-lime-400 bg-lime-50' : 'border-gray-200 bg-white hover:border-lime-300'}`}>
+                        <label key={lvl.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
                           <div className="flex items-center gap-2">
                             <input type="radio" name="experienceLevel" value={lvl.value} checked={experienceLevel === lvl.value} onChange={() => setExperienceLevel(lvl.value)} className="accent-orange-500" />
-                            <span className="font-semibold text-sm text-gray-800">{lvl.label}</span>
+                            <span className="font-semibold text-sm text-zinc-100">{lvl.label}</span>
                           </div>
-                          <span className="text-xs text-gray-500 ml-5">{lvl.desc}</span>
+                          <span className="text-xs text-zinc-500 ml-5">{lvl.desc}</span>
                         </label>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rango de edad</label>
+                    <label className="block text-sm font-medium text-zinc-200 mb-2">Rango de edad</label>
                     <div className="flex flex-wrap gap-2">
                       {['18-29', '30-39', '40-49', '50-59', '60+'].map(r => (
                         <button key={r} type="button" onClick={() => setAgeRange(r)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${ageRange === r ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-700 border-gray-300 hover:border-lime-400'}`}>
+                          className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${ageRange === r ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-lime-400'}`}>
                           {r}
                         </button>
                       ))}
@@ -901,15 +901,15 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 2: Volumen actual */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-white">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-white">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
-                  <h3 className="text-base font-semibold text-gray-800">Tu entrenamiento actual</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Tu entrenamiento actual</h3>
                 </div>
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Kilómetros por semana actualmente</label>
-                    <p className="text-xs text-gray-400 mb-2">Promedio real de las últimas 4–6 semanas</p>
+                    <label className="block text-sm font-medium text-zinc-200 mb-1">Kilómetros por semana actualmente</label>
+                    <p className="text-xs text-zinc-600 mb-2">Promedio real de las últimas 4–6 semanas</p>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { label: '< 20 km',   value: 15  },
@@ -920,15 +920,15 @@ const TrainingPlanPage = () => {
                         { label: '> 100 km',  value: 110 },
                       ].map(opt => (
                         <button key={opt.value} type="button" onClick={() => setCurrentWeeklyKm(opt.value)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${currentWeeklyKm === opt.value ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-700 border-gray-300 hover:border-lime-400'}`}>
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${currentWeeklyKm === opt.value ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-lime-400'}`}>
                           {opt.label}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rodaje largo más reciente</label>
-                    <p className="text-xs text-gray-400 mb-2">Tu carrera más larga en el último mes</p>
+                    <label className="block text-sm font-medium text-zinc-200 mb-1">Rodaje largo más reciente</label>
+                    <p className="text-xs text-zinc-600 mb-2">Tu carrera más larga en el último mes</p>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { label: '< 10 km',  value: 8  },
@@ -939,14 +939,14 @@ const TrainingPlanPage = () => {
                         { label: '> 32 km',  value: 35 },
                       ].map(opt => (
                         <button key={opt.value} type="button" onClick={() => setLongestRecentRunKm(opt.value)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${longestRecentRunKm === opt.value ? 'bg-blue-500 text-white border-blue-500' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'}`}>
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${longestRecentRunKm === opt.value ? 'bg-blue-500 text-white border-blue-500' : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-blue-400'}`}>
                           {opt.label}
                         </button>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo máximo por sesión de entrenamiento</label>
+                    <label className="block text-sm font-medium text-zinc-200 mb-1">Tiempo máximo por sesión de entrenamiento</label>
                     <div className="flex flex-wrap gap-2">
                       {[
                         { label: '45 min',  value: 45  },
@@ -957,7 +957,7 @@ const TrainingPlanPage = () => {
                         { label: '2h 30+',  value: 150 },
                       ].map(opt => (
                         <button key={opt.value} type="button" onClick={() => setMaxSessionMinutes(opt.value)}
-                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${maxSessionMinutes === opt.value ? 'bg-teal-500 text-white border-teal-500' : 'bg-white text-gray-700 border-gray-300 hover:border-teal-400'}`}>
+                          className={`px-3 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${maxSessionMinutes === opt.value ? 'bg-teal-500 text-white border-teal-500' : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-teal-400'}`}>
                           {opt.label}
                         </button>
                       ))}
@@ -967,30 +967,30 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 3: Disponibilidad semanal */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-5">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-5">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
-                  <h3 className="text-base font-semibold text-gray-800">Tu disponibilidad semanal</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Tu disponibilidad semanal</h3>
                 </div>
 
                 {/* Running days */}
                 <fieldset className="space-y-3">
-                  <legend className="text-sm font-medium text-gray-700">Días de running por semana</legend>
+                  <legend className="text-sm font-medium text-zinc-200">Días de running por semana</legend>
                   <div className="flex items-center gap-3">
                     <input type="number" min={2} max={7} value={runDaysOfWeek.length > 0 ? runDaysOfWeek.length : runDays}
                       onChange={e => { setRunDays(parseInt(e.target.value, 10)); setRunDaysOfWeek([]); }}
-                      className="w-20 p-2 border rounded bg-white text-gray-800 text-center" />
-                    <span className="text-sm text-gray-500">días/semana</span>
+                      className="w-20 p-2 border rounded bg-zinc-900 text-zinc-100 text-center" />
+                    <span className="text-sm text-zinc-500">días/semana</span>
                   </div>
                   <div>
-                    <label className="block text-xs text-gray-500 mb-2">Días específicos (opcional — si no eliges, el entrenador los distribuye)</label>
+                    <label className="block text-xs text-zinc-500 mb-2">Días específicos (opcional — si no eliges, el entrenador los distribuye)</label>
                     <div className="flex gap-2 flex-wrap">
                       {DAY_LABELS.map((label, dow) => (
                         <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
                           className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
                             runDaysOfWeek.includes(dow)
                               ? 'bg-lime-400 text-black border-lime-400'
-                              : 'bg-white text-gray-700 border-gray-300 hover:border-lime-400'
+                              : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-lime-400'
                           }`}>
                           {label}
                         </button>
@@ -999,16 +999,16 @@ const TrainingPlanPage = () => {
                     {runDaysOfWeek.length > 0 && (
                       <p className="text-xs text-lime-600 mt-2">
                         Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                        <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
+                        <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-zinc-500 hover:text-zinc-200">limpiar</button>
                       </p>
                     )}
                   </div>
                 </fieldset>
 
                 {/* Strength */}
-                <fieldset className="space-y-3 pt-4 border-t border-gray-100">
+                <fieldset className="space-y-3 pt-4 border-t border-zinc-800">
                   <div className="flex items-center justify-between flex-wrap gap-2">
-                    <legend className="text-sm font-medium text-gray-700">Entrenamiento de fuerza running-specific</legend>
+                    <legend className="text-sm font-medium text-zinc-200">Entrenamiento de fuerza running-specific</legend>
                     <label className="flex items-center gap-2 text-sm cursor-pointer">
                       <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600" />
                       <span className="text-indigo-700 font-medium">Incluir fuerza en el plan</span>
@@ -1017,7 +1017,7 @@ const TrainingPlanPage = () => {
                   {includeStrength && (
                     <div className="space-y-3 pl-1">
                       <div className="flex items-center gap-3">
-                        <span className="text-sm text-gray-700">Sesiones/semana:</span>
+                        <span className="text-sm text-zinc-200">Sesiones/semana:</span>
                         <div className="flex gap-1">
                           {[1, 2, 3].map(n => (
                             <button key={n} type="button"
@@ -1025,7 +1025,7 @@ const TrainingPlanPage = () => {
                               className={`w-10 h-10 rounded-lg text-sm font-bold border-2 transition-colors ${
                                 (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) === n
                                   ? 'bg-indigo-600 text-white border-indigo-600'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                                  : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-indigo-400'
                               }`}>
                               {n}
                             </button>
@@ -1033,14 +1033,14 @@ const TrainingPlanPage = () => {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-500 mb-2">Días específicos de fuerza (opcional)</label>
+                        <label className="block text-xs text-zinc-500 mb-2">Días específicos de fuerza (opcional)</label>
                         <div className="flex gap-2 flex-wrap">
                           {DAY_LABELS.map((label, dow) => (
                             <button key={dow} type="button" onClick={() => toggleStrengthDay(dow)}
                               className={`w-12 h-12 rounded-lg text-xs font-semibold border-2 transition-colors ${
                                 strengthDaysOfWeek.includes(dow)
                                   ? 'bg-indigo-600 text-white border-indigo-600'
-                                  : 'bg-white text-gray-700 border-gray-300 hover:border-indigo-400'
+                                  : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-indigo-400'
                               }`}>
                               {label}
                             </button>
@@ -1049,11 +1049,11 @@ const TrainingPlanPage = () => {
                         {strengthDaysOfWeek.length > 0 && (
                           <p className="text-xs text-indigo-600 mt-2">
                             Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                            <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-500 hover:text-gray-700">limpiar</button>
+                            <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-zinc-500 hover:text-zinc-200">limpiar</button>
                           </p>
                         )}
                       </div>
-                      <p className="text-[11px] text-gray-400">
+                      <p className="text-[11px] text-zinc-600">
                         Rutinas periodizadas por fase: excéntrica (base) → fuerza máxima (desarrollo) → pliometría (específico).
                       </p>
                     </div>
@@ -1061,8 +1061,8 @@ const TrainingPlanPage = () => {
                 </fieldset>
 
                 {/* Preferred training time */}
-                <div className="pt-4 border-t border-gray-100">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Momento preferido para entrenar</label>
+                <div className="pt-4 border-t border-zinc-800">
+                  <label className="block text-sm font-medium text-zinc-200 mb-2">Momento preferido para entrenar</label>
                   <div className="flex flex-wrap gap-2">
                     {([
                       { value: 'morning',   label: 'Mañana'         },
@@ -1071,7 +1071,7 @@ const TrainingPlanPage = () => {
                       { value: 'any',       label: 'Cualquier hora' },
                     ] as const).map(t => (
                       <button key={t.value} type="button" onClick={() => setPreferredTrainingTime(t.value)}
-                        className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${preferredTrainingTime === t.value ? 'bg-amber-500 text-white border-amber-500' : 'bg-white text-gray-700 border-gray-300 hover:border-amber-400'}`}>
+                        className={`px-4 py-2 rounded-lg text-sm font-medium border-2 transition-colors ${preferredTrainingTime === t.value ? 'bg-amber-500 text-white border-amber-500' : 'bg-zinc-900 text-zinc-200 border-zinc-700 hover:border-amber-400'}`}>
                         {t.label}
                       </button>
                     ))}
@@ -1080,10 +1080,10 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 4: Lesiones y limitaciones */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-4">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-4">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
-                  <h3 className="text-base font-semibold text-gray-800">Lesiones y limitaciones</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Lesiones y limitaciones</h3>
                 </div>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={hasRecentInjury} onChange={e => setHasRecentInjury(e.target.checked)} className="accent-red-500" />
@@ -1092,10 +1092,10 @@ const TrainingPlanPage = () => {
                 {hasRecentInjury && (
                   <input type="text" value={recentInjuryDetail} onChange={e => setRecentInjuryDetail(e.target.value)}
                     placeholder="Describe brevemente (ej: tendinitis aquíleo izquierdo, ya en recuperación)"
-                    className="w-full p-2.5 border border-red-200 rounded-lg text-sm bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-red-400 focus:outline-none" />
+                    className="w-full p-2.5 border border-red-200 rounded-lg text-sm bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-red-400 focus:outline-none" />
                 )}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Zonas de atención crónicas</label>
+                  <label className="block text-sm font-medium text-zinc-200 mb-2">Zonas de atención crónicas</label>
                   <div className="flex flex-wrap gap-2">
                     {[
                       'Rodillas', 'Talón de Aquiles', 'Cintilla IT', 'Fascitis plantar',
@@ -1105,7 +1105,7 @@ const TrainingPlanPage = () => {
                         className={`px-3 py-1.5 rounded-full text-xs font-medium border-2 transition-colors ${
                           injuryAreas.includes(area)
                             ? 'bg-red-500 text-white border-red-500'
-                            : 'bg-white text-gray-600 border-gray-300 hover:border-red-300'
+                            : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-red-300'
                         }`}>
                         {area}
                       </button>
@@ -1115,15 +1115,15 @@ const TrainingPlanPage = () => {
               </div>
 
               {/* SECTION 5: Objetivo y datos de carrera */}
-              <div className="border border-gray-200 rounded-xl p-5 bg-white space-y-5">
+              <div className="border border-zinc-800 rounded-xl p-5 bg-white space-y-5">
                 <div className="flex items-center gap-3">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">5</span>
-                  <h3 className="text-base font-semibold text-gray-800">Objetivo y datos de la carrera</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Objetivo y datos de la carrera</h3>
                 </div>
 
                 {/* Terrain */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Tipo de terreno de la carrera</label>
+                  <label className="block text-sm font-medium text-zinc-200 mb-2">Tipo de terreno de la carrera</label>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {([
                       { value: 'road',  label: 'Asfalto', desc: 'Carretera o ciudad' },
@@ -1131,12 +1131,12 @@ const TrainingPlanPage = () => {
                       { value: 'mixed', label: 'Mixto',   desc: 'Asfalto y trail'    },
                       { value: 'track', label: 'Pista',   desc: 'Estadio atletismo'  },
                     ] as const).map(t => (
-                      <label key={t.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === t.value ? 'border-lime-400 bg-lime-50' : 'border-gray-200 bg-white hover:border-lime-300'}`}>
+                      <label key={t.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === t.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
                         <div className="flex items-center gap-2">
                           <input type="radio" name="raceTerrain" value={t.value} checked={raceTerrain === t.value} onChange={() => setRaceTerrain(t.value)} className="accent-orange-500" />
-                          <span className="font-semibold text-sm text-gray-800">{t.label}</span>
+                          <span className="font-semibold text-sm text-zinc-100">{t.label}</span>
                         </div>
-                        <span className="text-xs text-gray-500 ml-5">{t.desc}</span>
+                        <span className="text-xs text-zinc-500 ml-5">{t.desc}</span>
                       </label>
                     ))}
                   </div>
@@ -1144,26 +1144,26 @@ const TrainingPlanPage = () => {
 
                 {/* Race priority */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Prioridad de esta carrera en tu temporada</label>
+                  <label className="block text-sm font-medium text-zinc-200 mb-2">Prioridad de esta carrera en tu temporada</label>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                     {([
                       { value: 'A', label: 'Carrera A', desc: 'Objetivo principal — taper completo, máxima preparación' },
                       { value: 'B', label: 'Carrera B', desc: 'Objetivo secundario — taper parcial (3–4 días)' },
                       { value: 'C', label: 'Carrera C', desc: 'Carrera de entrenamiento — sin tapering específico' },
                     ] as const).map(p => (
-                      <label key={p.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-50' : 'border-gray-200 bg-white hover:border-lime-300'}`}>
+                      <label key={p.value} className={`flex flex-col gap-0.5 p-3 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
                         <div className="flex items-center gap-2">
                           <input type="radio" name="racePriority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-orange-500" />
-                          <span className="font-semibold text-sm text-gray-800">{p.label}</span>
+                          <span className="font-semibold text-sm text-zinc-100">{p.label}</span>
                         </div>
-                        <span className="text-xs text-gray-500 ml-5">{p.desc}</span>
+                        <span className="text-xs text-zinc-500 ml-5">{p.desc}</span>
                       </label>
                     ))}
                   </div>
                 </div>
 
                 {/* Previous mark and target */}
-                <div className="pt-1 border-t border-gray-100 space-y-3">
+                <div className="pt-1 border-t border-zinc-800 space-y-3">
                   <label className="flex items-center gap-2 text-sm cursor-pointer">
                     <input type="checkbox" checked={hasPreviousMark} onChange={e => setHasPreviousMark(e.target.checked)} className="accent-orange-500" />
                     <span className="font-medium">Tengo una marca previa de referencia</span>
@@ -1171,33 +1171,33 @@ const TrainingPlanPage = () => {
                   {hasPreviousMark && (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">Distancia (km)</label>
-                        <input type="number" step="0.1" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)} />
+                        <label className="block text-xs text-zinc-400 mb-1">Distancia (km)</label>
+                        <input type="number" step="0.1" className="w-full p-2.5 border rounded-lg bg-zinc-900 text-zinc-100 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)} />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">Tiempo conseguido (H:MM:SS)</label>
-                        <input type="text" placeholder="0:45:30" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)} />
+                        <label className="block text-xs text-zinc-400 mb-1">Tiempo conseguido (H:MM:SS)</label>
+                        <input type="text" placeholder="0:45:30" className="w-full p-2.5 border rounded-lg bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)} />
                       </div>
                       <div>
-                        <label className="block text-xs text-gray-600 mb-1">Tiempo objetivo (H:MM:SS)</label>
-                        <input type="text" placeholder="0:42:00" className="w-full p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                        <label className="block text-xs text-zinc-400 mb-1">Tiempo objetivo (H:MM:SS)</label>
+                        <input type="text" placeholder="0:42:00" className="w-full p-2.5 border rounded-lg bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
                       </div>
                     </div>
                   )}
                   {!hasPreviousMark && (
                     <div>
-                      <label className="block text-xs text-gray-600 mb-1">Tiempo objetivo (H:MM:SS) — si tienes uno</label>
-                      <input type="text" placeholder="Ej: 0:45:00 para 10k" className="w-full sm:w-64 p-2.5 border rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
+                      <label className="block text-xs text-zinc-400 mb-1">Tiempo objetivo (H:MM:SS) — si tienes uno</label>
+                      <input type="text" placeholder="Ej: 0:45:00 para 10k" className="w-full sm:w-64 p-2.5 border rounded-lg bg-zinc-900 text-zinc-100 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)} />
                     </div>
                   )}
                 </div>
 
                 {/* Goal text */}
-                <div className="pt-1 border-t border-gray-100">
-                  <label htmlFor="goal" className="block text-sm font-medium text-gray-700 mb-1">Tu objetivo en palabras <span className="text-red-400">*</span></label>
-                  <p className="text-xs text-gray-400 mb-2">Cuéntale al entrenador qué quieres lograr con este plan</p>
+                <div className="pt-1 border-t border-zinc-800">
+                  <label htmlFor="goal" className="block text-sm font-medium text-zinc-200 mb-1">Tu objetivo en palabras <span className="text-red-400">*</span></label>
+                  <p className="text-xs text-zinc-600 mb-2">Cuéntale al entrenador qué quieres lograr con este plan</p>
                   <input type="text" id="goal" value={goal} onChange={(e) => setGoal(e.target.value)}
-                    className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-white text-gray-800 placeholder-gray-400"
+                    className="w-full p-3 border border-zinc-700 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-zinc-900 text-zinc-100 placeholder-gray-400"
                     placeholder="Ej: Terminar mi primer maratón, mejorar 10 min mi marca, disfrutar el recorrido…"
                     required />
                 </div>
@@ -1207,7 +1207,7 @@ const TrainingPlanPage = () => {
               <div className="border border-orange-100 rounded-xl p-5 bg-lime-50/20">
                 <div className="flex items-center gap-3 mb-4">
                   <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">6</span>
-                  <h3 className="text-base font-semibold text-gray-800">Metodología de entrenamiento</h3>
+                  <h3 className="text-base font-semibold text-zinc-100">Metodología de entrenamiento</h3>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {([
@@ -1216,12 +1216,12 @@ const TrainingPlanPage = () => {
                     { value: 'classic',   label: 'Clásico',    desc: 'Series martes · Tempo jueves · Largo domingo. Progresión lineal.' },
                   ] as const).map(m => (
                     <label key={m.value}
-                      className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-gray-200 bg-white hover:border-lime-300'}`}>
+                      className={`flex flex-col gap-1 p-3 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
                       <div className="flex items-center gap-2">
                         <input type="radio" name="methodology" value={m.value} checked={methodology === m.value} onChange={() => setMethodology(m.value)} className="accent-orange-500" />
-                        <span className="font-semibold text-sm text-gray-800">{m.label}</span>
+                        <span className="font-semibold text-sm text-zinc-100">{m.label}</span>
                       </div>
-                      <span className="text-xs text-gray-500 ml-5">{m.desc}</span>
+                      <span className="text-xs text-zinc-500 ml-5">{m.desc}</span>
                     </label>
                   ))}
                 </div>
@@ -1240,7 +1240,7 @@ const TrainingPlanPage = () => {
                       const mm = Math.floor(z.sec / 60);
                       const ss = Math.round(z.sec % 60).toString().padStart(2, '0');
                       return (
-                        <span key={z.label} className="bg-white border border-teal-200 rounded px-2 py-1 font-mono text-teal-700">
+                        <span key={z.label} className="bg-zinc-900 border border-teal-200 rounded px-2 py-1 font-mono text-teal-700">
                           {z.label}: {mm}:{ss}/km
                         </span>
                       );
@@ -1267,10 +1267,10 @@ const TrainingPlanPage = () => {
       {/* ── Regenerate config modal ──────────────────────────── */}
       {showRegenModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-100">
-              <h2 className="text-lg font-bold text-gray-800">Ajusta tu plan antes de regenerar</h2>
-              <p className="text-xs text-gray-500 mt-1">
+          <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-zinc-800">
+              <h2 className="text-lg font-bold text-zinc-100">Ajusta tu plan antes de regenerar</h2>
+              <p className="text-xs text-zinc-500 mt-1">
                 Se mantendrán los entrenamientos ya completados. El nuevo plan empezará a partir de mañana.
               </p>
             </div>
@@ -1279,22 +1279,22 @@ const TrainingPlanPage = () => {
 
               {/* Objetivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Objetivo <span className="text-red-400">*</span></label>
+                <label className="block text-sm font-medium text-zinc-200 mb-1">Objetivo <span className="text-red-400">*</span></label>
                 <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
-                  className="w-full p-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none"
+                  className="w-full p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none"
                   placeholder="Ej: Bajar mi marca de 10k, terminar maratón…" />
               </div>
 
               {/* Días de running */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Días de running</label>
+                <label className="block text-sm font-medium text-zinc-200 mb-2">Días de running</label>
                 <div className="flex gap-1.5 flex-wrap mb-2">
                   {DAY_LABELS.map((label, dow) => (
                     <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
                       className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
                         runDaysOfWeek.includes(dow)
                           ? 'bg-lime-400 text-black border-lime-400'
-                          : 'bg-white text-gray-600 border-gray-200 hover:border-lime-300'
+                          : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-lime-300'
                       }`}>
                       {label}
                     </button>
@@ -1302,23 +1302,23 @@ const TrainingPlanPage = () => {
                 </div>
                 {runDaysOfWeek.length === 0 && (
                   <div className="flex items-center gap-3">
-                    <label className="text-xs text-gray-500">Días/semana:</label>
+                    <label className="text-xs text-zinc-500">Días/semana:</label>
                     <input type="number" min={2} max={7} value={runDays}
                       onChange={e => setRunDays(Math.min(7, Math.max(2, parseInt(e.target.value) || 4)))}
-                      className="w-16 p-1.5 border border-gray-300 rounded text-sm text-center" />
+                      className="w-16 p-1.5 border border-zinc-700 rounded text-sm text-center" />
                   </div>
                 )}
                 {runDaysOfWeek.length > 0 && (
                   <p className="text-xs text-lime-600">
                     Running los: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                    <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-gray-400 hover:text-gray-600">limpiar</button>
+                    <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-zinc-600 hover:text-zinc-400">limpiar</button>
                   </p>
                 )}
               </div>
 
               {/* Fuerza */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 cursor-pointer mb-3">
+                <label className="flex items-center gap-2 text-sm font-medium text-zinc-200 cursor-pointer mb-3">
                   <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600 w-4 h-4" />
                   Incluir entrenamiento de fuerza
                 </label>
@@ -1330,7 +1330,7 @@ const TrainingPlanPage = () => {
                           className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
                             strengthDaysOfWeek.includes(dow)
                               ? 'bg-indigo-600 text-white border-indigo-600'
-                              : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                              : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-indigo-300'
                           }`}>
                           {label}
                         </button>
@@ -1338,11 +1338,11 @@ const TrainingPlanPage = () => {
                     </div>
                     {strengthDaysOfWeek.length === 0 && (
                       <div className="flex items-center gap-3">
-                        <label className="text-xs text-gray-500">Sesiones/semana:</label>
+                        <label className="text-xs text-zinc-500">Sesiones/semana:</label>
                         {[1, 2, 3].map(n => (
                           <button key={n} type="button" onClick={() => setStrengthDaysCount(n)}
                             className={`w-9 h-9 rounded-lg text-sm font-bold border-2 transition-colors ${
-                              strengthDaysCount === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                              strengthDaysCount === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-indigo-300'
                             }`}>{n}</button>
                         ))}
                       </div>
@@ -1350,7 +1350,7 @@ const TrainingPlanPage = () => {
                     {strengthDaysOfWeek.length > 0 && (
                       <p className="text-xs text-indigo-600">
                         Fuerza los: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
-                        <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-gray-400 hover:text-gray-600">limpiar</button>
+                        <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-zinc-600 hover:text-zinc-400">limpiar</button>
                       </p>
                     )}
                   </div>
@@ -1359,7 +1359,7 @@ const TrainingPlanPage = () => {
 
               {/* Metodología */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Metodología</label>
+                <label className="block text-sm font-medium text-zinc-200 mb-2">Metodología</label>
                 <div className="grid grid-cols-3 gap-2">
                   {([
                     { value: 'polarized', label: 'Polarizado', desc: '80% Z1 · 20% alta int.' },
@@ -1367,9 +1367,9 @@ const TrainingPlanPage = () => {
                     { value: 'classic',   label: 'Clásico',    desc: 'Series·Tempo·Largo' },
                   ] as const).map(m => (
                     <button key={m.value} type="button" onClick={() => setMethodology(m.value)}
-                      className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 text-left transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-gray-200 bg-white hover:border-lime-300'}`}>
-                      <span className="font-semibold text-xs text-gray-800">{m.label}</span>
-                      <span className="text-[10px] text-gray-500">{m.desc}</span>
+                      className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 text-left transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-50' : 'border-zinc-800 bg-white hover:border-lime-300'}`}>
+                      <span className="font-semibold text-xs text-zinc-100">{m.label}</span>
+                      <span className="text-[10px] text-zinc-500">{m.desc}</span>
                     </button>
                   ))}
                 </div>
@@ -1377,17 +1377,17 @@ const TrainingPlanPage = () => {
 
               {/* Tiempo objetivo */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Tiempo objetivo (H:MM:SS)</label>
+                <label className="block text-sm font-medium text-zinc-200 mb-1">Tiempo objetivo (H:MM:SS)</label>
                 <input type="text" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
                   placeholder="Ej: 3:45:00"
-                  className="w-full sm:w-48 p-2.5 border border-gray-300 rounded-lg text-sm text-gray-800 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none font-mono" />
+                  className="w-full sm:w-48 p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-white placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none font-mono" />
               </div>
 
             </div>
 
-            <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
+            <div className="p-6 border-t border-zinc-800 flex gap-3 justify-end">
               <button type="button" onClick={() => setShowRegenModal(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors">
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-400 border border-zinc-700 hover:bg-zinc-900 transition-colors">
                 Cancelar
               </button>
               <button type="button" disabled={!goal.trim()} onClick={() => { setShowRegenModal(false); handleRegenerateFromToday(); }}
@@ -1402,14 +1402,14 @@ const TrainingPlanPage = () => {
       {progressModal && <ProgressPortal message={progressMessages[progressMessageIndex]} />}
       {resultModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-sm w-full p-6 relative">
-            <button onClick={() => setResultModal(null)} className="absolute top-2 right-2 text-gray-400 hover:text-gray-600">✕</button>
+          <div className="bg-zinc-900 rounded-xl shadow-xl max-w-sm w-full p-6 relative">
+            <button onClick={() => setResultModal(null)} className="absolute top-2 right-2 text-zinc-600 hover:text-zinc-400">✕</button>
             <div className="flex flex-col items-center text-center">
               <div className={`w-14 h-14 mb-4 rounded-full flex items-center justify-center text-xl ${resultModal.success ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
                 {resultModal.success ? '✓' : '!'}
               </div>
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
-              <p className="text-sm text-gray-600 whitespace-pre-line">{resultModal.message}</p>
+              <h3 className="text-lg font-semibold text-zinc-100 mb-2">{resultModal.success ? 'Listo' : 'Error'}</h3>
+              <p className="text-sm text-zinc-400 whitespace-pre-line">{resultModal.message}</p>
               <button onClick={() => setResultModal(null)} className="mt-6 px-4 py-2 bg-lime-400 text-black rounded-lg hover:bg-lime-500 text-sm font-semibold">Cerrar</button>
             </div>
           </div>
