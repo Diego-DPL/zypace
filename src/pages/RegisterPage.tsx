@@ -82,7 +82,7 @@ const RegisterPage = () => {
   return (
     <div className="min-h-screen flex justify-center items-start py-10 bg-gradient-to-br from-orange-50 via-white to-rose-50">
       <div className="w-full max-w-3xl p-8 space-y-8 bg-white/90 backdrop-blur rounded-2xl shadow-lg border border-white/50">
-        <h1 className="text-3xl font-extrabold text-center bg-gradient-to-r from-orange-600 via-pink-600 to-purple-600 text-transparent bg-clip-text">
+        <h1 className="text-3xl font-extrabold text-center bg-gradient-to-r from-lime-500 via-pink-600 to-purple-600 text-transparent bg-clip-text">
           Crear Cuenta
         </h1>
 
@@ -90,7 +90,7 @@ const RegisterPage = () => {
           <div className="text-center text-green-600 space-y-2">
             <p className="font-semibold text-lg">¡Registro exitoso!</p>
             <p>Ya puedes iniciar sesión con tu cuenta.</p>
-            <Link to="/login" className="inline-block mt-4 px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 font-semibold">
+            <Link to="/login" className="inline-block mt-4 px-6 py-2 bg-lime-400 text-white rounded-lg hover:bg-lime-500 font-semibold">
               Ir al login
             </Link>
           </div>
@@ -172,7 +172,7 @@ const RegisterPage = () => {
               <div className="grid grid-cols-7 gap-2 text-center">
                 {(['mon','tue','wed','thu','fri','sat','sun'] as string[]).map(day => (
                   <button type="button" key={day} onClick={() => toggleDay(day)}
-                    className={`py-2 rounded-md text-[11px] font-medium border transition ${profile.availability_days[day] ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}>
+                    className={`py-2 rounded-md text-[11px] font-medium border transition ${profile.availability_days[day] ? 'bg-lime-400 text-white border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}>
                     {day.slice(0, 3).toUpperCase()}
                   </button>
                 ))}
@@ -185,10 +185,10 @@ const RegisterPage = () => {
               <div className="flex items-start gap-3">
                 <input id="terms" type="checkbox" checked={profile.accepted_terms}
                   onChange={e => setProfile(p => ({...p, accepted_terms: e.target.checked}))}
-                  className="mt-1 h-4 w-4 text-orange-600 border-gray-300 rounded" required />
+                  className="mt-1 h-4 w-4 text-lime-600 border-gray-300 rounded" required />
                 <label htmlFor="terms" className="text-xs text-gray-600">
                   Acepto los{' '}
-                  <button type="button" onClick={() => setShowTerms(true)} className="underline text-orange-600">
+                  <button type="button" onClick={() => setShowTerms(true)} className="underline text-lime-600">
                     términos y condiciones
                   </button>.
                 </label>
@@ -197,7 +197,7 @@ const RegisterPage = () => {
 
             {error && <p className="text-red-500 text-sm text-center">{error}</p>}
             <button type="submit" disabled={loading}
-              className="w-full py-3 px-4 text-sm font-semibold text-white rounded-md bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 disabled:opacity-50">
+              className="w-full py-3 px-4 text-sm font-semibold text-white rounded-md bg-gradient-to-r from-lime-400 via-pink-500 to-purple-600 disabled:opacity-50">
               {loading ? 'Registrando...' : 'Crear cuenta'}
             </button>
           </form>

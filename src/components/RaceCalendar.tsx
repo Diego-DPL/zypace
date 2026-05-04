@@ -206,9 +206,9 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
             <span className="text-gray-900 font-semibold">Total {totalWeekKm.toFixed(1)} km</span>
           </div>
           <div className="flex gap-2">
-            <button onClick={() => syncStrava()} className="px-2 py-1 bg-orange-500 text-white rounded text-[10px] sm:text-xs hover:bg-orange-600" title="Sincronizar actividades recientes de Strava">Sync</button>
-            <button onClick={() => syncStrava({ full: true })} className="px-2 py-1 bg-orange-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-700">Full</button>
-            <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-orange-700 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
+            <button onClick={() => syncStrava()} className="px-2 py-1 bg-lime-400 text-white rounded text-[10px] sm:text-xs hover:bg-lime-500" title="Sincronizar actividades recientes de Strava">Sync</button>
+            <button onClick={() => syncStrava({ full: true })} className="px-2 py-1 bg-lime-500 text-white rounded text-[10px] sm:text-xs hover:bg-lime-600">Full</button>
+            <button onClick={() => syncStrava({ reset: true, full: true })} className="px-2 py-1 bg-lime-600 text-white rounded text-[10px] sm:text-xs hover:bg-orange-800">Reset</button>
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-4 text-[11px] sm:text-xs">
@@ -274,7 +274,7 @@ const RaceCalendar = ({ races }: RaceCalendarProps) => {
               >
                 {modalWorkout.is_completed ? 'Marcar incompleto' : 'Marcar completado'}
               </button>
-              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold">Cerrar</button>
+              <button onClick={() => setShowModal(false)} className="px-4 py-2 bg-lime-400 text-white rounded-lg hover:bg-lime-500 text-sm font-semibold">Cerrar</button>
             </div>
           </div>
         </div>

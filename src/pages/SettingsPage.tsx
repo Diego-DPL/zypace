@@ -328,14 +328,14 @@ const SettingsPage = () => {
               onClick={handleCalibrateZones}
               disabled={calibrating || !isStravaConnected}
               title={!isStravaConnected ? 'Conecta Strava primero' : undefined}
-              className="flex-shrink-0 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-shrink-0 px-4 py-2 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {calibrating ? 'Calculando…' : hasZones ? 'Recalibrar desde Strava' : 'Calibrar desde Strava'}
             </button>
             <button
               onClick={() => setShowManualForm(s => !s)}
               disabled={calibrating}
-              className="flex-shrink-0 px-4 py-2 bg-white border border-gray-300 hover:border-orange-400 text-gray-700 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+              className="flex-shrink-0 px-4 py-2 bg-white border border-gray-300 hover:border-lime-400 text-gray-700 text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
             >
               Introducir marca personal
             </button>
@@ -518,7 +518,7 @@ const SettingsPage = () => {
                 {([['beginner','Principiante'],['intermediate','Intermedio'],['advanced','Avanzado'],['elite','Élite']] as const).map(([v, label]) => (
                   <button key={v} type="button"
                     onClick={() => setRunnerProfile(p => ({ ...p, experience_level: v }))}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.experience_level === v ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300 hover:border-orange-300'}`}>
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.experience_level === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:border-lime-300'}`}>
                     {label}
                   </button>
                 ))}
@@ -540,7 +540,7 @@ const SettingsPage = () => {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Km semanales actuales: <span className="text-orange-500 font-bold">{runnerProfile.current_weekly_km} km</span>
+                Km semanales actuales: <span className="text-lime-500 font-bold">{runnerProfile.current_weekly_km} km</span>
               </label>
               <input type="range" min={10} max={150} step={5}
                 value={runnerProfile.current_weekly_km}
@@ -550,7 +550,7 @@ const SettingsPage = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Rodaje largo reciente: <span className="text-orange-500 font-bold">{runnerProfile.longest_recent_run_km} km</span>
+                Rodaje largo reciente: <span className="text-lime-500 font-bold">{runnerProfile.longest_recent_run_km} km</span>
               </label>
               <input type="range" min={5} max={42} step={1}
                 value={runnerProfile.longest_recent_run_km}
@@ -560,7 +560,7 @@ const SettingsPage = () => {
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Tiempo máximo/sesión: <span className="text-orange-500 font-bold">{runnerProfile.max_session_minutes} min</span>
+                Tiempo máximo/sesión: <span className="text-lime-500 font-bold">{runnerProfile.max_session_minutes} min</span>
               </label>
               <input type="range" min={30} max={240} step={10}
                 value={runnerProfile.max_session_minutes}
@@ -577,7 +577,7 @@ const SettingsPage = () => {
               {([['morning','Mañana'],['afternoon','Tarde'],['evening','Noche'],['any','Flexible']] as const).map(([v, label]) => (
                 <button key={v} type="button"
                   onClick={() => setRunnerProfile(p => ({ ...p, preferred_training_time: v }))}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.preferred_training_time === v ? 'bg-orange-500 text-white border-orange-500' : 'bg-white text-gray-600 border-gray-300 hover:border-orange-300'}`}>
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors ${runnerProfile.preferred_training_time === v ? 'bg-lime-400 text-black border-lime-400' : 'bg-white text-gray-600 border-gray-300 hover:border-lime-300'}`}>
                   {label}
                 </button>
               ))}
@@ -613,7 +613,7 @@ const SettingsPage = () => {
               <span className="text-sm font-semibold text-gray-800">¿Tienes alguna lesión reciente activa?</span>
               <button type="button"
                 onClick={() => setRunnerProfile(p => ({ ...p, has_recent_injury: !p.has_recent_injury }))}
-                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${runnerProfile.has_recent_injury ? 'bg-orange-500' : 'bg-gray-300'}`}>
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${runnerProfile.has_recent_injury ? 'bg-lime-400' : 'bg-gray-300'}`}>
                 <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${runnerProfile.has_recent_injury ? 'translate-x-4' : 'translate-x-0.5'}`} />
               </button>
             </div>
@@ -633,7 +633,7 @@ const SettingsPage = () => {
           )}
 
           <button onClick={handleSaveProfile} disabled={savingProfile}
-            className="w-full sm:w-auto px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
+            className="w-full sm:w-auto px-6 py-2.5 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
             {savingProfile ? 'Guardando…' : 'Guardar perfil de corredor'}
           </button>
         </div>

@@ -69,12 +69,12 @@ const CookieConsentBanner = () => {
             <div className="flex-1">
               <h2 className="text-sm font-semibold text-gray-800 mb-1">Tu privacidad</h2>
               <p className="text-xs leading-relaxed">Usamos cookies esenciales para que la app funcione. Opcionalmente podremos usar analítica para mejorar el producto. Puedes cambiar tu elección en cualquier momento.</p>
-              <p className="text-[11px] mt-2 text-gray-500">Consulta la <a href="/privacy" className="underline hover:text-orange-600">privacidad</a> y <a href="/cookies" className="underline hover:text-orange-600">cookies</a>.</p>
+              <p className="text-[11px] mt-2 text-gray-500">Consulta la <a href="/privacy" className="underline hover:text-lime-600">privacidad</a> y <a href="/cookies" className="underline hover:text-lime-600">cookies</a>.</p>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
               <button onClick={rejectNonEssential} className="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-xs font-medium">Rechazar</button>
-              <button onClick={()=>setPrefsOpen(true)} className="px-4 py-2 rounded-md border border-orange-400 bg-orange-50 text-orange-600 hover:bg-orange-100 text-xs font-medium">Configurar</button>
-              <button onClick={acceptAll} className="px-4 py-2 rounded-md bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 text-white text-xs font-semibold shadow hover:shadow-md">Aceptar todo</button>
+              <button onClick={()=>setPrefsOpen(true)} className="px-4 py-2 rounded-md border border-lime-400 bg-lime-50 text-lime-600 hover:bg-lime-100 text-xs font-medium">Configurar</button>
+              <button onClick={acceptAll} className="px-4 py-2 rounded-md bg-gradient-to-r from-lime-400 via-pink-500 to-purple-600 text-white text-xs font-semibold shadow hover:shadow-md">Aceptar todo</button>
             </div>
           </div>
         )}
@@ -83,21 +83,21 @@ const CookieConsentBanner = () => {
             <h2 className="text-sm font-semibold text-gray-800">Preferencias de cookies</h2>
             <div className="space-y-3">
               <div className="flex items-start gap-3">
-                <input type="checkbox" checked disabled className="mt-1 h-4 w-4 text-orange-600 border-gray-300 rounded" />
+                <input type="checkbox" checked disabled className="mt-1 h-4 w-4 text-lime-600 border-gray-300 rounded" />
                 <div>
                   <p className="text-xs font-medium text-gray-800">Esenciales</p>
                   <p className="text-[11px] text-gray-500">Necesarias para el funcionamiento básico (sesión y seguridad).</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <input type="checkbox" checked={state.analytics} onChange={e=>setState(s=>({...s, analytics:e.target.checked}))} className="mt-1 h-4 w-4 text-orange-600 border-gray-300 rounded" />
+                <input type="checkbox" checked={state.analytics} onChange={e=>setState(s=>({...s, analytics:e.target.checked}))} className="mt-1 h-4 w-4 text-lime-600 border-gray-300 rounded" />
                 <div>
                   <p className="text-xs font-medium text-gray-800">Analítica</p>
                   <p className="text-[11px] text-gray-500">Nos ayuda a entender uso (activaremos cuando la aceptes).</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <input type="checkbox" checked={state.marketing} onChange={e=>setState(s=>({...s, marketing:e.target.checked}))} className="mt-1 h-4 w-4 text-orange-600 border-gray-300 rounded" />
+                <input type="checkbox" checked={state.marketing} onChange={e=>setState(s=>({...s, marketing:e.target.checked}))} className="mt-1 h-4 w-4 text-lime-600 border-gray-300 rounded" />
                 <div>
                   <p className="text-xs font-medium text-gray-800">Marketing</p>
                   <p className="text-[11px] text-gray-500">Personalización de contenidos / futuras campañas.</p>
@@ -107,7 +107,7 @@ const CookieConsentBanner = () => {
             <div className="flex justify-end gap-2 pt-1">
               <button onClick={()=>{setPrefsOpen(false);}} className="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-xs font-medium">Volver</button>
               <button onClick={rejectNonEssential} className="px-4 py-2 rounded-md border border-gray-300 bg-white hover:bg-gray-50 text-xs font-medium">Solo esenciales</button>
-              <button onClick={savePrefs} className="px-4 py-2 rounded-md bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 text-white text-xs font-semibold shadow">Guardar</button>
+              <button onClick={savePrefs} className="px-4 py-2 rounded-md bg-gradient-to-r from-lime-400 via-pink-500 to-purple-600 text-white text-xs font-semibold shadow">Guardar</button>
             </div>
           </div>
         )}

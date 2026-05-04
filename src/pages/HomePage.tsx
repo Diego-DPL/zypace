@@ -23,7 +23,7 @@ function FitnessChart({ data }: { data: { ctl: number; atl: number }[] }) {
   return (
     <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-12 mt-1" preserveAspectRatio="none">
       <path d={mkPath('ctl')} fill="none" stroke="#6366f1" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={mkPath('atl')} fill="none" stroke="#f97316" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
+      <path d={mkPath('atl')} fill="none" stroke="#a3e635" strokeWidth="0.7" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   );
 }
@@ -256,11 +256,11 @@ const HomePage = () => {
   return (
     <main className="relative">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-orange-50 via-white to-rose-50" />
-      <div className="absolute top-0 inset-x-0 h-[280px] -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(255,140,0,0.25),transparent_60%)]" />
+      <div className="absolute top-0 inset-x-0 h-[280px] -z-10 bg-[radial-gradient(circle_at_20%_20%,rgba(163,230,53,0.15),transparent_60%)]" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-10 pt-8 pb-16">
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6 mb-10">
           <div>
-            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-orange-600 via-pink-600 to-purple-600 text-transparent bg-clip-text drop-shadow-sm">Tu Panel</h1>
+            <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-lime-500 via-pink-600 to-purple-600 text-transparent bg-clip-text drop-shadow-sm">Tu Panel</h1>
             {user && <p className="mt-2 text-sm text-gray-600">Hola <span className="font-semibold text-gray-800">{user.email}</span>, este es tu resumen de entrenamiento.</p>}
           </div>
           {nextRace && (
@@ -281,7 +281,7 @@ const HomePage = () => {
           <div className="space-y-12">
             {/* Stat cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-              <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-orange-400 via-pink-500 to-purple-600 shadow-lg">
+              <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-lime-400 via-pink-500 to-purple-600 shadow-lg">
                 <div className="rounded-2xl h-full w-full bg-white/90 backdrop-blur-sm p-5 flex flex-col">
                   <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Próxima carrera</span>
                   {nextRace ? (
@@ -290,10 +290,10 @@ const HomePage = () => {
                       <span className="text-xs text-gray-600">{new Date(nextRace.date).toLocaleDateString()}</span>
                       {daysToRace != null && <div className="mt-3 flex items-center gap-3">
                         <div className="relative w-14 h-14">
-                          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-500 to-pink-500 opacity-20 animate-pulse" />
+                          <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-lime-400 to-pink-500 opacity-20 animate-pulse" />
                           <div className="absolute inset-0 rounded-full bg-white flex items-center justify-center font-bold text-gray-800 text-lg shadow-inner">{daysToRace}</div>
                         </div>
-                        <div className="text-xs font-medium text-gray-500 leading-tight">días para competir<br /><span className="text-orange-600 font-semibold">¡Vamos!</span></div>
+                        <div className="text-xs font-medium text-gray-500 leading-tight">días para competir<br /><span className="text-lime-600 font-semibold">¡Vamos!</span></div>
                       </div>}
                     </>
                   ) : <span className="text-gray-400 text-sm">Añade una carrera para iniciar</span>}
@@ -337,7 +337,7 @@ const HomePage = () => {
                   </div>
                 </div>
               </div>
-              <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 shadow-lg">
+              <div className="relative group rounded-2xl p-[1px] bg-gradient-to-br from-yellow-400 via-lime-400 to-red-500 shadow-lg">
                 <div className="rounded-2xl bg-white/90 h-full p-5 flex flex-col items-start">
                   <span className="text-[11px] uppercase tracking-wide text-gray-500 mb-1">Progreso plan</span>
                   {planProgress ? (
@@ -354,7 +354,7 @@ const HomePage = () => {
                       <div className="flex-1">
                         <p className="text-xs text-gray-600">Entrenamientos completados</p>
                         <p className="text-sm font-semibold text-gray-800 mt-1">{planProgress.done} / {planProgress.total}</p>
-                        <div className="mt-2 h-1.5 w-full rounded bg-gray-200 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500" style={{ width: `${planProgress.percent}%` }} /></div>
+                        <div className="mt-2 h-1.5 w-full rounded bg-gray-200 overflow-hidden"><div className="h-full bg-gradient-to-r from-yellow-400 via-lime-400 to-red-500" style={{ width: `${planProgress.percent}%` }} /></div>
                       </div>
                     </div>
                   ) : <p className="text-gray-400 text-sm">No hay un plan activo.</p>}
@@ -373,7 +373,7 @@ const HomePage = () => {
                     </div>
                     <div className="flex items-center gap-4 text-xs flex-wrap">
                       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-emerald-400 inline-block shrink-0" /><span className="text-gray-600">Z1 Fácil/Largo</span></span>
-                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-orange-400 inline-block shrink-0" /><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
+                      <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-lime-300 inline-block shrink-0" /><span className="text-gray-600">Z4 Umbral/Tempo</span></span>
                       <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-red-400 inline-block shrink-0" /><span className="text-gray-600">Z5 Series</span></span>
                     </div>
                   </div>
@@ -398,7 +398,7 @@ const HomePage = () => {
                             <span className="text-[11px] text-gray-500 w-24 text-right shrink-0">{week.label}</span>
                             <div className="flex-1 h-4 rounded-full overflow-hidden bg-gray-100 flex">
                               {week.kmZ1 > 0 && <div className="h-full bg-emerald-400 transition-all" style={{ width: `${(week.kmZ1 / tot) * 100}%` }} title={`Z1: ${week.kmZ1.toFixed(1)} km`} />}
-                              {week.kmZ4 > 0 && <div className="h-full bg-orange-400 transition-all" style={{ width: `${(week.kmZ4 / tot) * 100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
+                              {week.kmZ4 > 0 && <div className="h-full bg-lime-300 transition-all" style={{ width: `${(week.kmZ4 / tot) * 100}%` }} title={`Z4: ${week.kmZ4.toFixed(1)} km`} />}
                               {week.kmZ5 > 0 && <div className="h-full bg-red-400 transition-all"    style={{ width: `${(week.kmZ5 / tot) * 100}%` }} title={`Z5: ${week.kmZ5.toFixed(1)} km`} />}
                             </div>
                             <span className="text-xs font-medium text-gray-700 w-12 text-right shrink-0">{tot.toFixed(1)} km</span>
@@ -408,7 +408,7 @@ const HomePage = () => {
                           </div>
                           <div className="flex gap-4 mt-0.5 pl-[108px] text-[10px]">
                             {week.kmZ1 > 0 && <span className="text-emerald-600">Z1 {week.kmZ1.toFixed(1)} km ({pZ1}%)</span>}
-                            {week.kmZ4 > 0 && <span className="text-orange-500">Z4 {week.kmZ4.toFixed(1)} km ({pZ4}%)</span>}
+                            {week.kmZ4 > 0 && <span className="text-lime-500">Z4 {week.kmZ4.toFixed(1)} km ({pZ4}%)</span>}
                             {week.kmZ5 > 0 && <span className="text-red-500">Z5 {week.kmZ5.toFixed(1)} km ({pZ5}%)</span>}
                           </div>
                         </div>
@@ -420,7 +420,7 @@ const HomePage = () => {
                     <span>
                       Objetivo <span className="font-semibold text-gray-700">polarizado / noruego</span>:
                       {' '}<span className="text-emerald-700 font-semibold">≥80% km en Z1</span> (fácil/largo) ·
-                      {' '}<span className="text-orange-600 font-semibold">≤20% en Z4-Z5</span> (umbral/series)
+                      {' '}<span className="text-lime-600 font-semibold">≤20% en Z4-Z5</span> (umbral/series)
                     </span>
                   </div>
                 </div>
@@ -456,10 +456,10 @@ const HomePage = () => {
                       <div className="text-2xl font-bold text-indigo-700">{fitnessData.ctl}</div>
                       <div className="text-[10px] text-indigo-400 mt-0.5">fitness crónico</div>
                     </div>
-                    <div className="rounded-xl border border-orange-100 bg-orange-50 p-3 text-center">
-                      <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-500 mb-0.5">ATL</div>
-                      <div className="text-2xl font-bold text-orange-600">{fitnessData.atl}</div>
-                      <div className="text-[10px] text-orange-400 mt-0.5">fatiga aguda</div>
+                    <div className="rounded-xl border border-lime-100 bg-lime-50 p-3 text-center">
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-500 mb-0.5">ATL</div>
+                      <div className="text-2xl font-bold text-lime-600">{fitnessData.atl}</div>
+                      <div className="text-[10px] text-lime-400 mt-0.5">fatiga aguda</div>
                     </div>
                     <div className={`rounded-xl border p-3 text-center ${fitnessData.tsb >= 0 ? 'border-emerald-100 bg-emerald-50' : 'border-amber-100 bg-amber-50'}`}>
                       <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${fitnessData.tsb >= 0 ? 'text-emerald-500' : 'text-amber-500'}`}>TSB</div>
@@ -501,7 +501,7 @@ const HomePage = () => {
                       <span>90 días atrás</span>
                       <span className="flex items-center gap-3">
                         <span className="flex items-center gap-1"><span className="w-2 h-px bg-indigo-400 inline-block" />CTL</span>
-                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-orange-400 inline-block" />ATL</span>
+                        <span className="flex items-center gap-1"><span className="w-2 h-px bg-lime-300 inline-block" />ATL</span>
                       </span>
                       <span>hoy</span>
                     </div>
@@ -521,7 +521,7 @@ const HomePage = () => {
                   <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
                     <div className="flex justify-between items-center mb-4">
                       <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">Entrenamientos de esta semana <span className="text-xs font-normal text-gray-400">(lunes-domingo)</span></h2>
-                      <button onClick={loadData} className="text-xs font-medium text-orange-600 hover:text-orange-700">Refrescar</button>
+                      <button onClick={loadData} className="text-xs font-medium text-lime-600 hover:text-lime-700">Refrescar</button>
                     </div>
                     {weekWorkouts.length === 0 && <p className="text-sm text-gray-500">No hay entrenamientos en esta semana.</p>}
                     <ul className="divide-y divide-gray-100">
@@ -530,7 +530,7 @@ const HomePage = () => {
                           <div>
                             <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
-                            {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-orange-50 text-orange-600 font-medium">{w.distance_km} km</p>}
+                            {w.distance_km && <p className="text-[11px] inline-block mt-1 px-2 py-0.5 rounded bg-lime-50 text-lime-600 font-medium">{w.distance_km} km</p>}
                           </div>
                           <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}`}>{marking === w.id ? '...' : (w.is_completed ? 'Hecho' : 'Marcar')}</button>
                         </li>
@@ -545,13 +545,13 @@ const HomePage = () => {
                     {upcomingWorkouts.length === 0 && <p className="text-sm text-gray-500">No hay próximos entrenos (o no hay plan).</p>}
                     <ul className="space-y-3">
                       {upcomingWorkouts.map(w => (
-                        <li key={w.id} className="flex justify-between items-start border border-orange-100 rounded-xl p-4 bg-gradient-to-br from-orange-50 to-white shadow-sm">
+                        <li key={w.id} className="flex justify-between items-start border border-lime-100 rounded-xl p-4 bg-gradient-to-br from-orange-50 to-white shadow-sm">
                           <div>
                             <p className="text-sm font-medium text-gray-700">{new Date(w.workout_date).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })}</p>
                             <p className="text-sm text-gray-800 leading-snug max-w-prose">{w.description}</p>
-                            {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-orange-100/60 text-orange-600 font-medium">{w.distance_km} km</p>}
+                            {w.distance_km && <p className="text-[11px] inline-block mt-2 px-2 py-0.5 rounded bg-lime-100/60 text-lime-600 font-medium">{w.distance_km} km</p>}
                           </div>
-                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-orange-200 text-gray-800 hover:bg-orange-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
+                          <button onClick={() => toggleWorkout(w.id, w.is_completed)} disabled={marking === w.id} className={`px-3 py-1.5 rounded-full text-[11px] font-semibold shadow-sm transition-colors ${w.is_completed ? 'bg-green-600 text-white hover:bg-green-500' : 'bg-lime-100 text-gray-800 hover:bg-lime-300'}`}>{w.is_completed ? 'Hecho' : 'Marcar'}</button>
                         </li>
                       ))}
                     </ul>
@@ -588,7 +588,7 @@ const HomePage = () => {
                   <div className="rounded-2xl bg-white/90 backdrop-blur-sm p-6">
                     <h2 className="text-lg font-semibold text-gray-800 mb-4">Consejos rápidos</h2>
                     <ul className="space-y-3 text-xs text-gray-600">
-                      <li className="flex gap-2"><span className="text-orange-500">⚡</span><span>Marca tus entrenos para ver la evolución del plan.</span></li>
+                      <li className="flex gap-2"><span className="text-lime-500">⚡</span><span>Marca tus entrenos para ver la evolución del plan.</span></li>
                       <li className="flex gap-2"><span className="text-sky-500">🔄</span><span>Sincroniza Strava tras cada sesión clave.</span></li>
                       <li className="flex gap-2"><span className="text-emerald-500">🛠️</span><span>Ajusta la disponibilidad y regenera si cambian tus semanas.</span></li>
                       <li className="flex gap-2"><span className="text-purple-500">🧠</span><span>Lee la explicación de cada workout para entender la intención.</span></li>

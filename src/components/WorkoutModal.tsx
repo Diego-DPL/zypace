@@ -28,19 +28,19 @@ interface WorkoutModalProps {
 }
 
 const RPE_LABELS = ['', 'Muy fácil', 'Fácil', 'Moderado', 'Algo duro', 'Duro', 'Duro+', 'Muy duro', 'Muy duro+', 'Casi máximo', 'Máximo'];
-const RPE_COLORS = ['', 'bg-green-400', 'bg-green-500', 'bg-lime-500', 'bg-yellow-400', 'bg-orange-400', 'bg-orange-500', 'bg-red-400', 'bg-red-500', 'bg-red-600', 'bg-red-700'];
+const RPE_COLORS = ['', 'bg-green-400', 'bg-green-500', 'bg-lime-500', 'bg-yellow-400', 'bg-lime-300', 'bg-lime-400', 'bg-red-400', 'bg-red-500', 'bg-red-600', 'bg-red-700'];
 
 const FEELING_OPTIONS = [
   { value: 'great',     label: '¡Genial!', emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'  },
   { value: 'good',      label: 'Bien',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'    },
   { value: 'average',   label: 'Normal',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
-  { value: 'tired',     label: 'Cansado',  emoji: '😓', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 'tired',     label: 'Cansado',  emoji: '😓', active: 'bg-lime-100 border-lime-400 text-lime-800' },
   { value: 'very_tired',label: 'Agotado',  emoji: '😩', active: 'bg-red-100 border-red-500 text-red-800'       },
 ] as const;
 
 const SLEEP_OPTIONS = [
   { value: 1, label: 'Pésimo',    emoji: '😴', active: 'bg-red-100 border-red-500 text-red-800'        },
-  { value: 2, label: 'Malo',      emoji: '😪', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 2, label: 'Malo',      emoji: '😪', active: 'bg-lime-100 border-lime-400 text-lime-800' },
   { value: 3, label: 'Regular',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
   { value: 4, label: 'Bueno',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'      },
   { value: 5, label: 'Excelente', emoji: '🌟', active: 'bg-green-100 border-green-500 text-green-800'   },
@@ -49,13 +49,13 @@ const SLEEP_OPTIONS = [
 const FRESHNESS_OPTIONS = [
   { value: 'fresh',      label: 'Fresco',      emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'    },
   { value: 'normal',     label: 'Normal',      emoji: '👌', active: 'bg-teal-100 border-teal-500 text-teal-800'       },
-  { value: 'heavy',      label: 'Pesado',      emoji: '😓', active: 'bg-orange-100 border-orange-500 text-orange-800' },
+  { value: 'heavy',      label: 'Pesado',      emoji: '😓', active: 'bg-lime-100 border-lime-400 text-lime-800' },
   { value: 'very_heavy', label: 'Muy pesado',  emoji: '🦵', active: 'bg-red-100 border-red-500 text-red-800'          },
 ] as const;
 
 const PHASE_COLORS: Record<string, string> = {
   base: 'bg-teal-100 text-teal-700', desarrollo: 'bg-blue-100 text-blue-700',
-  especifico: 'bg-orange-100 text-orange-700', taper: 'bg-purple-100 text-purple-700',
+  especifico: 'bg-lime-100 text-lime-700', taper: 'bg-purple-100 text-purple-700',
 };
 const PHASE_LABELS: Record<string, string> = {
   base: 'Fase Base', desarrollo: 'Fase Desarrollo', especifico: 'Fase Específica', taper: 'Taper',
@@ -79,7 +79,7 @@ function formatDuration(secs: number): string {
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center bg-white/60 rounded-lg px-2 py-1.5">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-orange-700 opacity-80">{label}</div>
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-700 opacity-80">{label}</div>
       <div className="font-bold text-gray-800 text-sm mt-0.5">{value}</div>
     </div>
   );
@@ -209,15 +209,15 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                 </p>
               )}
               {exp.details && (
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <span className="text-xs font-bold uppercase tracking-wide text-orange-700 block mb-1.5">Cómo ejecutarlo</span>
+                <div className="bg-lime-50 border border-lime-200 rounded-lg p-3">
+                  <span className="text-xs font-bold uppercase tracking-wide text-lime-700 block mb-1.5">Cómo ejecutarlo</span>
                   <p className="text-gray-800 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
                 </div>
               )}
               {exp.intensity && (
-                <p className="bg-orange-50 border border-orange-200 rounded px-3 py-2">
-                  <span className="font-semibold text-orange-800">Zona / Ritmo: </span>
-                  <span className="text-orange-700 font-mono">{exp.intensity}</span>
+                <p className="bg-lime-50 border border-lime-200 rounded px-3 py-2">
+                  <span className="font-semibold text-lime-800">Zona / Ritmo: </span>
+                  <span className="text-lime-700 font-mono">{exp.intensity}</span>
                 </p>
               )}
             </div>
@@ -250,7 +250,7 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
               {isRest && (
                 <div className="flex items-center gap-3 pt-1">
                   <button onClick={handleSave} disabled={saving}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold transition-colors disabled:opacity-50">
+                    className="px-4 py-2 bg-lime-400 text-black rounded-lg hover:bg-lime-500 text-sm font-semibold transition-colors disabled:opacity-50">
                     {saving ? 'Guardando…' : 'Guardar sueño'}
                   </button>
                   {saved && <span className="text-xs text-green-600 font-semibold">✓ Guardado</span>}
@@ -265,16 +265,16 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
               <div className="flex items-center justify-between mb-2">
                 <h4 className="text-sm font-semibold text-gray-700">Datos de Strava</h4>
                 <div className="flex items-center gap-2">
-                  {loadingStrava && <div className="w-3 h-3 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />}
+                  {loadingStrava && <div className="w-3 h-3 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />}
                   <img src={poweredByStrava} alt="Powered by Strava" className="h-4 w-auto" />
                 </div>
               </div>
               {stravaActivities.length > 0 ? (
                 <div className="space-y-2">
                   {stravaActivities.map((a, i) => (
-                    <div key={i} className="bg-orange-50 border border-orange-200 rounded-lg p-3">
+                    <div key={i} className="bg-lime-50 border border-lime-200 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-orange-800">
+                        <p className="text-xs font-semibold text-lime-800">
                           {a.name || 'Actividad'}{a.sport_type ? ` · ${a.sport_type}` : ''}
                         </p>
                         {a.activity_id && (
@@ -385,13 +385,13 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                   onChange={e => setNotes(e.target.value)}
                   rows={3}
                   placeholder="Sensaciones, observaciones, lo que quieras recordar…"
-                  className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none resize-none"
+                  className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
                 />
               </div>
 
               <div className="flex items-center gap-3">
                 <button onClick={handleSave} disabled={saving}
-                  className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold transition-colors disabled:opacity-50">
+                  className="px-4 py-2 bg-lime-400 text-black rounded-lg hover:bg-lime-500 text-sm font-semibold transition-colors disabled:opacity-50">
                   {saving ? 'Guardando…' : 'Guardar sensaciones'}
                 </button>
                 {saved && <span className="text-xs text-green-600 font-semibold">✓ Guardado</span>}

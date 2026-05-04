@@ -53,7 +53,7 @@ const TYPE_STYLES: Record<string, { bg: string; border: string; dot: string; tex
   largo:    { bg: 'bg-blue-50',   border: 'border-blue-200',   dot: 'bg-blue-400',   text: 'text-blue-700',   label: 'Largo',  color: '#60a5fa' },
   series:   { bg: 'bg-red-50',    border: 'border-red-200',    dot: 'bg-red-400',    text: 'text-red-700',    label: 'Series', color: '#f87171' },
   umbral:   { bg: 'bg-amber-50',  border: 'border-amber-200',  dot: 'bg-amber-400',  text: 'text-amber-700',  label: 'Umbral', color: '#fbbf24' },
-  tempo:    { bg: 'bg-orange-50', border: 'border-orange-200', dot: 'bg-orange-400', text: 'text-orange-700', label: 'Tempo',  color: '#fb923c' },
+  tempo:    { bg: 'bg-lime-50', border: 'border-lime-200', dot: 'bg-lime-300', text: 'text-lime-700', label: 'Tempo',  color: '#fb923c' },
   fuerza:   { bg: 'bg-purple-50', border: 'border-purple-200', dot: 'bg-purple-400', text: 'text-purple-700', label: 'Fuerza', color: '#c084fc' },
   descanso: { bg: 'bg-gray-50',   border: 'border-gray-200',   dot: 'bg-gray-300',   text: 'text-gray-400',   label: 'Desc.', color: '#d1d5db' },
 };
@@ -179,7 +179,7 @@ const CalendarPage = () => {
         </div>
         {plan && (
           <Link to={`/training-plan?race=${selectedRace}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-orange-50 border border-orange-200 text-orange-700 text-sm font-semibold hover:bg-orange-100 transition-colors">
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-50 border border-lime-200 text-lime-700 text-sm font-semibold hover:bg-lime-100 transition-colors">
             Gestionar plan →
           </Link>
         )}
@@ -190,7 +190,7 @@ const CalendarPage = () => {
         <select
           value={selectedRace}
           onChange={e => setSelectedRace(e.target.value)}
-          className="w-full sm:w-72 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white text-gray-800 text-sm"
+          className="w-full sm:w-72 p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-lime-400 focus:border-lime-400 bg-white text-gray-800 text-sm"
         >
           <option value="">-- Selecciona una carrera --</option>
           {races.map(r => (
@@ -203,7 +203,7 @@ const CalendarPage = () => {
 
       {loadingPlan && (
         <div className="flex items-center gap-2 text-gray-500 text-sm py-8">
-          <div className="w-4 h-4 border-2 border-orange-400 border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />
           Cargando plan…
         </div>
       )}
@@ -227,7 +227,7 @@ const CalendarPage = () => {
                     </span>
                   )}
                   {daysUntilMesoEnd !== null && daysUntilMesoEnd <= 14 && daysUntilMesoEnd > 0 && (
-                    <span className="text-[11px] font-semibold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full">
+                    <span className="text-[11px] font-semibold bg-lime-100 text-lime-700 px-2 py-0.5 rounded-full">
                       Meso acaba en {daysUntilMesoEnd}d
                     </span>
                   )}
@@ -250,8 +250,8 @@ const CalendarPage = () => {
                 <button key={v} onClick={() => setCalendarView(v === 'calendario')}
                   className={`px-3 py-1.5 text-sm font-semibold rounded-lg border transition-colors ${
                     (v === 'calendario') === calendarView
-                      ? 'bg-orange-500 text-white border-orange-500'
-                      : 'bg-white text-gray-600 border-gray-300 hover:border-orange-400'
+                      ? 'bg-lime-400 text-black border-lime-400'
+                      : 'bg-white text-gray-600 border-gray-300 hover:border-lime-400'
                   }`}>
                   {v === 'calendario' ? '▦ Calendario' : '≡ Lista'}
                 </button>
@@ -298,7 +298,7 @@ const CalendarPage = () => {
                             style={{ border: accent ? `2px solid ${st.color}` : `1px solid ${st.color}40`, borderLeftWidth: 5, borderLeftColor: st.color }}>
                             <div className="flex items-start justify-between gap-2 mb-2">
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-xs font-black uppercase tracking-widest ${accent ? 'text-orange-600' : 'text-gray-500'}`}>{label}</span>
+                                <span className={`text-xs font-black uppercase tracking-widest ${accent ? 'text-lime-600' : 'text-gray-500'}`}>{label}</span>
                                 <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold border ${st.bg} ${st.text} ${st.border}`}>{st.label}</span>
                               </div>
                               {!isRest && (
@@ -356,11 +356,11 @@ const CalendarPage = () => {
 
                         return (
                           <div key={key} className={`mb-3 rounded-xl overflow-hidden transition-opacity ${isPastWeek ? 'opacity-60' : ''}`}
-                            style={{ border: isCurrentWeek ? '1.5px solid #f97316' : '1px solid #f3f4f6' }}>
+                            style={{ border: isCurrentWeek ? '1.5px solid #a3e635' : '1px solid #f3f4f6' }}>
                             {/* Week header */}
-                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-orange-50' : 'bg-gray-50'}`}>
+                            <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-50' : 'bg-gray-50'}`}>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-orange-600' : 'text-gray-500'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-600' : 'text-gray-500'}`}>
                                   {isCurrentWeek ? 'Esta semana' : label}
                                 </span>
                                 <span className="text-[10px] text-gray-400">{range}</span>
@@ -383,7 +383,7 @@ const CalendarPage = () => {
                                 {trainDays.length > 0 && (
                                   <div className="flex items-center gap-1.5">
                                     <div className="w-14 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                                      <div className={`h-full rounded-full transition-all ${allDone ? 'bg-green-500' : 'bg-orange-400'}`} style={{ width: `${pctW}%` }} />
+                                      <div className={`h-full rounded-full transition-all ${allDone ? 'bg-green-500' : 'bg-lime-300'}`} style={{ width: `${pctW}%` }} />
                                     </div>
                                     <span className={`text-[10px] font-semibold tabular-nums ${allDone ? 'text-green-600' : 'text-gray-500'}`}>{doneDays.length}/{trainDays.length}</span>
                                   </div>
@@ -416,13 +416,13 @@ const CalendarPage = () => {
                                       onClick={() => { setModalWorkout(w); setShowModal(true); }}
                                       className={`h-[90px] rounded-lg flex flex-col p-1.5 cursor-pointer transition-all hover:shadow-md hover:scale-[1.02] select-none
                                         ${st.bg}
-                                        ${isToday ? 'ring-2 ring-orange-400 ring-offset-1' : ''}
+                                        ${isToday ? 'ring-2 ring-lime-400 ring-offset-1' : ''}
                                         ${w.is_completed && !isRest ? 'opacity-50' : ''}
                                       `}
                                       style={{ border: '1px solid #e5e7eb', borderLeftWidth: 3, borderLeftColor: st.color }}
                                     >
                                       <div className="flex items-center justify-between">
-                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-orange-600' : 'text-gray-500'}`}>{dayNum}</span>
+                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-600' : 'text-gray-500'}`}>{dayNum}</span>
                                         {w.is_completed && !isRest && <span className="text-[9px] text-green-500 font-black leading-none">✓</span>}
                                       </div>
                                       <div className="flex-1" />
@@ -478,8 +478,8 @@ const CalendarPage = () => {
                   const hasToday  = items.some(w => w.workout_date === todayISO);
 
                   return (
-                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-orange-200' : 'border-gray-200'}`}>
-                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-orange-50' : 'bg-gray-50'}`}>
+                    <div key={key} className={`rounded-xl border ${hasToday ? 'border-lime-200' : 'border-gray-200'}`}>
+                      <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-50' : 'bg-gray-50'}`}>
                         <div>
                           <span className="font-semibold text-sm text-gray-700">{label}</span>
                           <span className="text-xs text-gray-500 ml-2">{range}</span>
@@ -501,7 +501,7 @@ const CalendarPage = () => {
                           return (
                             <li key={w.id}
                               className={`flex items-center gap-3 px-4 py-3 transition-colors cursor-pointer
-                                ${w.is_completed ? 'bg-green-50/60 hover:bg-green-50' : isToday ? 'bg-orange-50/50 hover:bg-orange-50' : 'hover:bg-gray-50'}
+                                ${w.is_completed ? 'bg-green-50/60 hover:bg-green-50' : isToday ? 'bg-lime-50/50 hover:bg-lime-50' : 'hover:bg-gray-50'}
                               `}
                               onClick={() => { setModalWorkout(w); setShowModal(true); }}
                             >
@@ -521,10 +521,10 @@ const CalendarPage = () => {
                                 <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-gray-300 text-xs">—</div>
                               )}
                               <div className="flex-shrink-0 w-28">
-                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-orange-600' : 'text-gray-500'}`}>
+                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-lime-600' : 'text-gray-500'}`}>
                                   {new Date(w.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                                 </div>
-                                {isToday && <span className="text-[10px] font-bold text-orange-500 uppercase tracking-wide">Hoy</span>}
+                                {isToday && <span className="text-[10px] font-bold text-lime-500 uppercase tracking-wide">Hoy</span>}
                               </div>
                               <span className={`flex-1 text-sm min-w-0 ${w.is_completed ? 'line-through text-gray-400' : isRest ? 'text-gray-400 italic' : 'text-gray-800'}`}>
                                 {w.description}
@@ -559,11 +559,11 @@ const CalendarPage = () => {
       {/* No plan for this race */}
       {!loadingPlan && selectedRace && !plan && (
         <div className="text-center py-16 px-4">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-50 flex items-center justify-center text-2xl">📋</div>
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-lime-50 flex items-center justify-center text-2xl">📋</div>
           <h2 className="text-lg font-semibold text-gray-800 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
           <p className="text-sm text-gray-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
           <Link to={`/training-plan?race=${selectedRace}`}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition-colors">
+            className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors">
             Crear plan de entrenamiento →
           </Link>
         </div>

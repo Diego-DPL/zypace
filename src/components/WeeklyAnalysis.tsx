@@ -189,7 +189,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
         <button
           onClick={runAnalysis}
           disabled={loading}
-          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+          className="px-4 py-2 bg-lime-400 hover:bg-lime-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
         >
           {loading ? 'Analizando…' : result ? 'Re-analizar' : 'Analizar mi semana'}
         </button>
@@ -400,7 +400,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                   <button
                     onClick={applyAll}
                     disabled={!!applyingId}
-                    className="text-xs font-medium text-orange-600 hover:text-orange-700 underline disabled:opacity-50"
+                    className="text-xs font-medium text-lime-600 hover:text-lime-700 underline disabled:opacity-50"
                   >
                     Aplicar todos
                   </button>
@@ -438,7 +438,7 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                             <button
                               onClick={() => applyAdjustment(adj)}
                               disabled={isApplying || !!applyingId}
-                              className="text-xs font-semibold text-white bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+                              className="text-xs font-semibold text-white bg-lime-400 hover:bg-lime-500 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
                             >
                               {isApplying ? '…' : 'Aplicar'}
                             </button>
@@ -514,14 +514,14 @@ export default function WeeklyAnalysis({ planId, onWorkoutsChanged }: Props) {
                       onChange={e => setWeekNotes(e.target.value)}
                       rows={2}
                       placeholder="Lesiones, molestias, compromisos importantes…"
-                      className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-orange-400 focus:outline-none resize-none"
+                      className="w-full text-sm p-2.5 border border-gray-300 rounded-lg bg-white text-gray-800 placeholder-gray-400 focus:ring-1 focus:ring-lime-400 focus:outline-none resize-none"
                     />
                   </div>
 
                   <button
                     onClick={handleConfirmWeek}
                     disabled={confirmingWeek || (!readiness && !lifeContext && !weekNotes.trim())}
-                    className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 text-sm font-semibold transition-colors disabled:opacity-50"
+                    className="px-4 py-2 bg-lime-400 text-white rounded-lg hover:bg-lime-500 text-sm font-semibold transition-colors disabled:opacity-50"
                   >
                     {confirmingWeek ? 'Guardando…' : 'Confirmar semana'}
                   </button>
