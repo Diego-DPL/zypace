@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
-import poweredByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_orange/api_logo_pwrdBy_strava_horiz_orange.svg';
+import poweredByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg';
 
 interface StravaActivityData {
   activity_id?: number;
@@ -31,31 +31,31 @@ const RPE_LABELS = ['', 'Muy fácil', 'Fácil', 'Moderado', 'Algo duro', 'Duro',
 const RPE_COLORS = ['', 'bg-green-400', 'bg-green-500', 'bg-lime-500', 'bg-yellow-400', 'bg-lime-300', 'bg-lime-400', 'bg-red-400', 'bg-red-500', 'bg-red-600', 'bg-red-700'];
 
 const FEELING_OPTIONS = [
-  { value: 'great',     label: '¡Genial!', emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'  },
-  { value: 'good',      label: 'Bien',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'    },
-  { value: 'average',   label: 'Normal',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
-  { value: 'tired',     label: 'Cansado',  emoji: '😓', active: 'bg-lime-100 border-lime-400 text-lime-800' },
-  { value: 'very_tired',label: 'Agotado',  emoji: '😩', active: 'bg-red-100 border-red-500 text-red-800'       },
+  { value: 'great',     label: '¡Genial!', emoji: '🚀', active: 'bg-green-900/50 border-green-500 text-green-400'  },
+  { value: 'good',      label: 'Bien',     emoji: '😊', active: 'bg-teal-900/50 border-teal-500 text-teal-400'    },
+  { value: 'average',   label: 'Normal',   emoji: '😐', active: 'bg-yellow-900/50 border-yellow-500 text-yellow-400' },
+  { value: 'tired',     label: 'Cansado',  emoji: '😓', active: 'bg-lime-900/50 border-lime-500 text-lime-400' },
+  { value: 'very_tired',label: 'Agotado',  emoji: '😩', active: 'bg-red-900/50 border-red-500 text-red-400'       },
 ] as const;
 
 const SLEEP_OPTIONS = [
-  { value: 1, label: 'Pésimo',    emoji: '😴', active: 'bg-red-100 border-red-500 text-red-800'        },
-  { value: 2, label: 'Malo',      emoji: '😪', active: 'bg-lime-100 border-lime-400 text-lime-800' },
-  { value: 3, label: 'Regular',   emoji: '😐', active: 'bg-yellow-100 border-yellow-500 text-yellow-800' },
-  { value: 4, label: 'Bueno',     emoji: '😊', active: 'bg-teal-100 border-teal-500 text-teal-800'      },
-  { value: 5, label: 'Excelente', emoji: '🌟', active: 'bg-green-100 border-green-500 text-green-800'   },
+  { value: 1, label: 'Pésimo',    emoji: '😴', active: 'bg-red-900/50 border-red-500 text-red-400'        },
+  { value: 2, label: 'Malo',      emoji: '😪', active: 'bg-lime-900/50 border-lime-500 text-lime-400' },
+  { value: 3, label: 'Regular',   emoji: '😐', active: 'bg-yellow-900/50 border-yellow-500 text-yellow-400' },
+  { value: 4, label: 'Bueno',     emoji: '😊', active: 'bg-teal-900/50 border-teal-500 text-teal-400'      },
+  { value: 5, label: 'Excelente', emoji: '🌟', active: 'bg-green-900/50 border-green-500 text-green-400'   },
 ] as const;
 
 const FRESHNESS_OPTIONS = [
-  { value: 'fresh',      label: 'Fresco',      emoji: '🚀', active: 'bg-green-100 border-green-500 text-green-800'    },
-  { value: 'normal',     label: 'Normal',      emoji: '👌', active: 'bg-teal-100 border-teal-500 text-teal-800'       },
-  { value: 'heavy',      label: 'Pesado',      emoji: '😓', active: 'bg-lime-100 border-lime-400 text-lime-800' },
-  { value: 'very_heavy', label: 'Muy pesado',  emoji: '🦵', active: 'bg-red-100 border-red-500 text-red-800'          },
+  { value: 'fresh',      label: 'Fresco',      emoji: '🚀', active: 'bg-green-900/50 border-green-500 text-green-400'    },
+  { value: 'normal',     label: 'Normal',      emoji: '👌', active: 'bg-teal-900/50 border-teal-500 text-teal-400'       },
+  { value: 'heavy',      label: 'Pesado',      emoji: '😓', active: 'bg-lime-900/50 border-lime-500 text-lime-400' },
+  { value: 'very_heavy', label: 'Muy pesado',  emoji: '🦵', active: 'bg-red-900/50 border-red-500 text-red-400'          },
 ] as const;
 
 const PHASE_COLORS: Record<string, string> = {
-  base: 'bg-teal-100 text-teal-700', desarrollo: 'bg-blue-100 text-blue-700',
-  especifico: 'bg-lime-100 text-lime-700', taper: 'bg-purple-100 text-purple-700',
+  base: 'bg-teal-900/50 text-teal-400', desarrollo: 'bg-blue-900/50 text-blue-400',
+  especifico: 'bg-lime-900/50 text-lime-400', taper: 'bg-purple-900/50 text-purple-400',
 };
 const PHASE_LABELS: Record<string, string> = {
   base: 'Fase Base', desarrollo: 'Fase Desarrollo', especifico: 'Fase Específica', taper: 'Taper',
@@ -78,8 +78,8 @@ function formatDuration(secs: number): string {
 
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
-    <div className="text-center bg-white/60 rounded-lg px-2 py-1.5">
-      <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-700 opacity-80">{label}</div>
+    <div className="text-center bg-zinc-800 rounded-lg px-2 py-1.5">
+      <div className="text-[10px] font-semibold uppercase tracking-wide text-lime-500 opacity-80">{label}</div>
       <div className="font-bold text-zinc-100 text-sm mt-0.5">{value}</div>
     </div>
   );
@@ -209,15 +209,15 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                 </p>
               )}
               {exp.details && (
-                <div className="bg-lime-50 border border-lime-200 rounded-lg p-3">
-                  <span className="text-xs font-bold uppercase tracking-wide text-lime-700 block mb-1.5">Cómo ejecutarlo</span>
-                  <p className="text-zinc-100 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
+                <div className="bg-lime-400/10 border border-lime-400/30 rounded-lg p-3">
+                  <span className="text-xs font-bold uppercase tracking-wide text-lime-400 block mb-1.5">Cómo ejecutarlo</span>
+                  <p className="text-zinc-200 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
                 </div>
               )}
               {exp.intensity && (
-                <p className="bg-lime-50 border border-lime-200 rounded px-3 py-2">
-                  <span className="font-semibold text-lime-800">Zona / Ritmo: </span>
-                  <span className="text-lime-700 font-mono">{exp.intensity}</span>
+                <p className="bg-zinc-800 border border-zinc-700 rounded px-3 py-2">
+                  <span className="font-semibold text-lime-400">Zona / Ritmo: </span>
+                  <span className="text-zinc-200 font-mono">{exp.intensity}</span>
                 </p>
               )}
             </div>
@@ -272,9 +272,9 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
               {stravaActivities.length > 0 ? (
                 <div className="space-y-2">
                   {stravaActivities.map((a, i) => (
-                    <div key={i} className="bg-lime-50 border border-lime-200 rounded-lg p-3">
+                    <div key={i} className="bg-zinc-800 border border-zinc-700 rounded-lg p-3">
                       <div className="flex items-center justify-between mb-2">
-                        <p className="text-xs font-semibold text-lime-800">
+                        <p className="text-xs font-semibold text-zinc-200">
                           {a.name || 'Actividad'}{a.sport_type ? ` · ${a.sport_type}` : ''}
                         </p>
                         {a.activity_id && (
