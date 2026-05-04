@@ -5,7 +5,7 @@ import { db, functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 // Strava assets (oficiales de la guía)
 import connectWithStrava from '../assets/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange_x2.svg';
-import compatibleWithStrava from '../assets/1.2-Strava-API-Logos/Compatible with Strava/cptblWith_strava_black/api_logo_cptblWith_strava_horiz_black.svg';
+import compatibleWithStrava from '../assets/1.2-Strava-API-Logos/Compatible with Strava/cptblWith_strava_white/api_logo_cptblWith_strava_horiz_white.svg';
 
 interface ZoneProfile {
   z1_pace_sec_km: number | null;
@@ -310,7 +310,6 @@ const SettingsPage = () => {
             </>
           )}
         </div>
-        <p className="text-xs text-zinc-600 mt-4">Siguiendo las Strava API Brand Guidelines.</p>
       </div>
 
       {/* ── Perfil de Rendimiento / Zonas ── */}
