@@ -16,7 +16,15 @@ import CookiesPage from '../pages/CookiesPage';
 import { useAuth } from '../context/AuthContext';
 
 const AppRouter = () => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-lime-400 animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <Router>
