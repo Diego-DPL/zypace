@@ -9,13 +9,6 @@
       ]
     },
     {
-      "collectionGroup": "incidents",
-      "queryScope": "COLLECTION",
-      "fields": [
-        { "fieldPath": "created_at",  "order": "DESCENDING" }
-      ]
-    },
-    {
       "collectionGroup": "workouts",
       "queryScope": "COLLECTION",
       "fields": [
