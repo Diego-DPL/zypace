@@ -8,6 +8,8 @@ import CalendarPage from '../pages/CalendarPage';
 import SettingsPage from '../pages/SettingsPage';
 import StravaCallbackPage from '../pages/StravaCallbackPage';
 import TrainingPlanPage from '../pages/TrainingPlanPage';
+import AdminPage from '../pages/AdminPage';
+import SupportPage from '../pages/SupportPage';
 import Layout from '../components/Layout';
 import PrivacyPage from '../pages/PrivacyPage';
 import TermsPage from '../pages/TermsPage';
@@ -16,7 +18,7 @@ import CookiesPage from '../pages/CookiesPage';
 import { useAuth } from '../context/AuthContext';
 
 const AppRouter = () => {
-  const { user, loading } = useAuth();
+  const { user, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -42,6 +44,8 @@ const AppRouter = () => {
           <Route path="/races" element={user ? <RacesPage /> : <Navigate to="/" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/" />} />
           <Route path="/training-plan" element={user ? <TrainingPlanPage /> : <Navigate to="/" />} />
+          <Route path="/support" element={user ? <SupportPage /> : <Navigate to="/" />} />
+          <Route path="/admin" element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
           <Route path="/strava-callback" element={<StravaCallbackPage />} />
 
           <Route path="*" element={<Navigate to={user ? "/app" : "/"} />} />

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
 
 const AppHeader = () => {
-  const { user, signOut } = useAuth();
+  const { user, role, signOut } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = async () => {
@@ -37,6 +37,12 @@ const AppHeader = () => {
           <Link to="/training-plan" className="text-zinc-400 hover:text-lime-400 transition-colors">Mi Plan</Link>
           <Link to="/races" className="text-zinc-400 hover:text-lime-400 transition-colors">Carreras</Link>
           <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors">Ajustes</Link>
+          <Link to="/support" className="text-zinc-400 hover:text-lime-400 transition-colors">Soporte</Link>
+          {role === 'admin' && (
+            <Link to="/admin" className="text-lime-400 hover:text-lime-300 font-semibold transition-colors flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />Admin
+            </Link>
+          )}
         </nav>
         <div className="hidden md:flex items-center gap-4">
           <span className="text-zinc-500 text-sm max-w-[140px] truncate" title={user?.email ?? undefined}>Hola, {shortEmail}</span>
@@ -56,6 +62,12 @@ const AppHeader = () => {
             <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Mi Plan</Link>
             <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Carreras</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Ajustes</Link>
+            <Link onClick={() => setOpen(false)} to="/support" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Soporte</Link>
+            {role === 'admin' && (
+              <Link onClick={() => setOpen(false)} to="/admin" className="py-2 px-3 rounded hover:bg-zinc-800 text-lime-400 font-semibold flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />Panel Admin
+              </Link>
+            )}
           </div>
           <div className="border-t border-zinc-800 pt-3 flex items-center justify-between">
             <span className="text-zinc-500 text-xs">{user?.email}</span>
