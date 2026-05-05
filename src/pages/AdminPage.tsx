@@ -41,6 +41,7 @@ interface Incident {
   created_at: any;
   updated_at: any;
   admin_notes: string;
+  attachment_url?: string;
   messages: Array<{ sender: string; text: string; timestamp: any }>;
 }
 
@@ -124,6 +125,20 @@ function IncidentModal({
           <div className="bg-zinc-800/60 rounded-xl p-4 text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
             {incident.description || <span className="text-zinc-600 italic">Sin descripción.</span>}
           </div>
+
+          {/* Attachment */}
+          {incident.attachment_url && (
+            <div>
+              <p className="text-xs font-semibold text-zinc-500 uppercase tracking-wider mb-2">Captura adjunta</p>
+              <a href={incident.attachment_url} target="_blank" rel="noopener noreferrer">
+                <img
+                  src={incident.attachment_url}
+                  alt="Adjunto del usuario"
+                  className="max-h-64 max-w-full rounded-lg border border-zinc-700 object-contain hover:opacity-90 transition-opacity"
+                />
+              </a>
+            </div>
+          )}
 
           {/* Message thread */}
           {incident.messages?.length > 0 && (

@@ -1,6 +1,21 @@
 {
   "indexes": [
     {
+      "collectionGroup": "incidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "user_uid",    "order": "ASCENDING" },
+        { "fieldPath": "created_at",  "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "incidents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "created_at",  "order": "DESCENDING" }
+      ]
+    },
+    {
       "collectionGroup": "workouts",
       "queryScope": "COLLECTION",
       "fields": [
