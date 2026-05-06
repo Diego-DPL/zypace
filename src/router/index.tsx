@@ -10,7 +10,6 @@ import StravaCallbackPage from '../pages/StravaCallbackPage';
 import TrainingPlanPage from '../pages/TrainingPlanPage';
 import AdminPage from '../pages/AdminPage';
 import SupportPage from '../pages/SupportPage';
-import SubscriptionPage from '../pages/SubscriptionPage';
 import Layout from '../components/Layout';
 import PrivacyPage from '../pages/PrivacyPage';
 import TermsPage from '../pages/TermsPage';
@@ -35,7 +34,7 @@ const AppRouter = () => {
   // Admins bypass the subscription gate
   const appElement = (el: React.ReactNode) => {
     if (!user) return <Navigate to="/" />;
-    if (!hasAccess && role !== 'admin') return <Navigate to="/subscription" />;
+    if (!hasAccess && role !== 'admin') return <Navigate to="/settings" />;
     return el;
   };
 
@@ -55,7 +54,7 @@ const AppRouter = () => {
           <Route path="/races"         element={appElement(<RacesPage />)} />
           <Route path="/settings"      element={appElement(<SettingsPage />)} />
           <Route path="/training-plan" element={appElement(<TrainingPlanPage />)} />
-          <Route path="/subscription"  element={user ? <SubscriptionPage /> : <Navigate to="/" />} />
+          <Route path="/subscription"  element={<Navigate to="/settings" replace />} />
           <Route path="/support" element={<SupportPage />} />
           <Route path="/admin" element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
           <Route path="/strava-callback" element={<StravaCallbackPage />} />

@@ -67,8 +67,8 @@ export const createCheckoutSession = onCall(
       customer:          customerId,
       mode:              'subscription',
       line_items:        [{ price: PRICE_ID, quantity: 1 }],
-      success_url:       `${APP_URL}/subscription?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:        `${APP_URL}/subscription?canceled=true`,
+      success_url:       `${APP_URL}/settings?sub=ok`,
+      cancel_url:        `${APP_URL}/settings?sub=canceled`,
       metadata:          { uid },
       subscription_data: { metadata: { uid } },
     };
@@ -111,7 +111,7 @@ export const createPortalSession = onCall(
 
     const session = await stripe.billingPortal.sessions.create({
       customer:   customerId,
-      return_url: `${APP_URL}/subscription`,
+      return_url: `${APP_URL}/settings`,
     });
 
     return { url: session.url };

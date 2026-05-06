@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 // Strava assets (oficiales de la guía)
 import connectWithStrava from '../assets/1.1 Connect with Strava Buttons/Connect with Strava Orange/btn_strava_connect_with_orange_x2.svg';
 import compatibleWithStrava from '../assets/1.2-Strava-API-Logos/Compatible with Strava/cptblWith_strava_white/api_logo_cptblWith_strava_horiz_white.svg';
@@ -73,8 +75,88 @@ const DEFAULT_PROFILE: RunnerProfile = {
   updated_at: null,
 };
 
+const SUB_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
+  active:     { label: 'Activa',           color: 'bg-green-950/50 text-green-400 border-green-800' },
+  trialing:   { label: 'Prueba',           color: 'bg-lime-950/50 text-lime-400 border-lime-800' },
+  past_due:   { label: 'Pago pendiente',   color: 'bg-yellow-950/50 text-yellow-400 border-yellow-800' },
+  canceled:   { label: 'Cancelada',        color: 'bg-zinc-800 text-zinc-500 border-zinc-700' },
+  incomplete: { label: 'Incompleta',       color: 'bg-orange-950/50 text-orange-400 border-orange-800' },
+};
+
 const SettingsPage = () => {
   const { user } = useAuth();
+  const { hasAccess, isExempt, subscriptionStatus, periodEnd, adminPromoCode } = useSubscription();
+  const [searchParams] = useSearchParams();
+
+  // Subscription UI state
+  const [promoInput,      setPromoInput]      = useState('');
+  const [promoValid,      setPromoValid]       = useState<null | { discountType: string; discountValue: number; duration: string; durationInMonths: number | null }>(null);
+  const [promoError,      setPromoError]       = useState('');
+  const [promoLoading,    setPromoLoading]     = useState(false);
+  const [checkoutLoading, setCheckoutLoading]  = useState(false);
+  const [portalLoading,   setPortalLoading]    = useState(false);
+  const [subActionError,  setSubActionError]   = useState('');
+
+  const subSuccess  = searchParams.get('sub') === 'ok';
+  const subCanceled = searchParams.get('sub') === 'canceled';
+
+  // Clean up URL params after reading them
+  useEffect(() => {
+    if (subSuccess || subCanceled) {
+      window.history.replaceState({}, '', '/settings');
+    }
+  }, [subSuccess, subCanceled]);
+
+  const handleValidatePromo = async () => {
+    if (!promoInput.trim()) return;
+    setPromoLoading(true);
+    setPromoError('');
+    setPromoValid(null);
+    try {
+      const fn  = httpsCallable<{ code: string }, any>(functions, 'validateDiscountCode');
+      const res = await fn({ code: promoInput.trim() });
+      if (res.data.valid) {
+        setPromoValid(res.data);
+      } else {
+        setPromoError('Código no válido o expirado');
+      }
+    } catch { setPromoError('Error al validar el código'); }
+    setPromoLoading(false);
+  };
+
+  const handleCheckout = async () => {
+    setCheckoutLoading(true);
+    setSubActionError('');
+    try {
+      const fn  = httpsCallable<{ promoCode?: string }, { url: string }>(functions, 'createCheckoutSession');
+      const res = await fn({ promoCode: promoValid ? promoInput.trim() : undefined });
+      if (res.data.url) window.location.href = res.data.url;
+    } catch (e: any) { setSubActionError(e?.message || 'Error al iniciar el pago'); }
+    setCheckoutLoading(false);
+  };
+
+  const handlePortal = async () => {
+    setPortalLoading(true);
+    setSubActionError('');
+    try {
+      const fn  = httpsCallable<Record<string, never>, { url: string }>(functions, 'createPortalSession');
+      const res = await fn({});
+      if (res.data.url) window.location.href = res.data.url;
+    } catch (e: any) { setSubActionError(e?.message || 'Error al abrir el portal'); }
+    setPortalLoading(false);
+  };
+
+  function fmtDate(ms: number) {
+    return new Date(ms).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  function fmtDiscount() {
+    if (!promoValid) return '';
+    const val = promoValid.discountType === 'percentage' ? `${promoValid.discountValue}%` : `${promoValid.discountValue} €`;
+    const dur = promoValid.duration === 'forever' ? 'siempre' : promoValid.duration === 'once' ? '1 mes' : `${promoValid.durationInMonths} meses`;
+    return `${val} de descuento durante ${dur}`;
+  }
+
   const [isStravaConnected, setIsStravaConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -284,6 +366,133 @@ const SettingsPage = () => {
   return (
     <main className="container mx-auto p-8 space-y-8">
       <h1 className="text-4xl font-bold text-zinc-100">Ajustes</h1>
+
+      {/* ── Suscripción ── */}
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg space-y-4">
+        <h2 className="text-2xl font-bold text-zinc-100">Suscripción</h2>
+
+        {/* Banners retorno desde Stripe */}
+        {subSuccess && (
+          <div className="p-3 rounded-lg bg-green-950/50 border border-green-800 text-green-300 text-sm">
+            ¡Pago completado! Tu suscripción ya está activa.
+          </div>
+        )}
+        {subCanceled && (
+          <div className="p-3 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-400 text-sm">
+            Has cancelado el proceso de pago. Puedes retomarlo cuando quieras.
+          </div>
+        )}
+
+        {/* Acceso gratuito */}
+        {isExempt && (
+          <div className="flex items-center gap-3 p-4 rounded-xl bg-lime-400/10 border border-lime-400/30">
+            <svg className="w-5 h-5 text-lime-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <div>
+              <p className="text-sm font-semibold text-lime-300">Acceso gratuito activado</p>
+              <p className="text-xs text-zinc-500 mt-0.5">Tu cuenta tiene acceso especial sin necesidad de suscripción.</p>
+            </div>
+          </div>
+        )}
+
+        {/* Suscripción activa */}
+        {!isExempt && subscriptionStatus && subscriptionStatus !== 'canceled' && (() => {
+          const cfg = SUB_STATUS_CONFIG[subscriptionStatus];
+          return (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-3">
+                <div className="space-y-1">
+                  <p className="text-sm text-zinc-400">
+                    Estado:{' '}
+                    <span className={`inline-block text-xs font-bold px-2.5 py-0.5 rounded-full border ${cfg?.color}`}>
+                      {cfg?.label}
+                    </span>
+                  </p>
+                  {periodEnd && (
+                    <p className="text-xs text-zinc-500">
+                      {'Próxima renovación'}:{' '}
+                      {fmtDate(periodEnd)}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={handlePortal}
+                  disabled={portalLoading}
+                  className="px-4 py-2 text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 rounded-lg border border-zinc-700 disabled:opacity-50 transition-colors"
+                >
+                  {portalLoading ? 'Cargando…' : 'Gestionar suscripción'}
+                </button>
+              </div>
+              {subscriptionStatus === 'past_due' && (
+                <p className="text-xs text-yellow-400 bg-yellow-950/40 border border-yellow-800 rounded-lg px-3 py-2">
+                  Hay un problema con el pago. Pulsa "Gestionar suscripción" para actualizar tu método de pago.
+                </p>
+              )}
+            </div>
+          );
+        })()}
+
+        {/* Sin suscripción / cancelada → formulario de checkout */}
+        {!isExempt && (!subscriptionStatus || subscriptionStatus === 'canceled') && (
+          <div className="space-y-4">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-3xl font-extrabold text-zinc-100">9,99 €</span>
+              <span className="text-zinc-500 text-sm">/mes · Cancela cuando quieras</span>
+            </div>
+
+            {/* Código asignado por admin */}
+            {adminPromoCode && (
+              <p className="text-xs text-lime-400 bg-lime-400/10 border border-lime-400/20 rounded-lg px-3 py-2">
+                Tienes un código de descuento asignado que se aplicará automáticamente.
+              </p>
+            )}
+
+            {/* Input código manual */}
+            {!adminPromoCode && (
+              <div className="space-y-2">
+                <label className="block text-xs font-semibold text-zinc-400">¿Tienes un código de descuento?</label>
+                <div className="flex gap-2">
+                  <input
+                    value={promoInput}
+                    onChange={e => { setPromoInput(e.target.value.toUpperCase()); setPromoValid(null); setPromoError(''); }}
+                    onKeyDown={e => e.key === 'Enter' && handleValidatePromo()}
+                    placeholder="CÓDIGO"
+                    maxLength={30}
+                    className="flex-1 px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 font-mono focus:ring-2 focus:ring-lime-400 outline-none"
+                  />
+                  <button
+                    onClick={handleValidatePromo}
+                    disabled={!promoInput.trim() || promoLoading}
+                    className="px-4 py-2 text-sm font-semibold bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-lg disabled:opacity-50 transition-colors"
+                  >
+                    {promoLoading ? '…' : 'Aplicar'}
+                  </button>
+                </div>
+                {promoError && <p className="text-xs text-red-400">{promoError}</p>}
+                {promoValid && (
+                  <p className="text-xs text-lime-400 bg-lime-400/10 border border-lime-400/20 rounded-lg px-3 py-2">
+                    ✓ {fmtDiscount()}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {subActionError && <p className="text-sm text-red-400">{subActionError}</p>}
+
+            <button
+              onClick={handleCheckout}
+              disabled={checkoutLoading}
+              className="w-full sm:w-auto px-8 py-3 text-sm font-bold bg-lime-400 hover:bg-lime-500 text-black rounded-xl disabled:opacity-50 shadow-lg shadow-lime-400/20 transition-all"
+            >
+              {checkoutLoading ? 'Redirigiendo…' : 'Suscribirme — 9,99 €/mes'}
+            </button>
+            <p className="text-xs text-zinc-600">Pago seguro con Stripe</p>
+          </div>
+        )}
+
+        {subActionError && hasAccess && <p className="text-sm text-red-400">{subActionError}</p>}
+      </div>
 
       {/* ── Integración Strava ── */}
       <div className="bg-zinc-900 p-6 rounded-xl shadow-lg">

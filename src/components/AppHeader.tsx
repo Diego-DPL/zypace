@@ -40,7 +40,7 @@ const AppHeader = () => {
           <Link to="/training-plan" className="text-zinc-400 hover:text-lime-400 transition-colors">Mi Plan</Link>
           <Link to="/races" className="text-zinc-400 hover:text-lime-400 transition-colors">Carreras</Link>
           <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors">Ajustes</Link>
-          <Link to="/subscription" className="text-zinc-400 hover:text-lime-400 transition-colors flex items-center gap-1.5">
+          <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors flex items-center gap-1.5">
             Suscripción
             {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
           </Link>
@@ -69,7 +69,7 @@ const AppHeader = () => {
             <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Mi Plan</Link>
             <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Carreras</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Ajustes</Link>
-            <Link onClick={() => setOpen(false)} to="/subscription" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
+            <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
               Suscripción
               {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
             </Link>
