@@ -3,7 +3,6 @@ import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import HomePage from '../pages/HomePage';
-import RacesPage from '../pages/RacesPage';
 import CalendarPage from '../pages/CalendarPage';
 import SettingsPage from '../pages/SettingsPage';
 import StravaCallbackPage from '../pages/StravaCallbackPage';
@@ -51,7 +50,7 @@ const AppRouter = () => {
           <Route path="/cookies" element={<CookiesPage />} />
           <Route path="/app"           element={appElement(<HomePage />)} />
           <Route path="/calendar"      element={appElement(<CalendarPage />)} />
-          <Route path="/races"         element={appElement(<RacesPage />)} />
+          <Route path="/races"         element={<Navigate to="/calendar" replace />} />
           <Route path="/settings"      element={appElement(<SettingsPage />)} />
           <Route path="/training-plan" element={appElement(<TrainingPlanPage />)} />
           <Route path="/subscription"  element={<Navigate to="/settings" replace />} />

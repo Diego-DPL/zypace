@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
+import AddGoalModal from '../components/AddGoalModal';
 import {
   collection, getDocs, doc, query, where, orderBy, limit, updateDoc,
 } from 'firebase/firestore';
@@ -39,6 +40,7 @@ const HomePage = () => {
   const [last28Km, setLast28Km] = useState<{ activities: number; workouts: number; total: number }>({ activities: 0, workouts: 0, total: 0 });
   const [upcomingWorkouts, setUpcomingWorkouts] = useState<Workout[]>([]);
   const [marking, setMarking] = useState<string | null>(null);
+  const [showAddGoal, setShowAddGoal] = useState(false);
   const [weeklyTrend, setWeeklyTrend] = useState<number[]>([]);
   const [intensityWeeks, setIntensityWeeks] = useState<IntensityWeek[]>([]);
   const [fitnessData, setFitnessData] = useState<FitnessData | null>(null);
@@ -262,6 +264,10 @@ const HomePage = () => {
           <div>
             <h1 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-lime-500 via-pink-600 to-purple-600 text-transparent bg-clip-text drop-shadow-sm">Tu Panel</h1>
             {user && <p className="mt-2 text-sm text-zinc-400">Hola <span className="font-semibold text-zinc-100">{user.email}</span>, este es tu resumen de entrenamiento.</p>}
+            <button
+              onClick={() => setShowAddGoal(true)}
+              className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
+            >+ Añadir objetivo</button>
           </div>
           {nextRace && (
             <div className="px-5 py-4 rounded-2xl bg-zinc-900/70 backdrop-blur shadow-sm border border-zinc-700 flex flex-col items-start gap-1">
@@ -600,6 +606,11 @@ const HomePage = () => {
           </div>
         )}
       </div>
+      <AddGoalModal
+        open={showAddGoal}
+        onClose={() => setShowAddGoal(false)}
+        onGoalAdded={() => { loadData(); }}
+      />
     </main>
   );
 };

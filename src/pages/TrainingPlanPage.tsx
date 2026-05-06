@@ -8,8 +8,9 @@ import {
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
-import { Race } from './RacesPage';
+import { Race } from '../types';
 import WeeklyAnalysis from '../components/WeeklyAnalysis';
+import AddGoalModal from '../components/AddGoalModal';
 
 interface Workout {
   id: string;
@@ -80,6 +81,7 @@ const TrainingPlanPage = () => {
   const [racePriority, setRacePriority] = useState<'A' | 'B' | 'C'>('A');
   const [progressModal, setProgressModal] = useState(false);
   const [showRegenModal, setShowRegenModal] = useState(false);
+  const [showAddGoal, setShowAddGoal] = useState(false);
   const [progressMessageIndex, setProgressMessageIndex] = useState(0);
   const progressMessages = [
     'Analizando tu carrera y objetivo…',
@@ -603,7 +605,13 @@ const TrainingPlanPage = () => {
 
   return (
     <main className="container mx-auto p-8 text-zinc-100">
-      <h1 className="text-4xl font-bold text-zinc-100 mb-8">Mi Plan de Entrenamiento</h1>
+      <div className="flex items-center justify-between gap-4 mb-8 flex-wrap">
+        <h1 className="text-4xl font-bold text-zinc-100">Mi Plan de Entrenamiento</h1>
+        <button
+          onClick={() => setShowAddGoal(true)}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
+        >+ Añadir objetivo</button>
+      </div>
 
       <div className="bg-zinc-900 p-8 rounded-xl shadow-lg mb-12">
         <div className="mb-6">
@@ -1414,6 +1422,15 @@ const TrainingPlanPage = () => {
           </div>
         </div>
       )}
+
+      <AddGoalModal
+        open={showAddGoal}
+        onClose={() => setShowAddGoal(false)}
+        onGoalAdded={race => {
+          setRaces(prev => [...prev, race].sort((a, b) => a.date.localeCompare(b.date)));
+          setSelectedRace(race.id);
+        }}
+      />
     </main>
   );
 };

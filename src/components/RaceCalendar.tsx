@@ -3,7 +3,7 @@ import { Calendar, momentLocalizer, Views, View } from 'react-big-calendar';
 import type { Event } from 'react-big-calendar';
 import moment from 'moment';
 import 'moment/locale/es';
-import { Race } from '../pages/RacesPage';
+import { Race } from '../types';
 import pwrdByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg';
 import { collection, getDocs, doc, query, where, orderBy, updateDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';

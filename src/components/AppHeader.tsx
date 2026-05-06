@@ -38,7 +38,6 @@ const AppHeader = () => {
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link to="/calendar" className="text-zinc-400 hover:text-lime-400 transition-colors">Calendario</Link>
           <Link to="/training-plan" className="text-zinc-400 hover:text-lime-400 transition-colors">Mi Plan</Link>
-          <Link to="/races" className="text-zinc-400 hover:text-lime-400 transition-colors">Carreras</Link>
           <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors flex items-center gap-1.5">
             Ajustes
             {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
@@ -65,7 +64,6 @@ const AppHeader = () => {
           <div className="flex flex-col gap-2">
             <Link onClick={() => setOpen(false)} to="/calendar" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Calendario</Link>
             <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Mi Plan</Link>
-            <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Carreras</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
               Ajustes
               {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}

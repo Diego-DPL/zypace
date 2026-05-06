@@ -5,8 +5,10 @@ import {
   collection, getDocs, doc, query, where, orderBy, updateDoc,
 } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
-import { Race } from './RacesPage';
+import { Race } from '../types';
 import WorkoutModal from '../components/WorkoutModal';
+import AddGoalModal from '../components/AddGoalModal';
+import RaceCalendar from '../components/RaceCalendar';
 
 interface Workout {
   id: string;
@@ -90,6 +92,7 @@ const CalendarPage = () => {
   const [calendarView, setCalendarView] = useState(true);
   const [modalWorkout, setModalWorkout] = useState<Workout | null>(null);
   const [showModal, setShowModal]       = useState(false);
+  const [showAddGoal, setShowAddGoal]   = useState(false);
 
   const todayISO = new Date().toISOString().substring(0, 10);
 
@@ -177,12 +180,18 @@ const CalendarPage = () => {
           <h1 className="text-3xl font-bold text-zinc-100">Calendario</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Tu plan de entrenamiento día a día</p>
         </div>
-        {plan && (
-          <Link to={`/training-plan?race=${selectedRace}`}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
-            Gestionar plan →
-          </Link>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setShowAddGoal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
+          >+ Añadir objetivo</button>
+          {plan && (
+            <Link to={`/training-plan?race=${selectedRace}`}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
+              Gestionar plan →
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Race selector */}
@@ -573,14 +582,31 @@ const CalendarPage = () => {
       {!loadingPlan && races.length === 0 && (
         <div className="text-center py-16 px-4">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center text-2xl">🏁</div>
-          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Añade tu primera carrera</h2>
-          <p className="text-sm text-zinc-500 mb-6">Primero añade una carrera para poder crear un plan de entrenamiento.</p>
-          <Link to="/races"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gray-800 text-white font-semibold rounded-lg hover:bg-gray-900 transition-colors">
-            Ir a Carreras →
-          </Link>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Añade tu primer objetivo</h2>
+          <p className="text-sm text-zinc-500 mb-6">Añade una carrera o evento para poder crear un plan de entrenamiento.</p>
+          <button
+            onClick={() => setShowAddGoal(true)}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors"
+          >+ Añadir objetivo</button>
         </div>
       )}
+
+      {/* Strava / full calendar view */}
+      {races.length > 0 && (
+        <div className="mt-10">
+          <h2 className="text-xl font-bold text-zinc-100 mb-4">Actividades y Strava</h2>
+          <RaceCalendar races={races} />
+        </div>
+      )}
+
+      <AddGoalModal
+        open={showAddGoal}
+        onClose={() => setShowAddGoal(false)}
+        onGoalAdded={race => {
+          setRaces(prev => [...prev, race].sort((a, b) => a.date.localeCompare(b.date)));
+          if (!selectedRace) setSelectedRace(race.id);
+        }}
+      />
     </main>
   );
 };

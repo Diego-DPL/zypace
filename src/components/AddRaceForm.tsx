@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
-import { Race } from '../pages/RacesPage';
+import { Race } from '../types';
 
 interface AddRaceFormProps {
   onRaceAdded: (race: Race) => void;
