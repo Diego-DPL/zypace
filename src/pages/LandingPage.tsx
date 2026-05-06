@@ -144,28 +144,6 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="py-10 bg-zinc-950 border-t border-zinc-800">
-        <div className="max-w-5xl mx-auto px-6 flex flex-col items-center gap-4">
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2">
-            {[
-              { label: 'Privacidad',    to: '/privacy'  },
-              { label: 'Términos',      to: '/terms'    },
-              { label: 'Seguridad',     to: '/security' },
-              { label: 'Cookies',       to: '/cookies'  },
-              { label: 'Soporte',       to: '/support'  },
-            ].map(({ label, to }) => (
-              <Link key={to} to={to} className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">
-                {label}
-              </Link>
-            ))}
-            <a href="mailto:support.zypace@gmail.com" className="text-xs text-zinc-600 hover:text-zinc-300 transition-colors">
-              Contacto
-            </a>
-          </div>
-          <p className="text-zinc-700 text-xs">&copy; {new Date().getFullYear()} Zypace. Todos los derechos reservados.</p>
-        </div>
-      </footer>
     </div>
   );
 };

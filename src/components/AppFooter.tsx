@@ -24,12 +24,11 @@ const AppFooter: React.FC = () => {
           </ul>
         </div>
         <div className="space-y-3">
-          <h4 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase">Recursos</h4>
+          <h4 className="text-xs font-semibold tracking-wide text-zinc-500 uppercase">Soporte</h4>
           <ul className="space-y-2 text-xs">
-            <li><a href="#" className="hover:text-lime-400 transition-colors">Guía rápida</a></li>
-            <li><a href="#" className="hover:text-lime-400 transition-colors">FAQ</a></li>
-            <li><a href="#" className="hover:text-lime-400 transition-colors">Changelog</a></li>
-            <li><a href="#" className="hover:text-lime-400 transition-colors">Estado</a></li>
+            <li><Link to="/support" className="hover:text-lime-400 transition-colors">Centro de ayuda</Link></li>
+            <li><Link to="/support#faq" className="hover:text-lime-400 transition-colors">Preguntas frecuentes</Link></li>
+            <li><a href="mailto:support.zypace@gmail.com" className="hover:text-lime-400 transition-colors">support.zypace@gmail.com</a></li>
           </ul>
         </div>
         <div className="space-y-3">
@@ -39,18 +38,12 @@ const AppFooter: React.FC = () => {
             <li><Link to="/privacy" className="hover:text-lime-400 transition-colors">Privacidad</Link></li>
             <li><Link to="/security" className="hover:text-lime-400 transition-colors">Seguridad</Link></li>
             <li><Link to="/cookies" className="hover:text-lime-400 transition-colors">Cookies</Link></li>
-            <li><a href="mailto:contact@zypace.com" className="hover:text-lime-400 transition-colors">Contacto</a></li>
           </ul>
         </div>
       </div>
       <div className="border-t border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4 flex flex-col md:flex-row items-center justify-between gap-2">
           <p className="text-[11px] text-zinc-600">Hecho con <span className="text-lime-400">❤</span> para runners.</p>
-          <div className="flex items-center gap-4 text-[11px] text-zinc-600">
-            <a href="#" className="hover:text-lime-400 transition-colors">Twitter</a>
-            <a href="#" className="hover:text-lime-400 transition-colors">GitHub</a>
-            <a href="#" className="hover:text-lime-400 transition-colors">Blog</a>
-          </div>
           <img src={poweredByStrava} alt="Powered by Strava" className="h-5 w-auto" />
         </div>
       </div>
