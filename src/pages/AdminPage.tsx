@@ -19,6 +19,7 @@ interface UserDoc {
   primary_goal: string | null;
   created_at: any;
   role: string | null;
+  banned?: boolean;
   z1_pace_sec_km: number | null;
   z4_pace_sec_km: number | null;
   z5_pace_sec_km: number | null;
@@ -27,6 +28,51 @@ interface UserDoc {
   // loaded on expand
   plan?: any | null;
   workouts?: any[];
+}
+
+type ConfirmAction =
+  | { type: 'ban';        uid: string; name: string }
+  | { type: 'unban';      uid: string; name: string }
+  | { type: 'delete';     uid: string; name: string }
+  | { type: 'deletePlan'; uid: string; planId: string; name: string };
+
+// ── Confirm dialog ────────────────────────────────────────────────────
+function ConfirmDialog({
+  action,
+  onConfirm,
+  onCancel,
+  loading,
+}: {
+  action: ConfirmAction;
+  onConfirm: () => void;
+  onCancel: () => void;
+  loading: boolean;
+}) {
+  const config = {
+    ban:        { title: 'Banear usuario',          msg: `¿Banear a ${action.name}? No podrá iniciar sesión.`,                     btn: 'Banear',          btnClass: 'bg-yellow-500 hover:bg-yellow-600 text-black' },
+    unban:      { title: 'Desbanear usuario',        msg: `¿Restaurar el acceso a ${action.name}?`,                                 btn: 'Desbanear',       btnClass: 'bg-green-500 hover:bg-green-600 text-black' },
+    delete:     { title: 'Eliminar usuario',         msg: `¿Eliminar permanentemente a ${action.name}? Se borrará toda su cuenta, planes, actividades e incidencias. Esta acción es irreversible.`, btn: 'Eliminar', btnClass: 'bg-red-600 hover:bg-red-700 text-white' },
+    deletePlan: { title: 'Eliminar plan',            msg: `¿Eliminar el plan de entrenamiento de ${action.name} y todos sus entrenamientos asociados?`, btn: 'Eliminar plan', btnClass: 'bg-red-600 hover:bg-red-700 text-white' },
+  }[action.type];
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+        <h3 className="text-lg font-bold text-zinc-100">{config.title}</h3>
+        <p className="text-sm text-zinc-400 leading-relaxed">{config.msg}</p>
+        <div className="flex justify-end gap-3 pt-1">
+          <button onClick={onCancel} disabled={loading}
+            className="px-4 py-2 text-sm text-zinc-400 border border-zinc-700 rounded-lg hover:text-zinc-200 transition-colors disabled:opacity-50">
+            Cancelar
+          </button>
+          <button onClick={onConfirm} disabled={loading}
+            className={`px-4 py-2 text-sm font-semibold rounded-lg disabled:opacity-50 transition-colors ${config.btnClass}`}>
+            {loading ? 'Procesando…' : config.btn}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 interface Incident {
@@ -405,6 +451,11 @@ const AdminPage = () => {
   const [incidentFilter, setIncidentFilter] = useState<'all' | IncidentStatus>('all');
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  const fns = getFunctions(undefined, 'europe-west1');
 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
@@ -446,6 +497,36 @@ const AdminPage = () => {
       const workouts = wSnap.docs.map(d => ({ id: d.id, ...d.data() }));
       setUsers(prev => prev.map(u => u.uid === uid ? { ...u, plan, workouts } : u));
     } catch (e) { console.error('Error loading user detail', e); }
+  };
+
+  const executeAction = async () => {
+    if (!confirmAction) return;
+    setActionLoading(true);
+    setActionError(null);
+    try {
+      if (confirmAction.type === 'ban' || confirmAction.type === 'unban') {
+        const fn = httpsCallable(fns, 'adminBanUser');
+        await fn({ targetUid: confirmAction.uid, banned: confirmAction.type === 'ban' });
+        setUsers(prev => prev.map(u =>
+          u.uid === confirmAction.uid ? { ...u, banned: confirmAction.type === 'ban' } : u
+        ));
+      } else if (confirmAction.type === 'delete') {
+        const fn = httpsCallable(fns, 'adminDeleteUser');
+        await fn({ targetUid: confirmAction.uid });
+        setUsers(prev => prev.filter(u => u.uid !== confirmAction.uid));
+        setExpandedUser(null);
+      } else if (confirmAction.type === 'deletePlan') {
+        const fn = httpsCallable(fns, 'adminDeletePlan');
+        await fn({ targetUid: confirmAction.uid, planId: confirmAction.planId });
+        setUsers(prev => prev.map(u =>
+          u.uid === confirmAction.uid ? { ...u, plan: null, workouts: [] } : u
+        ));
+      }
+      setConfirmAction(null);
+    } catch (e: any) {
+      setActionError(e?.message || 'Error desconocido');
+    }
+    setActionLoading(false);
   };
 
   const openCount       = incidents.filter(i => i.status === 'abierta').length;
@@ -617,10 +698,13 @@ const AdminPage = () => {
                         {(u.first_name?.[0] || u.email?.[0] || '?').toUpperCase()}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm font-medium text-zinc-100 truncate">
+                        <p className="text-sm font-medium text-zinc-100 truncate flex items-center gap-2 flex-wrap">
                           {[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'}
                           {u.role === 'admin' && (
-                            <span className="ml-2 text-[10px] bg-lime-400/10 text-lime-400 border border-lime-400/30 px-1.5 py-0.5 rounded-full font-bold">ADMIN</span>
+                            <span className="text-[10px] bg-lime-400/10 text-lime-400 border border-lime-400/30 px-1.5 py-0.5 rounded-full font-bold">ADMIN</span>
+                          )}
+                          {u.banned && (
+                            <span className="text-[10px] bg-red-950/60 text-red-400 border border-red-800 px-1.5 py-0.5 rounded-full font-bold">BANEADO</span>
                           )}
                         </p>
                         <p className="text-xs text-zinc-500 truncate">{u.email}</p>
@@ -704,6 +788,47 @@ const AdminPage = () => {
                                   </div>
                                 ))}
                               </div>
+                            </div>
+                          )}
+
+                          {/* Admin actions */}
+                          {u.role !== 'admin' && (
+                            <div className="pt-3 border-t border-zinc-700/50">
+                              <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-3">Acciones de administrador</p>
+                              <div className="flex flex-wrap gap-2">
+                                {u.plan?.id && (
+                                  <button
+                                    onClick={() => setConfirmAction({ type: 'deletePlan', uid: u.uid, planId: u.plan.id, name: u.email })}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-orange-800 text-orange-400 hover:bg-orange-950/40 transition-colors"
+                                  >
+                                    Eliminar plan
+                                  </button>
+                                )}
+                                {u.banned ? (
+                                  <button
+                                    onClick={() => setConfirmAction({ type: 'unban', uid: u.uid, name: u.email })}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-green-800 text-green-400 hover:bg-green-950/40 transition-colors"
+                                  >
+                                    Desbanear
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => setConfirmAction({ type: 'ban', uid: u.uid, name: u.email })}
+                                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-yellow-800 text-yellow-400 hover:bg-yellow-950/40 transition-colors"
+                                  >
+                                    Banear usuario
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => setConfirmAction({ type: 'delete', uid: u.uid, name: u.email })}
+                                  className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-800 text-red-400 hover:bg-red-950/40 transition-colors"
+                                >
+                                  Eliminar cuenta
+                                </button>
+                              </div>
+                              {actionError && confirmAction?.uid === u.uid && (
+                                <p className="text-xs text-red-400 mt-2">{actionError}</p>
+                              )}
                             </div>
                           )}
                         </>
@@ -805,6 +930,16 @@ const AdminPage = () => {
 
       {/* ── STRAVA TAB ── */}
       {tab === 'strava' && <StravaWebhookPanel />}
+
+      {/* Confirm action dialog */}
+      {confirmAction && (
+        <ConfirmDialog
+          action={confirmAction}
+          onConfirm={executeAction}
+          onCancel={() => { setConfirmAction(null); setActionError(null); }}
+          loading={actionLoading}
+        />
+      )}
 
       {/* Incident detail modal */}
       {selectedIncident && (
