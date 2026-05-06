@@ -4,11 +4,13 @@ import { useAuth } from '../context/AuthContext';
 import {
   collection, getDocs, doc, query, where, orderBy, updateDoc,
 } from 'firebase/firestore';
-import { db } from '../lib/firebaseClient';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WorkoutModal from '../components/WorkoutModal';
 import AddGoalModal from '../components/AddGoalModal';
-import RaceCalendar from '../components/RaceCalendar';
+import pwrdByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg';
+// import RaceCalendar from '../components/RaceCalendar';
 
 interface Workout {
   id: string;
@@ -93,6 +95,25 @@ const CalendarPage = () => {
   const [modalWorkout, setModalWorkout] = useState<Workout | null>(null);
   const [showModal, setShowModal]       = useState(false);
   const [showAddGoal, setShowAddGoal]   = useState(false);
+  const [syncing, setSyncing]           = useState(false);
+
+  const syncStrava = async (opts: { full?: boolean; reset?: boolean } = {}) => {
+    if (!user) return;
+    setSyncing(true);
+    try {
+      const fn  = httpsCallable(functions, 'syncStrava');
+      const res = await fn(opts);
+      const data = res.data as any;
+      window.dispatchEvent(new Event('workouts-changed'));
+      alert(data
+        ? `Sync completado: ${data.importedNew} nuevas, ${data.fetchedTotal} descargadas`
+        : 'Sincronización completada');
+    } catch (e: any) {
+      alert(`Error sincronizando Strava: ${e.message || e}`);
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const todayISO = new Date().toISOString().substring(0, 10);
 
@@ -181,6 +202,27 @@ const CalendarPage = () => {
           <p className="text-sm text-zinc-500 mt-0.5">Tu plan de entrenamiento día a día</p>
         </div>
         <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
+            <img src={pwrdByStrava} alt="Powered by Strava" className="h-4 w-auto opacity-80" />
+            <button
+              onClick={() => syncStrava()}
+              disabled={syncing}
+              className="px-2.5 py-1.5 bg-lime-400 text-black rounded text-xs font-semibold hover:bg-lime-500 disabled:opacity-50 transition-colors"
+              title="Sincronizar actividades recientes de Strava"
+            >{syncing ? '…' : 'Sync'}</button>
+            <button
+              onClick={() => syncStrava({ full: true })}
+              disabled={syncing}
+              className="px-2.5 py-1.5 bg-zinc-700 text-zinc-300 rounded text-xs hover:bg-zinc-600 disabled:opacity-50 transition-colors"
+              title="Sincronización completa"
+            >Full</button>
+            <button
+              onClick={() => syncStrava({ reset: true, full: true })}
+              disabled={syncing}
+              className="px-2.5 py-1.5 bg-zinc-700 text-zinc-300 rounded text-xs hover:bg-red-900/60 hover:text-red-300 disabled:opacity-50 transition-colors"
+              title="Resetear y re-sincronizar todo"
+            >Reset</button>
+          </div>
           <button
             onClick={() => setShowAddGoal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
@@ -588,14 +630,6 @@ const CalendarPage = () => {
             onClick={() => setShowAddGoal(true)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors"
           >+ Añadir objetivo</button>
-        </div>
-      )}
-
-      {/* Strava / full calendar view */}
-      {races.length > 0 && (
-        <div className="mt-10">
-          <h2 className="text-xl font-bold text-zinc-100 mb-4">Actividades y Strava</h2>
-          <RaceCalendar races={races} />
         </div>
       )}
 
