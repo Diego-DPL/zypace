@@ -95,29 +95,41 @@ function parseExercises(raw: string): Exercise[] {
     });
 }
 
-function StrengthBlock({ details }: { details: string }) {
-  const exercises = parseExercises(details);
+interface StructuredExercise { sets?: number | string; reps?: string; name: string; notes?: string }
+
+function ExerciseList({ exercises }: { exercises: StructuredExercise[] }) {
+  return (
+    <div className="space-y-2">
+      {exercises.map((ex, i) => (
+        <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5">
+          {ex.sets && ex.reps ? (
+            <div className="flex-shrink-0 min-w-[54px] text-center bg-purple-900/60 border border-purple-700 rounded-lg px-2 py-1.5">
+              <div className="text-sm font-black text-purple-200 leading-none">{ex.sets}×{ex.reps}</div>
+              <div className="text-[9px] text-purple-500 mt-0.5 uppercase tracking-wide">series</div>
+            </div>
+          ) : (
+            <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-purple-500 ml-1.5" />
+          )}
+          <div className="flex-1 min-w-0">
+            <span className="text-sm text-zinc-100 font-medium leading-snug">{ex.name}</span>
+            {ex.notes && <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">{ex.notes}</p>}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StrengthBlock({ exp }: { exp: any }) {
+  // Prefer structured exercises array (new plans); fall back to parsing details text (old plans)
+  const exercises: StructuredExercise[] = Array.isArray(exp.exercises) && exp.exercises.length > 0
+    ? exp.exercises
+    : parseExercises(exp.details || '');
+
   return (
     <div>
       <span className="text-xs font-bold uppercase tracking-wide text-purple-400 block mb-2.5">Ejercicios</span>
-      <div className="space-y-2">
-        {exercises.map((ex, i) => (
-          <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5">
-            {ex.sets && ex.reps ? (
-              <div className="flex-shrink-0 min-w-[54px] text-center bg-purple-900/60 border border-purple-700 rounded-lg px-2 py-1.5">
-                <div className="text-sm font-black text-purple-200 leading-none">{ex.sets}×{ex.reps}</div>
-                <div className="text-[9px] text-purple-500 mt-0.5 uppercase tracking-wide">series</div>
-              </div>
-            ) : (
-              <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-purple-500 ml-1.5" />
-            )}
-            <span className="text-sm text-zinc-100 font-medium flex-1 leading-snug">{ex.name}</span>
-            {ex.rest && (
-              <span className="text-[11px] text-zinc-500 flex-shrink-0 font-mono">{ex.rest}</span>
-            )}
-          </div>
-        ))}
-      </div>
+      <ExerciseList exercises={exercises} />
     </div>
   );
 }
@@ -255,16 +267,17 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                   <span className="font-semibold text-white">Objetivo:</span> {exp.purpose}
                 </p>
               )}
+              {isStrength && (
+                <div className="bg-purple-400/5 border border-purple-400/20 rounded-lg p-3">
+                  <StrengthBlock exp={exp} />
+                </div>
+              )}
               {exp.details && (
-                <div className={`rounded-lg p-3 ${isStrength ? 'bg-purple-400/5 border border-purple-400/20' : 'bg-lime-400/10 border border-lime-400/30'}`}>
-                  {isStrength ? (
-                    <StrengthBlock details={exp.details} />
-                  ) : (
-                    <>
-                      <span className="text-xs font-bold uppercase tracking-wide text-lime-400 block mb-1.5">Cómo ejecutarlo</span>
-                      <p className="text-zinc-200 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
-                    </>
-                  )}
+                <div className={`rounded-lg p-3 ${isStrength ? 'bg-zinc-800/50 border border-zinc-700' : 'bg-lime-400/10 border border-lime-400/30'}`}>
+                  <span className={`text-xs font-bold uppercase tracking-wide block mb-1.5 ${isStrength ? 'text-zinc-400' : 'text-lime-400'}`}>
+                    {isStrength ? 'Instrucciones de sesión' : 'Cómo ejecutarlo'}
+                  </span>
+                  <p className="text-zinc-300 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
                 </div>
               )}
               {exp.intensity && (
