@@ -28,7 +28,7 @@ const AppFooter: React.FC = () => {
           <ul className="space-y-2 text-xs">
             <li><Link to="/support" className="hover:text-lime-400 transition-colors">Centro de ayuda</Link></li>
             <li><Link to="/support#faq" className="hover:text-lime-400 transition-colors">Preguntas frecuentes</Link></li>
-            <li><a href="mailto:support.zypace@gmail.com" className="hover:text-lime-400 transition-colors">support.zypace@gmail.com</a></li>
+            <li><Link to="/support" className="hover:text-lime-400 transition-colors">Contacto</Link></li>
           </ul>
         </div>
         <div className="space-y-3">
