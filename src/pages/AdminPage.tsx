@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'dashboard' | 'users' | 'incidents' | 'strava';
+type Tab = 'dashboard' | 'users' | 'incidents' | 'strava' | 'payments';
 type IncidentStatus = 'abierta' | 'en_proceso' | 'resuelta';
 
 interface UserDoc {
@@ -439,6 +439,349 @@ function StravaWebhookPanel() {
   );
 }
 
+// ── Stripe Payments Panel ─────────────────────────────────────────────
+interface DiscountCode {
+  id:                  string;
+  code:                string;
+  discount_type:       'percentage' | 'fixed';
+  discount_value:      number;
+  max_redemptions:     number | null;
+  duration:            'forever' | 'once' | 'repeating';
+  duration_in_months:  number | null;
+  active:              boolean;
+  created_at:          number | null;
+  expires_at:          number | null;
+}
+
+function fmtDiscount(c: DiscountCode): string {
+  const val  = c.discount_type === 'percentage' ? `${c.discount_value}%` : `${c.discount_value} €`;
+  const dur  = c.duration === 'forever' ? 'siempre' : c.duration === 'once' ? '1 mes' : `${c.duration_in_months} meses`;
+  return `${val} · ${dur}`;
+}
+
+function StripePaymentsPanel({ users }: { users: UserDoc[] }) {
+  const fns = getFunctions(undefined, 'europe-west1');
+
+  // ── Discount codes state ──
+  const [codes,       setCodes]       = useState<DiscountCode[]>([]);
+  const [codesLoading, setCodesLoading] = useState(false);
+  const [showForm,    setShowForm]    = useState(false);
+  const [formState,   setFormState]   = useState({
+    code:             '',
+    discountType:     'percentage' as 'percentage' | 'fixed',
+    discountValue:    '',
+    maxRedemptions:   '',
+    duration:         'once' as 'forever' | 'once' | 'repeating',
+    durationInMonths: '',
+    expiresAt:        '',
+  });
+  const [formLoading, setFormLoading] = useState(false);
+  const [formError,   setFormError]   = useState('');
+  const [formSuccess, setFormSuccess] = useState('');
+
+  // ── User tools state ──
+  const [selectedUser,   setSelectedUser]   = useState<UserDoc | null>(null);
+  const [userSearch,     setUserSearch]     = useState('');
+  const [userActionMsg,  setUserActionMsg]  = useState('');
+  const [userActionErr,  setUserActionErr]  = useState('');
+  const [userActLoading, setUserActLoading] = useState(false);
+  const [promoToAssign,  setPromoToAssign]  = useState('');
+
+  const loadCodes = useCallback(async () => {
+    setCodesLoading(true);
+    try {
+      const fn  = httpsCallable<unknown, DiscountCode[]>(fns, 'listDiscountCodes');
+      const res = await fn({});
+      setCodes(res.data);
+    } catch (e: any) { console.error(e); }
+    setCodesLoading(false);
+  }, []);
+
+  useEffect(() => { loadCodes(); }, [loadCodes]);
+
+  const handleCreateCode = async () => {
+    setFormLoading(true);
+    setFormError('');
+    setFormSuccess('');
+    try {
+      const fn = httpsCallable(fns, 'createDiscountCode');
+      await fn({
+        code:             formState.code.trim(),
+        discountType:     formState.discountType,
+        discountValue:    parseFloat(formState.discountValue),
+        maxRedemptions:   formState.maxRedemptions ? parseInt(formState.maxRedemptions) : null,
+        duration:         formState.duration,
+        durationInMonths: formState.duration === 'repeating' ? parseInt(formState.durationInMonths) : undefined,
+        expiresAt:        formState.expiresAt || undefined,
+      });
+      setFormSuccess(`Código "${formState.code.toUpperCase()}" creado correctamente`);
+      setShowForm(false);
+      setFormState({ code: '', discountType: 'percentage', discountValue: '', maxRedemptions: '', duration: 'once', durationInMonths: '', expiresAt: '' });
+      await loadCodes();
+    } catch (e: any) {
+      setFormError(e?.message || 'Error al crear el código');
+    }
+    setFormLoading(false);
+  };
+
+  const handleToggleCode = async (codeId: string, active: boolean) => {
+    try {
+      const fn = httpsCallable(fns, 'toggleDiscountCode');
+      await fn({ codeId, active });
+      setCodes(prev => prev.map(c => c.id === codeId ? { ...c, active } : c));
+    } catch (e: any) {
+      console.error('toggleDiscountCode error', e);
+    }
+  };
+
+  const handleSetExempt = async (exempt: boolean) => {
+    if (!selectedUser) return;
+    setUserActLoading(true);
+    setUserActionErr('');
+    setUserActionMsg('');
+    try {
+      const fn = httpsCallable(fns, 'setUserExempt');
+      await fn({ targetUid: selectedUser.uid, exempt });
+      setUserActionMsg(exempt ? 'Acceso gratuito activado' : 'Acceso gratuito desactivado');
+    } catch (e: any) {
+      setUserActionErr(e?.message || 'Error');
+    }
+    setUserActLoading(false);
+  };
+
+  const handleAssignDiscount = async () => {
+    if (!selectedUser) return;
+    setUserActLoading(true);
+    setUserActionErr('');
+    setUserActionMsg('');
+    try {
+      const fn = httpsCallable(fns, 'assignDiscountToUser');
+      await fn({ targetUid: selectedUser.uid, promoCode: promoToAssign.trim() || null });
+      setUserActionMsg(promoToAssign.trim()
+        ? `Código "${promoToAssign.toUpperCase()}" asignado a ${selectedUser.email}`
+        : `Código de descuento eliminado de ${selectedUser.email}`);
+      setPromoToAssign('');
+    } catch (e: any) {
+      setUserActionErr(e?.message || 'Error');
+    }
+    setUserActLoading(false);
+  };
+
+  const filteredUsers = users.filter(u => {
+    if (!userSearch) return false;
+    const q = userSearch.toLowerCase();
+    return (u.email || '').toLowerCase().includes(q) || (u.first_name || '').toLowerCase().includes(q);
+  });
+
+  return (
+    <div className="space-y-8">
+
+      {/* ── Discount codes ── */}
+      <section>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-semibold text-zinc-200">Códigos de descuento</h3>
+          <div className="flex gap-2">
+            <button onClick={loadCodes} disabled={codesLoading}
+              className="text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+              ↻ Recargar
+            </button>
+            <button onClick={() => { setShowForm(v => !v); setFormError(''); setFormSuccess(''); }}
+              className="text-xs font-semibold bg-lime-400 hover:bg-lime-500 text-black px-3 py-1.5 rounded-lg transition-colors">
+              {showForm ? 'Cancelar' : '+ Nuevo código'}
+            </button>
+          </div>
+        </div>
+
+        {formSuccess && <p className="text-xs text-green-400 mb-3">{formSuccess}</p>}
+
+        {/* Create form */}
+        {showForm && (
+          <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 mb-4 space-y-4">
+            <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nuevo código</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Código</label>
+                <input value={formState.code} onChange={e => setFormState(s => ({ ...s, code: e.target.value.toUpperCase() }))}
+                  placeholder="LANZAMIENTO50" maxLength={20}
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 font-mono focus:ring-2 focus:ring-lime-400 outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Tipo</label>
+                <select value={formState.discountType} onChange={e => setFormState(s => ({ ...s, discountType: e.target.value as any }))}
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none">
+                  <option value="percentage">Porcentaje (%)</option>
+                  <option value="fixed">Importe fijo (€)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">
+                  {formState.discountType === 'percentage' ? 'Porcentaje (0–100)' : 'Importe en €'}
+                </label>
+                <input value={formState.discountValue} onChange={e => setFormState(s => ({ ...s, discountValue: e.target.value }))}
+                  type="number" min="0" step={formState.discountType === 'percentage' ? '1' : '0.01'}
+                  placeholder={formState.discountType === 'percentage' ? '50' : '5.00'}
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Usos máximos (vacío = ilimitado)</label>
+                <input value={formState.maxRedemptions} onChange={e => setFormState(s => ({ ...s, maxRedemptions: e.target.value }))}
+                  type="number" min="1" placeholder="Ilimitado"
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Duración del descuento</label>
+                <select value={formState.duration} onChange={e => setFormState(s => ({ ...s, duration: e.target.value as any }))}
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none">
+                  <option value="once">Una vez</option>
+                  <option value="repeating">Varios meses</option>
+                  <option value="forever">Siempre</option>
+                </select>
+              </div>
+              {formState.duration === 'repeating' && (
+                <div>
+                  <label className="block text-xs text-zinc-500 mb-1">Nº de meses</label>
+                  <input value={formState.durationInMonths} onChange={e => setFormState(s => ({ ...s, durationInMonths: e.target.value }))}
+                    type="number" min="1" placeholder="3"
+                    className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none" />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs text-zinc-500 mb-1">Fecha de expiración (opcional)</label>
+                <input value={formState.expiresAt} onChange={e => setFormState(s => ({ ...s, expiresAt: e.target.value }))}
+                  type="date"
+                  className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 focus:ring-2 focus:ring-lime-400 outline-none" />
+              </div>
+            </div>
+            {formError && <p className="text-xs text-red-400">{formError}</p>}
+            <div className="flex justify-end gap-3 pt-1">
+              <button onClick={() => setShowForm(false)} className="px-4 py-2 text-sm text-zinc-400 border border-zinc-700 rounded-lg hover:text-zinc-200 transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleCreateCode} disabled={formLoading || !formState.code || !formState.discountValue}
+                className="px-4 py-2 text-sm font-semibold bg-lime-400 hover:bg-lime-500 text-black rounded-lg disabled:opacity-50 transition-colors">
+                {formLoading ? 'Creando…' : 'Crear código'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Codes list */}
+        {codesLoading ? (
+          <div className="flex items-center gap-3 py-6 text-xs text-zinc-500">
+            <div className="w-4 h-4 rounded-full border border-zinc-600 border-t-lime-400 animate-spin" />
+            Cargando códigos…
+          </div>
+        ) : codes.length === 0 ? (
+          <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center">
+            <p className="text-sm text-zinc-500">No hay códigos de descuento todavía.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {codes.map(c => (
+              <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-mono text-sm font-bold text-zinc-100">{c.code}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      c.active ? 'bg-green-950/50 text-green-400 border-green-800' : 'bg-zinc-800 text-zinc-500 border-zinc-700'
+                    }`}>{c.active ? 'Activo' : 'Inactivo'}</span>
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">{fmtDiscount(c)}</p>
+                  <p className="text-[11px] text-zinc-700 mt-0.5">
+                    {c.max_redemptions != null ? `Máx. ${c.max_redemptions} usos` : 'Usos ilimitados'}
+                    {c.expires_at ? ` · Expira: ${new Date(c.expires_at).toLocaleDateString('es-ES')}` : ''}
+                    {c.created_at ? ` · Creado: ${new Date(c.created_at).toLocaleDateString('es-ES')}` : ''}
+                  </p>
+                </div>
+                <button
+                  onClick={() => handleToggleCode(c.id, !c.active)}
+                  className={`shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-colors ${
+                    c.active
+                      ? 'border-yellow-800 text-yellow-400 hover:bg-yellow-950/40'
+                      : 'border-green-800 text-green-400 hover:bg-green-950/40'
+                  }`}
+                >
+                  {c.active ? 'Desactivar' : 'Activar'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* ── User tools ── */}
+      <section className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-zinc-200">Gestión por usuario</h3>
+        <p className="text-xs text-zinc-500">Eximir de pago o asignar un código de descuento a un usuario específico.</p>
+
+        {/* User search */}
+        <div className="relative">
+          <input
+            value={userSearch}
+            onChange={e => { setUserSearch(e.target.value); setSelectedUser(null); setUserActionMsg(''); setUserActionErr(''); }}
+            placeholder="Buscar usuario por email o nombre…"
+            className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:ring-2 focus:ring-lime-400 outline-none"
+          />
+          {userSearch && filteredUsers.length > 0 && !selectedUser && (
+            <div className="absolute top-full mt-1 left-0 right-0 bg-zinc-800 border border-zinc-700 rounded-xl overflow-hidden z-10 shadow-xl max-h-48 overflow-y-auto">
+              {filteredUsers.slice(0, 8).map(u => (
+                <button key={u.uid}
+                  onClick={() => { setSelectedUser(u); setUserSearch(`${u.first_name ?? ''} ${u.last_name ?? ''} (${u.email})`.trim()); }}
+                  className="w-full text-left px-4 py-2.5 text-sm hover:bg-zinc-700 transition-colors border-b border-zinc-700/50 last:border-0">
+                  <p className="text-zinc-200 font-medium">{[u.first_name, u.last_name].filter(Boolean).join(' ') || '—'}</p>
+                  <p className="text-xs text-zinc-500">{u.email}</p>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Selected user actions */}
+        {selectedUser && (
+          <div className="space-y-4 pt-2 border-t border-zinc-800">
+            <div className="flex items-center gap-3 text-sm">
+              <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-200 shrink-0">
+                {(selectedUser.first_name?.[0] || selectedUser.email?.[0] || '?').toUpperCase()}
+              </div>
+              <div>
+                <p className="text-zinc-100 font-medium">{[selectedUser.first_name, selectedUser.last_name].filter(Boolean).join(' ') || selectedUser.email}</p>
+                <p className="text-xs text-zinc-500">{selectedUser.email}</p>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <button onClick={() => handleSetExempt(true)} disabled={userActLoading}
+                className="px-3 py-2 text-xs font-semibold rounded-lg border border-lime-800 text-lime-400 hover:bg-lime-950/40 disabled:opacity-50 transition-colors">
+                ✓ Dar acceso gratuito
+              </button>
+              <button onClick={() => handleSetExempt(false)} disabled={userActLoading}
+                className="px-3 py-2 text-xs font-semibold rounded-lg border border-zinc-700 text-zinc-400 hover:bg-zinc-800 disabled:opacity-50 transition-colors">
+                ✕ Revocar acceso gratuito
+              </button>
+            </div>
+
+            <div>
+              <label className="block text-xs text-zinc-500 mb-2">Asignar código de descuento (se aplicará en el próximo checkout)</label>
+              <div className="flex gap-2">
+                <input value={promoToAssign} onChange={e => setPromoToAssign(e.target.value.toUpperCase())}
+                  placeholder="CÓDIGO (vacío = eliminar)"
+                  className="flex-1 px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 font-mono focus:ring-2 focus:ring-lime-400 outline-none" />
+                <button onClick={handleAssignDiscount} disabled={userActLoading}
+                  className="px-4 py-2 text-sm font-semibold bg-zinc-700 hover:bg-zinc-600 text-zinc-100 rounded-lg disabled:opacity-50 transition-colors">
+                  Asignar
+                </button>
+              </div>
+            </div>
+
+            {userActionMsg && <p className="text-xs text-green-400">{userActionMsg}</p>}
+            {userActionErr && <p className="text-xs text-red-400">{userActionErr}</p>}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────
 const AdminPage = () => {
   const { user } = useAuth();
@@ -568,6 +911,7 @@ const AdminPage = () => {
           ['dashboard', 'Resumen'],
           ['users',     'Usuarios'],
           ['incidents', 'Incidencias'],
+          ['payments',  'Pagos'],
           ['strava',    'Strava'],
         ] as const).map(([id, label]) => (
           <button
@@ -927,6 +1271,9 @@ const AdminPage = () => {
           )}
         </div>
       )}
+
+      {/* ── PAYMENTS TAB ── */}
+      {tab === 'payments' && <StripePaymentsPanel users={users} />}
 
       {/* ── STRAVA TAB ── */}
       {tab === 'strava' && <StravaWebhookPanel />}

@@ -13,3 +13,6 @@ export { getStravaWebhookStatus, registerStravaWebhook, deleteStravaWebhook } fr
 export { adminBanUser, adminDeleteUser, adminDeletePlan } from './adminActions';
 export { onUserCreated, onIncidentUpdated, onPlanCreated } from './triggers';
 export { dailyRaceReminder, weeklyEmailSummary } from './scheduled';
+export { createCheckoutSession, createPortalSession, validateDiscountCode } from './stripe';
+export { stripeWebhookHandler } from './stripeWebhook';
+export { createDiscountCode, listDiscountCodes, toggleDiscountCode, setUserExempt, assignDiscountToUser } from './stripeAdmin';

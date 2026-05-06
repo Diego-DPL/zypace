@@ -1,11 +1,14 @@
 import AppRouter from './router';
 import { AuthProvider } from './context/AuthContext';
+import { SubscriptionProvider } from './context/SubscriptionContext';
 import './App.css';
 
 function App() {
   return (
     <AuthProvider>
-      <AppRouter />
+      <SubscriptionProvider>
+        <AppRouter />
+      </SubscriptionProvider>
     </AuthProvider>
   );
 }

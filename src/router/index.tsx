@@ -10,23 +10,34 @@ import StravaCallbackPage from '../pages/StravaCallbackPage';
 import TrainingPlanPage from '../pages/TrainingPlanPage';
 import AdminPage from '../pages/AdminPage';
 import SupportPage from '../pages/SupportPage';
+import SubscriptionPage from '../pages/SubscriptionPage';
 import Layout from '../components/Layout';
 import PrivacyPage from '../pages/PrivacyPage';
 import TermsPage from '../pages/TermsPage';
 import SecurityPage from '../pages/SecurityPage';
 import CookiesPage from '../pages/CookiesPage';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 
 const AppRouter = () => {
   const { user, role, loading } = useAuth();
+  const { hasAccess, loading: subLoading } = useSubscription();
 
-  if (loading) {
+  if (loading || subLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
         <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-lime-400 animate-spin" />
       </div>
     );
   }
+
+  // Authenticated users without access go to /subscription instead of app routes
+  // Admins bypass the subscription gate
+  const appElement = (el: React.ReactNode) => {
+    if (!user) return <Navigate to="/" />;
+    if (!hasAccess && role !== 'admin') return <Navigate to="/subscription" />;
+    return el;
+  };
 
   return (
     <Router>
@@ -39,11 +50,12 @@ const AppRouter = () => {
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/security" element={<SecurityPage />} />
           <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/app" element={user ? <HomePage /> : <Navigate to="/" />} />
-          <Route path="/calendar" element={user ? <CalendarPage /> : <Navigate to="/" />} />
-          <Route path="/races" element={user ? <RacesPage /> : <Navigate to="/" />} />
-          <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/" />} />
-          <Route path="/training-plan" element={user ? <TrainingPlanPage /> : <Navigate to="/" />} />
+          <Route path="/app"           element={appElement(<HomePage />)} />
+          <Route path="/calendar"      element={appElement(<CalendarPage />)} />
+          <Route path="/races"         element={appElement(<RacesPage />)} />
+          <Route path="/settings"      element={appElement(<SettingsPage />)} />
+          <Route path="/training-plan" element={appElement(<TrainingPlanPage />)} />
+          <Route path="/subscription"  element={user ? <SubscriptionPage /> : <Navigate to="/" />} />
           <Route path="/support" element={<SupportPage />} />
           <Route path="/admin" element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
           <Route path="/strava-callback" element={<StravaCallbackPage />} />

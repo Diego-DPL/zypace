@@ -1,6 +1,16 @@
 import LandingHeader from "../components/LandingHeader";
 import { Link } from 'react-router-dom';
 
+const PRICE_FEATURES = [
+  'Planes de entrenamiento personalizados con IA',
+  'Calendario inteligente con vista semana/mes',
+  'Sincronización automática con Strava',
+  'Análisis de progreso semanal por email',
+  'Calibración de zonas de ritmo',
+  'Recordatorios de carrera',
+  'Soporte por email',
+];
+
 const features = [
   {
     title: 'Calendario Inteligente',
@@ -53,7 +63,7 @@ const steps = [
 ];
 
 const faqs = [
-  { q: '¿Necesito pagar para usarlo?', a: 'Actualmente la plataforma está en fase temprana y puedes probar las funciones base gratis.' },
+  { q: '¿Cuánto cuesta?', a: 'Zypace cuesta 9,99 € al mes. Incluye acceso completo a todas las funciones y puedes cancelar en cualquier momento desde el portal de cliente.' },
   { q: '¿Puedo regenerar un plan?', a: 'Sí, puedes regenerar y reemplazarlo si cambian tus objetivos o la fecha.' },
   { q: '¿Soporta otros deportes?', a: 'De momento nos centramos en running. Próximamente añadiremos ciclismo y triatlón.' },
   { q: '¿Cómo se calcula el progreso?', a: 'Comparamos tus entrenos planificados vs actividades reales y señalamos cumplimiento.' },
@@ -117,8 +127,52 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* Pricing */}
       <section className="py-24 bg-zinc-900">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Precio simple y claro</h2>
+          <p className="text-center text-zinc-500 mb-12">Sin planes confusos. Sin costes ocultos.</p>
+
+          <div className="max-w-sm mx-auto">
+            <div className="relative bg-zinc-950 border border-zinc-700 rounded-2xl overflow-hidden">
+              {/* Top accent */}
+              <div className="h-1 bg-gradient-to-r from-lime-400 to-lime-300" />
+
+              <div className="p-8">
+                <p className="text-xs font-semibold text-lime-400 uppercase tracking-widest mb-3">Zypace Pro</p>
+
+                <div className="flex items-baseline gap-1 mb-1">
+                  <span className="text-5xl font-extrabold text-white">9,99 €</span>
+                  <span className="text-zinc-500">/mes</span>
+                </div>
+                <p className="text-sm text-zinc-500 mb-8">Cancela cuando quieras</p>
+
+                <ul className="space-y-3 mb-8">
+                  {PRICE_FEATURES.map(f => (
+                    <li key={f} className="flex items-center gap-3 text-sm text-zinc-300">
+                      <svg className="w-4 h-4 text-lime-400 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                        <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                      </svg>
+                      {f}
+                    </li>
+                  ))}
+                </ul>
+
+                <Link
+                  to="/register"
+                  className="block w-full text-center py-3.5 rounded-xl font-bold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition"
+                >
+                  Empezar ahora
+                </Link>
+                <p className="text-center text-xs text-zinc-600 mt-3">Pago seguro con Stripe</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* CTA */}
+      <section className="py-24 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Convierte tus actividades en progreso real</h2>
           <p className="text-zinc-400 max-w-3xl mx-auto mb-10">La mayoría de los corredores pierden consistencia por falta de visibilidad. Aquí ves plan vs realidad cada día y la IA te ayuda a mantener el rumbo.</p>

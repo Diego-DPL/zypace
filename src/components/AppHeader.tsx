@@ -1,11 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSubscription } from '../context/SubscriptionContext';
 import { useState } from 'react';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
 
 const AppHeader = () => {
   const { user, role, signOut } = useAuth();
+  const { subscriptionStatus, isExempt } = useSubscription();
   const navigate = useNavigate();
+  const hasBillingIssue = !isExempt && (subscriptionStatus === 'past_due' || subscriptionStatus === 'incomplete');
 
   const handleLogout = async () => {
     await signOut();
@@ -37,6 +40,10 @@ const AppHeader = () => {
           <Link to="/training-plan" className="text-zinc-400 hover:text-lime-400 transition-colors">Mi Plan</Link>
           <Link to="/races" className="text-zinc-400 hover:text-lime-400 transition-colors">Carreras</Link>
           <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors">Ajustes</Link>
+          <Link to="/subscription" className="text-zinc-400 hover:text-lime-400 transition-colors flex items-center gap-1.5">
+            Suscripción
+            {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+          </Link>
           <Link to="/support" className="text-zinc-400 hover:text-lime-400 transition-colors">Soporte</Link>
           {role === 'admin' && (
             <Link to="/admin" className="text-lime-400 hover:text-lime-300 font-semibold transition-colors flex items-center gap-1">
@@ -62,6 +69,10 @@ const AppHeader = () => {
             <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Mi Plan</Link>
             <Link onClick={() => setOpen(false)} to="/races" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Carreras</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Ajustes</Link>
+            <Link onClick={() => setOpen(false)} to="/subscription" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
+              Suscripción
+              {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
+            </Link>
             <Link onClick={() => setOpen(false)} to="/support" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Soporte</Link>
             {role === 'admin' && (
               <Link onClick={() => setOpen(false)} to="/admin" className="py-2 px-3 rounded hover:bg-zinc-800 text-lime-400 font-semibold flex items-center gap-2">
