@@ -1,7 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.onIncidentUpdated = exports.onUserCreated = void 0;
+exports.onIncidentUpdated = exports.onPlanCreated = exports.onUserCreated = void 0;
 const firestore_1 = require("firebase-functions/v2/firestore");
+const firestore_2 = require("firebase-admin/firestore");
 const emailService_1 = require("./emailService");
 /**
  * Sends a welcome email when a new user document is created in Firestore.
@@ -24,6 +25,40 @@ exports.onUserCreated = (0, firestore_1.onDocumentCreated)({ document: 'users/{u
     }
     catch (err) {
         console.error('[onUserCreated] Failed to send welcome email:', err);
+    }
+});
+/**
+ * Sends a "plan ready" email when a new training plan is created.
+ * Fires on: users/{uid}/training_plans/{planId} creation.
+ */
+exports.onPlanCreated = (0, firestore_1.onDocumentCreated)({ document: 'users/{uid}/training_plans/{planId}', region: 'europe-west1', secrets: [emailService_1.resendApiKey] }, async (event) => {
+    var _a, _b, _c, _d;
+    const plan = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
+    if (!plan)
+        return;
+    const uid = event.params.uid;
+    const db = (0, firestore_2.getFirestore)();
+    try {
+        // Get user email and name
+        const userDoc = await db.collection('users').doc(uid).get();
+        const user = userDoc.data();
+        if (!(user === null || user === void 0 ? void 0 : user.email))
+            return;
+        // Get race info if available
+        let raceName = '';
+        let raceDate = '';
+        if (plan.race_id) {
+            const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+            if (raceDoc.exists) {
+                raceName = ((_b = raceDoc.data()) === null || _b === void 0 ? void 0 : _b.name) || '';
+                raceDate = ((_c = raceDoc.data()) === null || _c === void 0 ? void 0 : _c.date) || '';
+            }
+        }
+        await (0, emailService_1.sendPlanReadyEmail)(user.email, user.first_name || '', plan.goal || '', (_d = plan.total_weeks) !== null && _d !== void 0 ? _d : 0, raceName, raceDate);
+        console.log('[onPlanCreated] Plan ready email sent to:', user.email);
+    }
+    catch (err) {
+        console.error('[onPlanCreated] Failed to send plan ready email:', err);
     }
 });
 /**

@@ -1,9 +1,11 @@
 import { onDocumentCreated, onDocumentUpdated } from 'firebase-functions/v2/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   resendApiKey,
   sendWelcomeEmail,
   sendIncidentReplyEmail,
   sendIncidentResolvedEmail,
+  sendPlanReadyEmail,
 } from './emailService';
 
 /**
@@ -29,6 +31,51 @@ export const onUserCreated = onDocumentCreated(
       console.log('[onUserCreated] Welcome email sent to:', email);
     } catch (err) {
       console.error('[onUserCreated] Failed to send welcome email:', err);
+    }
+  }
+);
+
+/**
+ * Sends a "plan ready" email when a new training plan is created.
+ * Fires on: users/{uid}/training_plans/{planId} creation.
+ */
+export const onPlanCreated = onDocumentCreated(
+  { document: 'users/{uid}/training_plans/{planId}', region: 'europe-west1', secrets: [resendApiKey] },
+  async (event) => {
+    const plan = event.data?.data();
+    if (!plan) return;
+
+    const uid = event.params.uid;
+    const db  = getFirestore();
+
+    try {
+      // Get user email and name
+      const userDoc = await db.collection('users').doc(uid).get();
+      const user    = userDoc.data();
+      if (!user?.email) return;
+
+      // Get race info if available
+      let raceName = '';
+      let raceDate = '';
+      if (plan.race_id) {
+        const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+        if (raceDoc.exists) {
+          raceName = raceDoc.data()?.name  || '';
+          raceDate = raceDoc.data()?.date  || '';
+        }
+      }
+
+      await sendPlanReadyEmail(
+        user.email,
+        user.first_name || '',
+        plan.goal       || '',
+        plan.total_weeks ?? 0,
+        raceName,
+        raceDate,
+      );
+      console.log('[onPlanCreated] Plan ready email sent to:', user.email);
+    } catch (err) {
+      console.error('[onPlanCreated] Failed to send plan ready email:', err);
     }
   }
 );

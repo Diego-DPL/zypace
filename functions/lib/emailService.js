@@ -4,6 +4,9 @@ exports.resendApiKey = void 0;
 exports.sendWelcomeEmail = sendWelcomeEmail;
 exports.sendIncidentReplyEmail = sendIncidentReplyEmail;
 exports.sendIncidentResolvedEmail = sendIncidentResolvedEmail;
+exports.sendPlanReadyEmail = sendPlanReadyEmail;
+exports.sendRaceReminderEmail = sendRaceReminderEmail;
+exports.sendWeeklySummaryEmail = sendWeeklySummaryEmail;
 const resend_1 = require("resend");
 const params_1 = require("firebase-functions/params");
 exports.resendApiKey = (0, params_1.defineSecret)('RESEND_API_KEY');
@@ -138,6 +141,111 @@ function incidentResolvedHtml(subject) {
   `;
     return layout('Tu incidencia ha sido resuelta', body);
 }
+// ── Plan ready email ──────────────────────────────────────────────────
+function planReadyHtml(firstName, goal, totalWeeks, raceName, raceDate) {
+    const name = firstName || 'corredor';
+    const fmtDate = raceDate
+        ? new Date(raceDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
+    const body = `
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;width:52px;height:52px;background:#f7fee7;border-radius:50%;line-height:52px;font-size:26px;">🏃</div>
+    </div>
+    ${h1(`¡Tu plan está listo, ${name}!`)}
+    ${p(`Hemos generado tu plan de entrenamiento para <strong style="color:#18181b;">${raceName || 'tu carrera'}</strong>${fmtDate ? ` el ${fmtDate}` : ''}.`)}
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;background:#f9fafb;border-radius:8px;overflow:hidden;">
+      <tr>
+        <td style="padding:16px 20px;border-bottom:1px solid #e4e4e7;">
+          <p style="margin:0;font-size:12px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Objetivo</p>
+          <p style="margin:4px 0 0;font-size:15px;color:#18181b;font-weight:500;">${goal || '—'}</p>
+        </td>
+      </tr>
+      <tr>
+        <td style="padding:16px 20px;">
+          <p style="margin:0;font-size:12px;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.05em;font-weight:600;">Duración</p>
+          <p style="margin:4px 0 0;font-size:15px;color:#18181b;font-weight:500;">${totalWeeks ? `${totalWeeks} semanas` : '—'}</p>
+        </td>
+      </tr>
+    </table>
+
+    ${p('Ya puedes ver tu calendario completo de entrenamientos. Recuerda conectar Strava para que tus actividades se marquen como completadas automáticamente.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/training-plan`, 'Ver mi plan')}
+    </div>
+  `;
+    return layout('Tu plan de entrenamiento está listo', body);
+}
+// ── Race reminder email ───────────────────────────────────────────────
+function raceReminderHtml(firstName, raceName, raceDate, daysLeft) {
+    const name = firstName || 'corredor';
+    const fmtDate = raceDate
+        ? new Date(raceDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+        : '';
+    const body = `
+    <div style="text-align:center;margin-bottom:20px;">
+      <div style="display:inline-block;background:${LIME};border-radius:12px;padding:8px 20px;">
+        <span style="font-size:32px;font-weight:800;color:#000;line-height:1;">${daysLeft}</span>
+        <span style="font-size:14px;font-weight:600;color:#000;margin-left:4px;">días</span>
+      </div>
+    </div>
+    ${h1(`¡${raceName} se acerca, ${name}!`)}
+    ${p(`Tu carrera es el <strong style="color:#18181b;">${fmtDate || raceDate}</strong>. Quedan exactamente ${daysLeft} días. Es el momento de afinar los últimos detalles.`)}
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:#3f3f46;">Checklist final</p>
+      ${['Revisa tu plan de tapering esta semana', 'Confirma la logística: transporte, dorsal, bolsa', 'Prepara tu equipación y nutrición de carrera', 'Descansa bien los 2 días anteriores'].map(item => `<p style="margin:0 0 6px;font-size:13px;color:#71717a;padding-left:16px;">· ${item}</p>`).join('')}
+    </div>
+
+    ${p('¡Mucha suerte! Has trabajado duro para llegar hasta aquí.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/races`, 'Ver calendario de carreras')}
+    </div>
+  `;
+    return layout(`¡${raceName} en ${daysLeft} días!`, body);
+}
+function weeklySummaryHtml(firstName, stats) {
+    const name = firstName || 'corredor';
+    const rate = stats.totalWorkouts > 0
+        ? Math.round((stats.completedWorkouts / stats.totalWorkouts) * 100)
+        : 0;
+    const rateColor = rate >= 80 ? '#16a34a' : rate >= 50 ? '#d97706' : '#dc2626';
+    const rateEmoji = rate >= 80 ? '🔥' : rate >= 50 ? '👍' : '💪';
+    const body = `
+    ${h1(`Tu semana, ${name} ${rateEmoji}`)}
+    ${p(`Resumen de la semana del <strong style="color:#18181b;">${stats.weekLabel}</strong>.`)}
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+      <tr>
+        ${[
+        { label: 'Entrenamientos', value: `${stats.completedWorkouts}/${stats.totalWorkouts}`, sub: 'completados' },
+        { label: 'Cumplimiento', value: `${rate}%`, sub: 'del plan', color: rateColor },
+        { label: 'Próxima semana', value: String(stats.nextWeekWorkouts), sub: 'sesiones' },
+    ].map(card => `
+          <td style="width:33%;padding:0 6px 0 0;vertical-align:top;">
+            <div style="background:#f9fafb;border-radius:8px;padding:14px;text-align:center;">
+              <p style="margin:0 0 2px;font-size:22px;font-weight:700;color:${card.color || DARK};">${card.value}</p>
+              <p style="margin:0;font-size:11px;color:#a1a1aa;">${card.label}</p>
+              <p style="margin:0;font-size:11px;color:#d4d4d8;">${card.sub}</p>
+            </div>
+          </td>`).join('')}
+      </tr>
+    </table>
+
+    ${rate >= 80
+        ? p('Semana excelente. Mantén el ritmo y sigue así de constante.')
+        : rate >= 50
+            ? p('Buena semana. Intenta completar los entrenamientos pendientes si puedes recuperarlos.')
+            : p('Ha sido una semana difícil. Sin presión — la constancia a largo plazo es lo que importa.')}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/calendar`, 'Ver mi calendario')}
+    </div>
+  `;
+    return layout('Tu resumen semanal · Zypace', body);
+}
 // ── Public send functions ─────────────────────────────────────────────
 async function sendWelcomeEmail(to, firstName) {
     const resend = new resend_1.Resend(exports.resendApiKey.value());
@@ -164,6 +272,33 @@ async function sendIncidentResolvedEmail(to, subject) {
         to: [to],
         subject: `Tu incidencia ha sido resuelta: "${subject}"`,
         html: incidentResolvedHtml(subject),
+    });
+}
+async function sendPlanReadyEmail(to, firstName, goal, totalWeeks, raceName, raceDate) {
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: `¡Tu plan de entrenamiento está listo!`,
+        html: planReadyHtml(firstName, goal, totalWeeks, raceName, raceDate),
+    });
+}
+async function sendRaceReminderEmail(to, firstName, raceName, raceDate, daysLeft) {
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: `⏱ ${raceName} en ${daysLeft} días — ¿listo?`,
+        html: raceReminderHtml(firstName, raceName, raceDate, daysLeft),
+    });
+}
+async function sendWeeklySummaryEmail(to, firstName, stats) {
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: `Tu resumen semanal · ${stats.weekLabel}`,
+        html: weeklySummaryHtml(firstName, stats),
     });
 }
 //# sourceMappingURL=emailService.js.map

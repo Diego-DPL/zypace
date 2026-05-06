@@ -34,5 +34,14 @@
       ]
     }
   ],
-  "fieldOverrides": []
+  "fieldOverrides": [],
+  "collectionGroupIndexes": [
+    {
+      "collectionGroup": "races",
+      "queryScope": "COLLECTION_GROUP",
+      "fields": [
+        { "fieldPath": "date", "order": "ASCENDING" }
+      ]
+    }
+  ]
 }
