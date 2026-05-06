@@ -76,6 +76,52 @@ function formatDuration(secs: number): string {
   return `${m}min`;
 }
 
+// ── Strength exercise parser ───────────────────────────────────────────────
+interface Exercise { sets?: string; reps?: string; rest?: string; name: string }
+
+function parseExercises(raw: string): Exercise[] {
+  return raw
+    .split('\n')
+    .map(l => l.trim().replace(/^[-*•·]\s*/, ''))
+    .filter(Boolean)
+    .map(line => {
+      // "3x12 Sentadillas" or "3×12 Peso muerto"
+      const m1 = line.match(/^(\d+)\s*[x×]\s*(\d+(?:[–\-]\d+)?)\s+(.+?)(?:\s*[(\[](.+?)[)\]])?$/i);
+      if (m1) return { sets: m1[1], reps: m1[2], name: m1[3].trim(), rest: m1[4] };
+      // "3 series de 12 Sentadillas" / "3 series 12 reps Flexiones"
+      const m2 = line.match(/^(\d+)\s+series?\s+(?:de\s+)?(\d+(?:[–\-]\d+)?)\s*(?:reps?|repeticiones?)?\s*(?:[-–:de]\s+)?(.+)/i);
+      if (m2) return { sets: m2[1], reps: m2[2], name: m2[3].trim() };
+      return { name: line };
+    });
+}
+
+function StrengthBlock({ details }: { details: string }) {
+  const exercises = parseExercises(details);
+  return (
+    <div>
+      <span className="text-xs font-bold uppercase tracking-wide text-purple-400 block mb-2.5">Ejercicios</span>
+      <div className="space-y-2">
+        {exercises.map((ex, i) => (
+          <div key={i} className="flex items-center gap-3 bg-zinc-800/80 border border-zinc-700 rounded-lg px-3 py-2.5">
+            {ex.sets && ex.reps ? (
+              <div className="flex-shrink-0 min-w-[54px] text-center bg-purple-900/60 border border-purple-700 rounded-lg px-2 py-1.5">
+                <div className="text-sm font-black text-purple-200 leading-none">{ex.sets}×{ex.reps}</div>
+                <div className="text-[9px] text-purple-500 mt-0.5 uppercase tracking-wide">series</div>
+              </div>
+            ) : (
+              <div className="flex-shrink-0 w-1.5 h-1.5 rounded-full bg-purple-500 ml-1.5" />
+            )}
+            <span className="text-sm text-zinc-100 font-medium flex-1 leading-snug">{ex.name}</span>
+            {ex.rest && (
+              <span className="text-[11px] text-zinc-500 flex-shrink-0 font-mono">{ex.rest}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function StatCell({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-center bg-zinc-800 rounded-lg px-2 py-1.5">
@@ -147,7 +193,8 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
   if (!open || !workout) return null;
 
   const exp = workout.explanation_json || {};
-  const isRest = /descanso|rest/i.test(workout.description || '');
+  const isRest     = /descanso|rest/i.test(workout.description || '');
+  const isStrength = exp.type === 'fuerza' || /fuerza/i.test(workout.description || '');
   const todayISO = new Date().toISOString().substring(0, 10);
   const isPast = workout.workout_date <= todayISO;
   const showLog = isPast && !isRest;
@@ -209,9 +256,15 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
                 </p>
               )}
               {exp.details && (
-                <div className="bg-lime-400/10 border border-lime-400/30 rounded-lg p-3">
-                  <span className="text-xs font-bold uppercase tracking-wide text-lime-400 block mb-1.5">Cómo ejecutarlo</span>
-                  <p className="text-zinc-200 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
+                <div className={`rounded-lg p-3 ${isStrength ? 'bg-purple-400/5 border border-purple-400/20' : 'bg-lime-400/10 border border-lime-400/30'}`}>
+                  {isStrength ? (
+                    <StrengthBlock details={exp.details} />
+                  ) : (
+                    <>
+                      <span className="text-xs font-bold uppercase tracking-wide text-lime-400 block mb-1.5">Cómo ejecutarlo</span>
+                      <p className="text-zinc-200 text-sm whitespace-pre-line leading-relaxed">{exp.details}</p>
+                    </>
+                  )}
                 </div>
               )}
               {exp.intensity && (
