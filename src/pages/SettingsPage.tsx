@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
@@ -845,6 +845,20 @@ const SettingsPage = () => {
             {savingProfile ? 'Guardando…' : 'Guardar perfil de corredor'}
           </button>
         </div>
+      </div>
+
+      {/* ── Soporte ── */}
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-lg font-bold text-zinc-100">¿Necesitas ayuda?</h2>
+          <p className="text-sm text-zinc-500 mt-0.5">Consulta las preguntas frecuentes o contacta con soporte.</p>
+        </div>
+        <Link
+          to="/support"
+          className="shrink-0 px-5 py-2.5 text-sm font-semibold bg-zinc-800 hover:bg-zinc-700 text-zinc-100 border border-zinc-700 rounded-xl transition-colors"
+        >
+          Centro de soporte →
+        </Link>
       </div>
     </main>
   );

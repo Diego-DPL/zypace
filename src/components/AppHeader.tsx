@@ -43,7 +43,6 @@ const AppHeader = () => {
             Ajustes
             {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
           </Link>
-          <Link to="/support" className="text-zinc-400 hover:text-lime-400 transition-colors">Soporte</Link>
           {role === 'admin' && (
             <Link to="/admin" className="text-lime-400 hover:text-lime-300 font-semibold transition-colors flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />Admin
@@ -71,7 +70,6 @@ const AppHeader = () => {
               Ajustes
               {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
             </Link>
-            <Link onClick={() => setOpen(false)} to="/support" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Soporte</Link>
             {role === 'admin' && (
               <Link onClick={() => setOpen(false)} to="/admin" className="py-2 px-3 rounded hover:bg-zinc-800 text-lime-400 font-semibold flex items-center gap-2">
                 <span className="w-1.5 h-1.5 rounded-full bg-lime-400" />Panel Admin
