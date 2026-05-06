@@ -57,6 +57,25 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
             updated_at: firestore_1.FieldValue.serverTimestamp(),
         });
     }
+    // ── 2b. Backfill athlete_id index for pre-webhook users ──
+    if (!tokenData.athlete_id) {
+        try {
+            const athleteResp = await fetch(`${STRAVA_API_BASE}/athlete`, {
+                headers: { Authorization: `Bearer ${accessToken}` },
+            });
+            if (athleteResp.ok) {
+                const athlete = await athleteResp.json();
+                const athleteId = athlete.id;
+                await tokenDoc.ref.update({ athlete_id: athleteId, updated_at: firestore_1.FieldValue.serverTimestamp() });
+                await db.collection('strava_athlete_index').doc(String(athleteId)).set({
+                    uid, updated_at: firestore_1.FieldValue.serverTimestamp(),
+                });
+            }
+        }
+        catch (_q) {
+            // Non-critical — webhook will just miss this user until reconnect
+        }
+    }
     // ── 3. Determine lookback window ─────────────────────────
     const lookbackDays = full ? 180 : 30;
     // Find last activity date for incremental sync

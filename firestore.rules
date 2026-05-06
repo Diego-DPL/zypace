@@ -52,6 +52,11 @@ service cloud.firestore {
       }
     }
 
+    // ── Strava athlete index (internal — only Cloud Functions write) ─
+    match /strava_athlete_index/{athleteId} {
+      allow read, write: if false;
+    }
+
     // ── Incidents ───────────────────────────────────────────────────
     match /incidents/{incidentId} {
       // User: create their own, read/update their own (only messages + updated_at)

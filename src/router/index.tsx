@@ -44,7 +44,7 @@ const AppRouter = () => {
           <Route path="/races" element={user ? <RacesPage /> : <Navigate to="/" />} />
           <Route path="/settings" element={user ? <SettingsPage /> : <Navigate to="/" />} />
           <Route path="/training-plan" element={user ? <TrainingPlanPage /> : <Navigate to="/" />} />
-          <Route path="/support" element={user ? <SupportPage /> : <Navigate to="/" />} />
+          <Route path="/support" element={<SupportPage />} />
           <Route path="/admin" element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
           <Route path="/strava-callback" element={<StravaCallbackPage />} />
 

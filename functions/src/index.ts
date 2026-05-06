@@ -8,3 +8,5 @@ export { calibrateZones }      from './calibrateZones';
 export { analyzeWeek }         from './analyzeWeek';
 export { generatePlan }            from './generatePlan';
 export { generateNextMesocycle }   from './generateNextMesocycle';
+export { stravaWebhookHandler }    from './stravaWebhook';
+export { getStravaWebhookStatus, registerStravaWebhook, deleteStravaWebhook } from './stravaWebhookAdmin';

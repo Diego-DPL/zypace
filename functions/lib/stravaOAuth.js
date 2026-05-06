@@ -35,6 +35,9 @@ exports.stravaExchangeToken = (0, https_1.onCall)({ region: 'europe-west1', cors
     }
     const tokenData = await resp.json();
     const db = (0, firestore_1.getFirestore)();
+    // Extract athlete ID from token response
+    const athlete = tokenData.athlete;
+    const athleteId = athlete === null || athlete === void 0 ? void 0 : athlete.id;
     await db
         .collection('users').doc(uid)
         .collection('strava_tokens').doc('default')
@@ -43,8 +46,15 @@ exports.stravaExchangeToken = (0, https_1.onCall)({ region: 'europe-west1', cors
         refresh_token: tokenData.refresh_token,
         expires_at: tokenData.expires_at,
         scope: (_b = tokenData.scope) !== null && _b !== void 0 ? _b : '',
+        athlete_id: athleteId !== null && athleteId !== void 0 ? athleteId : null,
         updated_at: firestore_1.FieldValue.serverTimestamp(),
     });
+    // Create reverse-lookup index so webhooks can find uid from athlete_id
+    if (athleteId) {
+        await db
+            .collection('strava_athlete_index').doc(String(athleteId))
+            .set({ uid, updated_at: firestore_1.FieldValue.serverTimestamp() });
+    }
     return { success: true };
 });
 //# sourceMappingURL=stravaOAuth.js.map

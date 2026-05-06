@@ -38,6 +38,10 @@ export const stravaExchangeToken = onCall(
     const tokenData = await resp.json() as Record<string, unknown>;
     const db = getFirestore();
 
+    // Extract athlete ID from token response
+    const athlete = tokenData.athlete as Record<string, unknown> | undefined;
+    const athleteId = athlete?.id as number | undefined;
+
     await db
       .collection('users').doc(uid)
       .collection('strava_tokens').doc('default')
@@ -46,8 +50,16 @@ export const stravaExchangeToken = onCall(
         refresh_token: tokenData.refresh_token,
         expires_at:    tokenData.expires_at,
         scope:         tokenData.scope ?? '',
+        athlete_id:    athleteId ?? null,
         updated_at:    FieldValue.serverTimestamp(),
       });
+
+    // Create reverse-lookup index so webhooks can find uid from athlete_id
+    if (athleteId) {
+      await db
+        .collection('strava_athlete_index').doc(String(athleteId))
+        .set({ uid, updated_at: FieldValue.serverTimestamp() });
+    }
 
     return { success: true };
   }

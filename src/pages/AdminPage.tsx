@@ -3,10 +3,11 @@ import {
   collection, getDocs, doc, updateDoc, addDoc,
   query, orderBy, limit, serverTimestamp,
 } from 'firebase/firestore';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'dashboard' | 'users' | 'incidents';
+type Tab = 'dashboard' | 'users' | 'incidents' | 'strava';
 type IncidentStatus = 'abierta' | 'en_proceso' | 'resuelta';
 
 interface UserDoc {
@@ -218,6 +219,180 @@ function IncidentModal({
   );
 }
 
+// ── Strava Webhook Panel ──────────────────────────────────────────────
+interface WebhookSubscription {
+  id: number;
+  callback_url: string;
+  created_at: string;
+  updated_at: string;
+  application_id: number;
+}
+
+function StravaWebhookPanel() {
+  const [loading, setLoading]           = useState(false);
+  const [subscriptions, setSubscriptions] = useState<WebhookSubscription[]>([]);
+  const [webhookUrl, setWebhookUrl]     = useState('');
+  const [actionState, setActionState]   = useState<'idle' | 'loading' | 'ok' | 'error'>('idle');
+  const [actionMsg, setActionMsg]       = useState('');
+
+  const fns = getFunctions(undefined, 'europe-west1');
+
+  const loadStatus = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fn = httpsCallable<unknown, { subscriptions: WebhookSubscription[]; webhookUrl: string }>(
+        fns, 'getStravaWebhookStatus'
+      );
+      const res = await fn({});
+      setSubscriptions(res.data.subscriptions);
+      setWebhookUrl(res.data.webhookUrl);
+    } catch (e: any) {
+      console.error('getStravaWebhookStatus error', e);
+    }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadStatus(); }, [loadStatus]);
+
+  const handleRegister = async () => {
+    setActionState('loading');
+    setActionMsg('');
+    try {
+      const fn = httpsCallable(fns, 'registerStravaWebhook');
+      await fn({});
+      setActionState('ok');
+      setActionMsg('Webhook registrado. Strava enviará los eventos automáticamente.');
+      await loadStatus();
+    } catch (e: any) {
+      setActionState('error');
+      setActionMsg(e?.message || 'Error al registrar el webhook');
+    }
+  };
+
+  const handleDelete = async (id: number) => {
+    setActionState('loading');
+    setActionMsg('');
+    try {
+      const fn = httpsCallable(fns, 'deleteStravaWebhook');
+      await fn({ subscriptionId: id });
+      setActionState('ok');
+      setActionMsg('Suscripción eliminada correctamente.');
+      await loadStatus();
+    } catch (e: any) {
+      setActionState('error');
+      setActionMsg(e?.message || 'Error al eliminar el webhook');
+    }
+  };
+
+  const hasSubscription = subscriptions.length > 0;
+
+  return (
+    <div className="space-y-5">
+      {/* Header card */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-semibold text-zinc-200 mb-1">Strava Webhooks</h3>
+            <p className="text-xs text-zinc-500 leading-relaxed max-w-lg">
+              En lugar de consultar la API de Strava por cada usuario (100 req/15 min),
+              los webhooks permiten que Strava notifique automáticamente cada actividad nueva.
+              Con un webhook activo, cada usuario consume <strong className="text-zinc-300">1–2 llamadas</strong> por actividad
+              en lugar de 5–10 por sincronización.
+            </p>
+          </div>
+          <div className={`shrink-0 px-3 py-1 rounded-full text-xs font-bold border ${
+            hasSubscription
+              ? 'bg-green-950/50 text-green-400 border-green-800'
+              : 'bg-zinc-800 text-zinc-500 border-zinc-700'
+          }`}>
+            {hasSubscription ? '● Activo' : '○ Inactivo'}
+          </div>
+        </div>
+
+        {/* Callback URL */}
+        {webhookUrl && (
+          <div className="mt-4">
+            <p className="text-[11px] font-semibold text-zinc-500 uppercase tracking-wider mb-1">URL del endpoint</p>
+            <code className="block text-xs text-zinc-400 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 break-all">
+              {webhookUrl}
+            </code>
+          </div>
+        )}
+      </div>
+
+      {/* Current subscriptions */}
+      {loading ? (
+        <div className="flex items-center gap-3 py-6 text-xs text-zinc-500">
+          <div className="w-4 h-4 rounded-full border border-zinc-600 border-t-lime-400 animate-spin" />
+          Comprobando suscripciones…
+        </div>
+      ) : hasSubscription ? (
+        <div className="space-y-2">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">Suscripciones activas</p>
+          {subscriptions.map(sub => (
+            <div key={sub.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between gap-4">
+              <div className="text-xs space-y-1 min-w-0">
+                <p className="text-zinc-300 font-semibold">ID: {sub.id} · App: {sub.application_id}</p>
+                <p className="text-zinc-500 truncate">{sub.callback_url}</p>
+                <p className="text-zinc-600">
+                  Creado: {new Date(sub.created_at).toLocaleDateString('es-ES')} ·
+                  Actualizado: {new Date(sub.updated_at).toLocaleDateString('es-ES')}
+                </p>
+              </div>
+              <button
+                onClick={() => handleDelete(sub.id)}
+                disabled={actionState === 'loading'}
+                className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-800 text-red-400 hover:bg-red-950/40 disabled:opacity-50 transition-colors"
+              >
+                Eliminar
+              </button>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center">
+          <p className="text-zinc-500 text-sm mb-4">No hay ninguna suscripción activa.<br/>Registra el webhook para activar la sincronización automática.</p>
+          <button
+            onClick={handleRegister}
+            disabled={actionState === 'loading'}
+            className="px-5 py-2.5 text-sm font-semibold bg-lime-400 text-black rounded-lg hover:bg-lime-500 disabled:opacity-50 transition-colors"
+          >
+            {actionState === 'loading' ? 'Registrando…' : 'Registrar webhook'}
+          </button>
+        </div>
+      )}
+
+      {/* Reload + status message */}
+      <div className="flex items-center justify-between gap-4">
+        <button
+          onClick={loadStatus}
+          disabled={loading}
+          className="text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50"
+        >
+          ↻ Recargar estado
+        </button>
+        {actionMsg && (
+          <p className={`text-xs ${actionState === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+            {actionMsg}
+          </p>
+        )}
+      </div>
+
+      {/* How it works */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-3">Cómo funciona</p>
+        <ol className="space-y-2 text-xs text-zinc-400 list-decimal list-inside">
+          <li>Al conectar Strava, se guarda el <code className="text-zinc-300">athlete_id</code> en Firestore.</li>
+          <li>Cuando un usuario graba una actividad, Strava llama al endpoint <code className="text-zinc-300">stravaWebhookHandler</code>.</li>
+          <li>La función busca el usuario por <code className="text-zinc-300">athlete_id</code> y descarga la actividad (1 llamada API).</li>
+          <li>La actividad se guarda automáticamente y se marca el entrenamiento como completado si coincide.</li>
+          <li>Los usuarios no necesitan pulsar "Sincronizar" manualmente.</li>
+        </ol>
+      </div>
+    </div>
+  );
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────
 const AdminPage = () => {
   const { user } = useAuth();
@@ -307,11 +482,12 @@ const AdminPage = () => {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl mb-6 border border-zinc-800 w-fit">
+      <div className="flex gap-1 bg-zinc-900 p-1 rounded-xl mb-6 border border-zinc-800 w-fit flex-wrap">
         {([
           ['dashboard', 'Resumen'],
           ['users',     'Usuarios'],
           ['incidents', 'Incidencias'],
+          ['strava',    'Strava'],
         ] as const).map(([id, label]) => (
           <button
             key={id}
@@ -626,6 +802,9 @@ const AdminPage = () => {
           )}
         </div>
       )}
+
+      {/* ── STRAVA TAB ── */}
+      {tab === 'strava' && <StravaWebhookPanel />}
 
       {/* Incident detail modal */}
       {selectedIncident && (
