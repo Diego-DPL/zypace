@@ -390,7 +390,7 @@ const CalendarPage = () => {
                       <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 mb-1 px-1">
                         <div />
                         {['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'].map(d => (
-                          <div key={d} className="text-center text-[11px] font-bold text-zinc-600 py-1">{d}</div>
+                          <div key={d} className="text-center text-[11px] font-bold text-zinc-300 py-1">{d}</div>
                         ))}
                       </div>
 
@@ -411,10 +411,10 @@ const CalendarPage = () => {
                             {/* Week header */}
                             <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-400/10' : 'bg-zinc-900'}`}>
                               <div className="flex items-center gap-2 flex-wrap">
-                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-600' : 'text-zinc-500'}`}>
+                                <span className={`text-[11px] font-black uppercase tracking-wide ${isCurrentWeek ? 'text-lime-500' : 'text-zinc-200'}`}>
                                   {isCurrentWeek ? 'Esta semana' : label}
                                 </span>
-                                <span className="text-[10px] text-zinc-600">{range}</span>
+                                <span className="text-[10px] text-zinc-400">{range}</span>
                                 {allDone && trainDays.length > 0 && (
                                   <span className="text-[10px] font-bold text-green-400 bg-green-950/60 border border-green-800 px-1.5 py-0.5 rounded-full">✓ Completa</span>
                                 )}
@@ -429,14 +429,14 @@ const CalendarPage = () => {
                                   </span>
                                 )}
                                 {weeklyMin > 0 && weeklyKm === 0 && (
-                                  <span className="text-[11px] font-mono text-zinc-500">{weeklyMin} min</span>
+                                  <span className="text-[11px] font-mono text-zinc-300">{weeklyMin} min</span>
                                 )}
                                 {trainDays.length > 0 && (
                                   <div className="flex items-center gap-1.5">
                                     <div className="w-14 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                                       <div className={`h-full rounded-full transition-all ${allDone ? 'bg-green-500' : 'bg-lime-300'}`} style={{ width: `${pctW}%` }} />
                                     </div>
-                                    <span className={`text-[10px] font-semibold tabular-nums ${allDone ? 'text-green-600' : 'text-zinc-500'}`}>{doneDays.length}/{trainDays.length}</span>
+                                    <span className={`text-[10px] font-semibold tabular-nums ${allDone ? 'text-green-500' : 'text-zinc-300'}`}>{doneDays.length}/{trainDays.length}</span>
                                   </div>
                                 )}
                               </div>
@@ -445,8 +445,8 @@ const CalendarPage = () => {
                             {/* Day cells */}
                             <div className="grid grid-cols-[90px_repeat(7,1fr)] gap-1 p-2 bg-zinc-950">
                               <div className="flex flex-col justify-center gap-0.5 pr-1">
-                                {weeklyKm > 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyKm.toFixed(0)} km</span>}
-                                {weeklyMin > 0 && weeklyKm === 0 && <span className="text-[10px] text-zinc-600 font-mono">{weeklyMin} min</span>}
+                                {weeklyKm > 0 && <span className="text-[10px] text-zinc-400 font-mono">{weeklyKm.toFixed(0)} km</span>}
+                                {weeklyMin > 0 && weeklyKm === 0 && <span className="text-[10px] text-zinc-400 font-mono">{weeklyMin} min</span>}
                               </div>
                               {Array.from({ length: 7 }, (_, col) => {
                                 const w = items.find(x => getWeekday(x.workout_date) === col);
@@ -473,15 +473,15 @@ const CalendarPage = () => {
                                       style={{ border: '1px solid #3f3f46', borderLeftWidth: 3, borderLeftColor: st.color }}
                                     >
                                       <div className="flex items-center justify-between">
-                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-600' : 'text-zinc-500'}`}>{dayNum}</span>
+                                        <span className={`text-[11px] font-bold leading-none ${isToday ? 'text-lime-500' : 'text-zinc-300'}`}>{dayNum}</span>
                                         {w.is_completed && !isRest && <span className="text-[9px] text-green-500 font-black leading-none">✓</span>}
                                       </div>
                                       <div className="flex-1" />
                                       <div className={`text-[10px] font-bold leading-tight truncate ${st.text}`}>{st.label}</div>
                                       {w.distance_km ? (
-                                        <div className="text-[10px] text-zinc-500 font-mono leading-tight">{w.distance_km}km</div>
+                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.distance_km}km</div>
                                       ) : w.duration_min ? (
-                                        <div className="text-[10px] text-zinc-500 font-mono leading-tight">{w.duration_min}min</div>
+                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.duration_min}min</div>
                                       ) : null}
                                     </div>
                                     {canToggle && (
@@ -533,14 +533,14 @@ const CalendarPage = () => {
                       <div className={`flex items-center justify-between px-4 py-3 rounded-t-xl ${hasToday ? 'bg-lime-400/10' : 'bg-zinc-900'}`}>
                         <div>
                           <span className="font-semibold text-sm text-zinc-200">{label}</span>
-                          <span className="text-xs text-zinc-500 ml-2">{range}</span>
+                          <span className="text-xs text-zinc-400 ml-2">{range}</span>
                         </div>
                         {trainDays.length > 0 && (
                           <div className="flex items-center gap-2">
                             <div className="w-20 h-1.5 bg-zinc-700 rounded-full overflow-hidden">
                               <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pctL}%` }} />
                             </div>
-                            <span className={`text-xs font-semibold ${allDone ? 'text-green-600' : 'text-zinc-500'}`}>{doneDays.length}/{trainDays.length}</span>
+                            <span className={`text-xs font-semibold ${allDone ? 'text-green-500' : 'text-zinc-300'}`}>{doneDays.length}/{trainDays.length}</span>
                           </div>
                         )}
                       </div>
@@ -572,7 +572,7 @@ const CalendarPage = () => {
                                 <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-zinc-600 text-xs">—</div>
                               )}
                               <div className="flex-shrink-0 w-28">
-                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-lime-600' : 'text-zinc-500'}`}>
+                                <div className={`text-xs font-semibold capitalize ${isToday ? 'text-lime-500' : 'text-zinc-300'}`}>
                                   {new Date(w.workout_date + 'T00:00:00').toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
                                 </div>
                                 {isToday && <span className="text-[10px] font-bold text-lime-500 uppercase tracking-wide">Hoy</span>}
@@ -581,7 +581,7 @@ const CalendarPage = () => {
                                 {w.description}
                               </span>
                               {(w.distance_km || w.duration_min) && (
-                                <span className="flex-shrink-0 text-xs text-zinc-600 font-mono">
+                                <span className="flex-shrink-0 text-xs text-zinc-400 font-mono">
                                   {w.distance_km ? `${w.distance_km}km` : ''}{w.distance_km && w.duration_min ? ' · ' : ''}{w.duration_min ? `${w.duration_min}min` : ''}
                                 </span>
                               )}
