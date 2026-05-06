@@ -4,7 +4,7 @@ const PrivacyPage = () => (
     <p>En Zypace nos comprometemos a proteger tu privacidad. Esta política describe qué datos recopilamos, cómo los usamos y cuáles son tus derechos.</p>
 
     <h2>Responsable del tratamiento</h2>
-    <p>Zypace · Contacto: privacy@zypace.com</p>
+    <p>Zypace · Contacto: support.zypace@gmail.com</p>
 
     <h2>Datos que recopilamos</h2>
     <ul>
@@ -32,10 +32,10 @@ const PrivacyPage = () => (
     </ul>
 
     <h2>Conservación de datos</h2>
-    <p>Conservamos tus datos mientras mantengas una cuenta activa. Puedes solicitar la eliminación completa escribiendo a privacy@zypace.com; eliminaremos tus datos en un plazo de 30 días.</p>
+    <p>Conservamos tus datos mientras mantengas una cuenta activa. Puedes solicitar la eliminación completa escribiendo a support.zypace@gmail.com; eliminaremos tus datos en un plazo de 30 días.</p>
 
     <h2>Tus derechos (RGPD)</h2>
-    <p>Como usuario tienes derecho a acceder, rectificar, portar, limitar el tratamiento y eliminar tus datos. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es). Para ejercer cualquier derecho contacta a privacy@zypace.com.</p>
+    <p>Como usuario tienes derecho a acceder, rectificar, portar, limitar el tratamiento y eliminar tus datos. También puedes presentar una reclamación ante la Agencia Española de Protección de Datos (aepd.es). Para ejercer cualquier derecho contacta a support.zypace@gmail.com.</p>
 
     <h2>Cambios en esta política</h2>
     <p>Si realizamos cambios significativos te notificaremos por email o mediante un aviso visible en la aplicación.</p>

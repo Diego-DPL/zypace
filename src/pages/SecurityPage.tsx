@@ -19,7 +19,7 @@ const SecurityPage = () => (
     <p>La generación de planes y el análisis de datos se ejecutan en <strong>Google Cloud Functions</strong> (Europa), con acceso restringido mediante autenticación de Firebase.</p>
 
     <h2>Reporte de vulnerabilidades</h2>
-    <p>Si encuentras un problema de seguridad, envía los detalles a <strong>security@zypace.com</strong>. Agradecemos la divulgación responsable y respondemos en un plazo de 72 horas.</p>
+    <p>Si encuentras un problema de seguridad, envía los detalles a <strong>support.zypace@gmail.com</strong>. Agradecemos la divulgación responsable y respondemos en un plazo de 72 horas.</p>
 
     <h2>Copias de seguridad</h2>
     <p>Google Firebase realiza copias de seguridad automáticas de la base de datos de forma regular.</p>

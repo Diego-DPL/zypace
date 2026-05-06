@@ -4,7 +4,7 @@ const TermsPage = () => (
     <p>Estos términos regulan el uso de la plataforma Zypace. Al registrarte o usar el servicio, aceptas estas condiciones.</p>
 
     <h2>Identificación del servicio</h2>
-    <p>Zypace es una plataforma de entrenamiento personal para corredores que combina análisis de actividad con inteligencia artificial. Contacto: legal@zypace.com</p>
+    <p>Zypace es una plataforma de entrenamiento personal para corredores que combina análisis de actividad con inteligencia artificial. Contacto: support.zypace@gmail.com</p>
 
     <h2>Uso aceptable</h2>
     <p>Debes usar el servicio de forma legal y responsable. Queda prohibido:</p>
@@ -43,7 +43,7 @@ const TermsPage = () => (
     <p>Estos términos se rigen por la legislación española. Para cualquier disputa, las partes se someten a los juzgados y tribunales del domicilio del usuario, según corresponda por ley.</p>
 
     <h2>Contacto</h2>
-    <p>Para cualquier consulta: legal@zypace.com</p>
+    <p>Para cualquier consulta: support.zypace@gmail.com</p>
 
     <p className="text-xs text-gray-500">Versión: v2 · Última actualización: 04/05/2026</p>
   </main>
