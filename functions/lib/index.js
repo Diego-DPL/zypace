@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
+exports.onIncidentUpdated = exports.onUserCreated = exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var stravaOAuth_1 = require("./stravaOAuth");
@@ -58,4 +58,7 @@ var adminActions_1 = require("./adminActions");
 Object.defineProperty(exports, "adminBanUser", { enumerable: true, get: function () { return adminActions_1.adminBanUser; } });
 Object.defineProperty(exports, "adminDeleteUser", { enumerable: true, get: function () { return adminActions_1.adminDeleteUser; } });
 Object.defineProperty(exports, "adminDeletePlan", { enumerable: true, get: function () { return adminActions_1.adminDeletePlan; } });
+var triggers_1 = require("./triggers");
+Object.defineProperty(exports, "onUserCreated", { enumerable: true, get: function () { return triggers_1.onUserCreated; } });
+Object.defineProperty(exports, "onIncidentUpdated", { enumerable: true, get: function () { return triggers_1.onIncidentUpdated; } });
 //# sourceMappingURL=index.js.map
