@@ -58,7 +58,7 @@ exports.createCheckoutSession = (0, https_1.onCall)({ region: REGION, cors: true
         success_url: `${APP_URL}/settings?sub=ok`,
         cancel_url: `${APP_URL}/settings?sub=canceled`,
         metadata: { uid },
-        subscription_data: { metadata: { uid } },
+        subscription_data: { metadata: { uid }, trial_period_days: 30 },
     };
     // Explicit user code takes priority; fall back to admin-assigned code
     const codeToCheck = (promoCode === null || promoCode === void 0 ? void 0 : promoCode.toUpperCase().trim()) || user.admin_promo_code;

@@ -7,6 +7,7 @@ exports.sendIncidentResolvedEmail = sendIncidentResolvedEmail;
 exports.sendPlanReadyEmail = sendPlanReadyEmail;
 exports.sendRaceReminderEmail = sendRaceReminderEmail;
 exports.sendWeeklySummaryEmail = sendWeeklySummaryEmail;
+exports.sendTrialStartEmail = sendTrialStartEmail;
 exports.sendInviteEmail = sendInviteEmail;
 const resend_1 = require("resend");
 const params_1 = require("firebase-functions/params");
@@ -248,6 +249,38 @@ function weeklySummaryHtml(firstName, stats) {
   `;
     return layout('Tu resumen semanal · Zypace', body);
 }
+// ── Trial start email ─────────────────────────────────────────────────
+function trialStartHtml(firstName, trialEndDate) {
+    const name = firstName || 'corredor';
+    const body = `
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;background:${LIME};border-radius:12px;padding:10px 24px;">
+        <span style="font-size:28px;font-weight:800;color:#000;line-height:1;">30</span>
+        <span style="font-size:14px;font-weight:700;color:#000;margin-left:4px;">días gratis</span>
+      </div>
+    </div>
+
+    ${h1(`¡Tu prueba gratuita ha comenzado, ${name}!`)}
+    ${p('Tienes <strong style="color:#18181b;">30 días de acceso completo a Zypace sin coste</strong>. No se realizará ningún cargo hasta el <strong style="color:#18181b;">' + trialEndDate + '</strong>.')}
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;border-left:3px solid ${LIME};">
+      <p style="margin:0 0 8px;font-size:13px;font-weight:700;color:#18181b;">Durante estos 30 días puedes:</p>
+      ${['Generar tu plan de entrenamiento personalizado con IA', 'Sincronizar todas tus actividades con Strava', 'Seguir tu progreso semana a semana', 'Calibrar tus zonas de ritmo'].map(item => `<p style="margin:0 0 5px;font-size:13px;color:#71717a;padding-left:12px;">· ${item}</p>`).join('')}
+    </div>
+
+    ${p('Si en algún momento decides que no es para ti, puedes <strong style="color:#18181b;">cancelar cuando quieras</strong> desde la configuración de tu cuenta, sin ningún compromiso ni penalización.')}
+    ${p('Estamos abiertos a cualquier sugerencia o comentario que tengas. Tu opinión nos ayuda a mejorar cada día.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/app`, 'Ir a mi dashboard')}
+    </div>
+
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('¿Tienes alguna pregunta? Escríbenos a <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>.', true)}
+    </div>
+  `;
+    return layout('Tu prueba gratuita de 30 días ha comenzado', body);
+}
 // ── Invite email ──────────────────────────────────────────────────────
 function inviteHtml() {
     const body = `
@@ -343,6 +376,18 @@ async function sendWeeklySummaryEmail(to, firstName, stats) {
         to: [to],
         subject: `Tu resumen semanal · ${stats.weekLabel}`,
         html: weeklySummaryHtml(firstName, stats),
+    });
+}
+async function sendTrialStartEmail(to, firstName, trialEndMs) {
+    const trialEndDate = new Date(trialEndMs).toLocaleDateString('es-ES', {
+        day: 'numeric', month: 'long', year: 'numeric',
+    });
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: '¡Tu prueba gratuita de 30 días ha comenzado!',
+        html: trialStartHtml(firstName, trialEndDate),
     });
 }
 async function sendInviteEmail(to) {

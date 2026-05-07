@@ -4,6 +4,7 @@ import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
 import { stripeSecretKey } from './stripe';
+import { resendApiKey, sendTrialStartEmail } from './emailService';
 
 const REGION = 'europe-west1';
 
@@ -30,7 +31,7 @@ function periodEndTs(subscription: any): Timestamp | null {
 
 // ── stripeWebhookHandler ───────────────────────────────────────────────
 export const stripeWebhookHandler = onRequest(
-  { region: REGION, secrets: [stripeSecretKey, stripeWebhookSecret] },
+  { region: REGION, secrets: [stripeSecretKey, stripeWebhookSecret, resendApiKey] },
   async (req, res) => {
     if (req.method !== 'POST') {
       res.status(405).send('Method Not Allowed');
@@ -83,7 +84,23 @@ export const stripeWebhookHandler = onRequest(
             ...(periodEnd ? { subscription_current_period_end: periodEnd } : {}),
           });
 
-          console.log(`[stripeWebhook] Subscription activated — uid: ${uid}`);
+          console.log(`[stripeWebhook] Subscription activated — uid: ${uid}, status: ${subscription.status}`);
+
+          // Send trial start email when subscription begins in trial mode
+          if (subscription.status === 'trialing' && subscription.trial_end) {
+            try {
+              const userSnap  = await db.collection('users').doc(uid).get();
+              const userData  = userSnap.data();
+              if (userData?.email) {
+                const trialEndMs = (subscription.trial_end as number) * 1000;
+                await sendTrialStartEmail(userData.email, userData.first_name || '', trialEndMs);
+                console.log(`[stripeWebhook] Trial start email sent to: ${userData.email}`);
+              }
+            } catch (err) {
+              console.error('[stripeWebhook] Failed to send trial start email:', err);
+            }
+          }
+
           break;
         }
 

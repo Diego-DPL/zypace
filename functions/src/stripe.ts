@@ -70,7 +70,7 @@ export const createCheckoutSession = onCall(
       success_url:       `${APP_URL}/settings?sub=ok`,
       cancel_url:        `${APP_URL}/settings?sub=canceled`,
       metadata:          { uid },
-      subscription_data: { metadata: { uid } },
+      subscription_data: { metadata: { uid }, trial_period_days: 30 },
     };
 
     // Explicit user code takes priority; fall back to admin-assigned code

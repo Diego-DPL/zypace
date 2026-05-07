@@ -130,8 +130,9 @@ export default function SubscriptionPage() {
 
       {/* ── Success banner ─────────────────────────────────────────── */}
       {sessionId && (
-        <div className="mb-6 p-4 rounded-xl bg-green-950/50 border border-green-800 text-green-300 text-sm">
-          ¡Pago completado! Tu suscripción ya está activa.
+        <div className="mb-6 p-4 rounded-xl bg-lime-950/50 border border-lime-800 text-lime-300 text-sm">
+          <p className="font-semibold mb-1">¡Prueba gratuita activada!</p>
+          <p className="text-lime-400/80">Tienes 30 días de acceso completo. No se realizará ningún cargo hasta que finalice el periodo de prueba.</p>
         </div>
       )}
 
@@ -209,7 +210,8 @@ export default function SubscriptionPage() {
                   <span className="text-4xl font-extrabold text-zinc-100">9,99 €</span>
                   <span className="text-zinc-500 text-sm">/mes</span>
                 </div>
-                <p className="text-sm text-zinc-400 mt-1">Acceso completo · Cancela cuando quieras</p>
+                <p className="text-sm text-lime-400 font-semibold mt-1">30 días gratis para empezar</p>
+                <p className="text-xs text-zinc-500 mt-0.5">Sin cargos hasta el día 31 · Cancela cuando quieras</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-lime-400/10 flex items-center justify-center shrink-0">
                 <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
@@ -288,16 +290,29 @@ export default function SubscriptionPage() {
               <p className="text-sm text-red-400">{actionError}</p>
             )}
 
+            {/* Trial notice */}
+            <div className="rounded-xl bg-lime-400/5 border border-lime-400/20 p-4 space-y-1.5">
+              <p className="text-xs font-semibold text-lime-400 flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path d="M5 13l4 4L19 7" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                30 días gratis, sin compromiso
+              </p>
+              <p className="text-xs text-zinc-400 leading-relaxed">
+                Necesitas introducir una tarjeta, pero <strong className="text-zinc-200">no se realizará ningún cargo hasta pasados los 30 días</strong>. Puedes cancelar en cualquier momento antes del día 31 y no pagarás nada.
+              </p>
+            </div>
+
             <button
               onClick={handleCheckout}
               disabled={checkoutLoading}
               className="w-full py-3.5 text-sm font-bold bg-lime-400 hover:bg-lime-500 text-black rounded-xl disabled:opacity-50 shadow-lg shadow-lime-400/20 transition-all"
             >
-              {checkoutLoading ? 'Redirigiendo…' : 'Suscribirme ahora'}
+              {checkoutLoading ? 'Redirigiendo…' : 'Empezar prueba gratuita de 30 días'}
             </button>
 
             <p className="text-center text-xs text-zinc-600">
-              Pago seguro con Stripe · Cancela en cualquier momento
+              Pago seguro con Stripe · Sin cargos hasta el día 31
             </p>
           </div>
         </div>

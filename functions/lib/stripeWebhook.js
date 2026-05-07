@@ -7,6 +7,7 @@ const firestore_1 = require("firebase-admin/firestore");
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
 const stripe_1 = require("./stripe");
+const emailService_1 = require("./emailService");
 const REGION = 'europe-west1';
 exports.stripeWebhookSecret = (0, params_1.defineSecret)('STRIPE_WEBHOOK_SECRET');
 // ── Helper: find uid by Stripe customer ID ─────────────────────────────
@@ -25,7 +26,7 @@ function periodEndTs(subscription) {
     return end ? firestore_1.Timestamp.fromMillis(end * 1000) : null;
 }
 // ── stripeWebhookHandler ───────────────────────────────────────────────
-exports.stripeWebhookHandler = (0, https_1.onRequest)({ region: REGION, secrets: [stripe_1.stripeSecretKey, exports.stripeWebhookSecret] }, async (req, res) => {
+exports.stripeWebhookHandler = (0, https_1.onRequest)({ region: REGION, secrets: [stripe_1.stripeSecretKey, exports.stripeWebhookSecret, emailService_1.resendApiKey] }, async (req, res) => {
     var _a, _b, _c, _d, _e;
     if (req.method !== 'POST') {
         res.status(405).send('Method Not Allowed');
@@ -65,7 +66,22 @@ exports.stripeWebhookHandler = (0, https_1.onRequest)({ region: REGION, secrets:
                 });
                 const periodEnd = periodEndTs(subscription);
                 await db.collection('users').doc(uid).update(Object.assign({ subscription_status: subscription.status, subscription_id: subscriptionId, stripe_customer_id: session.customer, admin_promo_code: null }, (periodEnd ? { subscription_current_period_end: periodEnd } : {})));
-                console.log(`[stripeWebhook] Subscription activated — uid: ${uid}`);
+                console.log(`[stripeWebhook] Subscription activated — uid: ${uid}, status: ${subscription.status}`);
+                // Send trial start email when subscription begins in trial mode
+                if (subscription.status === 'trialing' && subscription.trial_end) {
+                    try {
+                        const userSnap = await db.collection('users').doc(uid).get();
+                        const userData = userSnap.data();
+                        if (userData === null || userData === void 0 ? void 0 : userData.email) {
+                            const trialEndMs = subscription.trial_end * 1000;
+                            await (0, emailService_1.sendTrialStartEmail)(userData.email, userData.first_name || '', trialEndMs);
+                            console.log(`[stripeWebhook] Trial start email sent to: ${userData.email}`);
+                        }
+                    }
+                    catch (err) {
+                        console.error('[stripeWebhook] Failed to send trial start email:', err);
+                    }
+                }
                 break;
             }
             case 'customer.subscription.updated': {

@@ -63,7 +63,8 @@ const steps = [
 ];
 
 const faqs = [
-  { q: '¿Cuánto cuesta?', a: 'Zypace cuesta 9,99 € al mes. Incluye acceso completo a todas las funciones y puedes cancelar en cualquier momento desde el portal de cliente.' },
+  { q: '¿Cuánto cuesta?', a: 'Zypace cuesta 9,99 € al mes tras los 30 días de prueba gratuita. Durante el primer mes no se realiza ningún cargo. Puedes cancelar en cualquier momento desde el portal de cliente.' },
+  { q: '¿Tengo que poner la tarjeta para la prueba gratuita?', a: 'Sí, necesitas introducir tu tarjeta al registrarte, pero no se realizará ningún cargo hasta que finalicen los 30 días. Si cancelas antes, no pagas nada.' },
   { q: '¿Puedo regenerar un plan?', a: 'Sí, puedes regenerar y reemplazarlo si cambian tus objetivos o la fecha.' },
   { q: '¿Soporta otros deportes?', a: 'De momento nos centramos en running. Próximamente añadiremos ciclismo y triatlón.' },
   { q: '¿Cómo se calcula el progreso?', a: 'Comparamos tus entrenos planificados vs actividades reales y señalamos cumplimiento.' },
@@ -78,7 +79,7 @@ const LandingPage = () => {
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_30%_50%,rgba(163,230,53,0.10),transparent_65%)]" />
         <div className="max-w-6xl mx-auto px-6 pt-24 pb-32 text-center">
-          <span className="inline-block mb-6 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/20 text-lime-400 text-xs font-semibold tracking-widest uppercase">Entrenador personal con IA</span>
+          <span className="inline-block mb-6 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/20 text-lime-400 text-xs font-semibold tracking-widest uppercase">30 días gratis · Sin compromiso</span>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight text-white">
             Entrena con foco.<br />
             <span className="text-lime-400">Llega listo a tu meta.</span>
@@ -87,9 +88,10 @@ const LandingPage = () => {
             Zypace combina inteligencia artificial, tus datos reales de Strava y una experiencia clara para que avances con confianza hacia tu próxima carrera.
           </p>
           <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/register" className="px-8 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Comenzar Gratis</Link>
+            <Link to="/register" className="px-8 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Empezar prueba gratuita</Link>
             <Link to="/login" className="px-8 py-4 rounded-xl font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition">Ya tengo cuenta</Link>
           </div>
+          <p className="mt-4 text-sm text-zinc-500">30 días gratis · Luego 9,99 €/mes · Cancela cuando quieras</p>
         </div>
       </section>
 
@@ -138,6 +140,13 @@ const LandingPage = () => {
               {/* Top accent */}
               <div className="h-1 bg-gradient-to-r from-lime-400 to-lime-300" />
 
+              {/* Trial badge */}
+              <div className="absolute top-4 right-4">
+                <span className="px-3 py-1 rounded-full bg-lime-400 text-black text-xs font-extrabold uppercase tracking-wide">
+                  30 días gratis
+                </span>
+              </div>
+
               <div className="p-8">
                 <p className="text-xs font-semibold text-lime-400 uppercase tracking-widest mb-3">Zypace Pro</p>
 
@@ -145,7 +154,8 @@ const LandingPage = () => {
                   <span className="text-5xl font-extrabold text-white">9,99 €</span>
                   <span className="text-zinc-500">/mes</span>
                 </div>
-                <p className="text-sm text-zinc-500 mb-8">Cancela cuando quieras</p>
+                <p className="text-sm text-lime-400 font-semibold mb-1">Primer mes completamente gratis</p>
+                <p className="text-xs text-zinc-500 mb-8">Sin cargos durante 30 días · Cancela cuando quieras</p>
 
                 <ul className="space-y-3 mb-8">
                   {PRICE_FEATURES.map(f => (
@@ -162,9 +172,9 @@ const LandingPage = () => {
                   to="/register"
                   className="block w-full text-center py-3.5 rounded-xl font-bold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition"
                 >
-                  Empezar ahora
+                  Empezar prueba gratuita
                 </Link>
-                <p className="text-center text-xs text-zinc-600 mt-3">Pago seguro con Stripe</p>
+                <p className="text-center text-xs text-zinc-600 mt-3">Introduces tu tarjeta pero no se cobra hasta el día 31 · Pago seguro con Stripe</p>
               </div>
             </div>
           </div>
@@ -176,7 +186,8 @@ const LandingPage = () => {
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Convierte tus actividades en progreso real</h2>
           <p className="text-zinc-400 max-w-3xl mx-auto mb-10">La mayoría de los corredores pierden consistencia por falta de visibilidad. Aquí ves plan vs realidad cada día y la IA te ayuda a mantener el rumbo.</p>
-          <Link to="/register" className="inline-block px-10 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Empieza Ahora</Link>
+          <Link to="/register" className="inline-block px-10 py-4 rounded-xl font-semibold bg-lime-400 hover:bg-lime-500 text-black shadow-lg shadow-lime-400/20 transition">Empezar prueba gratuita de 30 días</Link>
+          <p className="mt-4 text-sm text-zinc-600">Sin compromiso · Cancela antes del día 31 y no pagas nada</p>
         </div>
       </section>
 
