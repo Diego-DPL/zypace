@@ -11,6 +11,7 @@ import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WeeklyAnalysis from '../components/WeeklyAnalysis';
 import AddGoalModal from '../components/AddGoalModal';
+import { parseExercises } from '../lib/strengthParser';
 
 interface Workout {
   id: string;
@@ -567,6 +568,64 @@ const TrainingPlanPage = () => {
 
   const selectedRaceDetails = races.find(r => r.id === selectedRace);
 
+  // ── Migrate strength workouts: parse text → structured exercises ──────────
+  const [migrating, setMigrating] = useState(false);
+  const [migrateResult, setMigrateResult] = useState<string | null>(null);
+
+  const migrateStrengthWorkouts = async () => {
+    if (!user || !plan) return;
+    setMigrating(true);
+    setMigrateResult(null);
+    try {
+      const targets = plan.workouts.filter(w => {
+        const isStrength = w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description);
+        const alreadyDone = Array.isArray(w.explanation_json?.exercises) && w.explanation_json.exercises.length > 0;
+        return isStrength && !alreadyDone && w.explanation_json?.details;
+      });
+
+      if (targets.length === 0) {
+        setMigrateResult('No hay ejercicios de fuerza pendientes de convertir.');
+        return;
+      }
+
+      for (const w of targets) {
+        const exercises = parseExercises(w.explanation_json.details);
+        await updateDoc(doc(db, 'users', user.uid, 'workouts', w.id), {
+          explanation_json: { ...w.explanation_json, exercises },
+        });
+      }
+
+      // Update local state so the modal reflects changes immediately
+      setPlan(prev => prev ? {
+        ...prev,
+        workouts: prev.workouts.map(w => {
+          const isTarget = targets.find(t => t.id === w.id);
+          if (!isTarget) return w;
+          return {
+            ...w,
+            explanation_json: {
+              ...w.explanation_json,
+              exercises: parseExercises(w.explanation_json.details),
+            },
+          };
+        }),
+      } : null);
+
+      setMigrateResult(`${targets.length} entrenamiento${targets.length > 1 ? 's' : ''} de fuerza convertido${targets.length > 1 ? 's' : ''}.`);
+    } catch (e: any) {
+      setMigrateResult(`Error: ${e.message}`);
+    } finally {
+      setMigrating(false);
+    }
+  };
+
+  // Count how many strength workouts still lack structured exercises
+  const pendingMigration = plan?.workouts.filter(w => {
+    const isStrength = w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description);
+    const alreadyDone = Array.isArray(w.explanation_json?.exercises) && w.explanation_json.exercises.length > 0;
+    return isStrength && !alreadyDone && w.explanation_json?.details;
+  }).length ?? 0;
+
   // Should we show the "next mesocycle" button?
   const todayISO = new Date().toISOString().substring(0, 10);
   const mesoEnd  = plan?.mesocycle_end_date;
@@ -651,7 +710,24 @@ const TrainingPlanPage = () => {
                   {plan.used_fallback && <span className="bg-zinc-800 border border-zinc-700 text-zinc-400 px-2 py-1 rounded text-[11px]">Algoritmo local</span>}
                 </div>
               </div>
-              <div className="flex gap-3 flex-wrap">
+              <div className="flex gap-3 flex-wrap items-center">
+                {pendingMigration > 0 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={migrateStrengthWorkouts}
+                      disabled={migrating}
+                      className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm flex items-center gap-1.5"
+                    >
+                      {migrating ? 'Convirtiendo…' : `Convertir fuerza (${pendingMigration})`}
+                    </button>
+                    {migrateResult && (
+                      <span className="text-xs text-zinc-400">{migrateResult}</span>
+                    )}
+                  </div>
+                )}
+                {!pendingMigration && migrateResult && (
+                  <span className="text-xs text-green-500 font-semibold">{migrateResult}</span>
+                )}
                 <button onClick={handleDeletePlan} disabled={loading}
                   className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 text-sm">
                   Eliminar plan
