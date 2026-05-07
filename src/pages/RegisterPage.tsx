@@ -23,9 +23,8 @@ const RegisterPage = () => {
   const [email, setEmail]             = useState('');
   const [password, setPassword]       = useState('');
   const [confirmPassword, setConfirm] = useState('');
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState<string | null>(null);
-  const [success, setSuccess]   = useState(false);
   const [showTerms, setShowTerms] = useState(false);
   const [profile, setProfile]   = useState<ProfileForm>({
     first_name: '', last_name: '', birth_date: '', gender: '',
@@ -70,7 +69,8 @@ const RegisterPage = () => {
         accepted_terms_at: new Date().toISOString(),
         created_at:        serverTimestamp(),
       });
-      setSuccess(true);
+      // Firebase auto-signs in after createUserWithEmailAndPassword.
+      // The router detects the new user and redirects to /subscribe.
     } catch (err: any) {
       const msg: Record<string, string> = {
         'auth/email-already-in-use': 'Ya existe una cuenta con este email.',
@@ -100,24 +100,31 @@ const RegisterPage = () => {
       <div className="relative w-full max-w-3xl mx-4 p-8 space-y-8 bg-zinc-900 rounded-2xl shadow-xl border border-zinc-800">
 
         {/* Logo + título */}
-        <div className="text-center space-y-3">
+        <div className="text-center space-y-4">
           <img src={zypaceLogo} alt="Zypace" className="h-8 w-auto mx-auto" style={{ filter: 'brightness(0) invert(1)' }} />
+          {/* Progress steps */}
+          <div className="flex items-center justify-center gap-2 text-xs">
+            <div className="flex items-center gap-1.5 text-zinc-100">
+              <div className="w-5 h-5 rounded-full bg-lime-400 text-black flex items-center justify-center font-bold text-[10px]">1</div>
+              <span className="font-semibold">Crear cuenta</span>
+            </div>
+            <div className="w-8 h-px bg-zinc-700" />
+            <div className="flex items-center gap-1.5 text-zinc-600">
+              <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-[10px]">2</div>
+              <span>Activar acceso</span>
+            </div>
+            <div className="w-8 h-px bg-zinc-700" />
+            <div className="flex items-center gap-1.5 text-zinc-600">
+              <div className="w-5 h-5 rounded-full bg-zinc-800 border border-zinc-700 flex items-center justify-center font-bold text-[10px]">3</div>
+              <span>Empieza</span>
+            </div>
+          </div>
           <div>
-            <h1 className="text-2xl font-extrabold text-white">Crear cuenta</h1>
-            <p className="text-sm text-zinc-500 mt-1">Empieza a entrenar con inteligencia.</p>
+            <h1 className="text-2xl font-extrabold text-white">Crea tu cuenta</h1>
+            <p className="text-sm text-zinc-500 mt-1">Paso 1 de 3 — Solo tarda un par de minutos.</p>
           </div>
         </div>
 
-        {success ? (
-          <div className="text-center space-y-3 py-6">
-            <div className="w-14 h-14 mx-auto rounded-full bg-green-950/60 border border-green-800 flex items-center justify-center text-2xl">✓</div>
-            <p className="font-semibold text-lg text-zinc-100">¡Registro exitoso!</p>
-            <p className="text-sm text-zinc-500">Ya puedes iniciar sesión con tu cuenta.</p>
-            <Link to="/login" className="inline-block mt-2 px-6 py-2.5 bg-lime-400 text-black rounded-lg hover:bg-lime-500 font-semibold text-sm transition-colors">
-              Ir al login
-            </Link>
-          </div>
-        ) : (
           <form onSubmit={handleRegister} className="space-y-8">
 
             {/* Acceso */}
@@ -248,10 +255,9 @@ const RegisterPage = () => {
 
             <button type="submit" disabled={loading}
               className="w-full py-3 px-4 text-sm font-semibold text-black rounded-lg bg-lime-400 hover:bg-lime-500 disabled:opacity-50 transition-colors shadow-lg shadow-lime-400/10">
-              {loading ? 'Registrando...' : 'Crear cuenta'}
+              {loading ? 'Creando cuenta…' : 'Crear cuenta y continuar →'}
             </button>
           </form>
-        )}
 
         <p className="text-sm text-center text-zinc-500">
           ¿Ya tienes cuenta?{' '}

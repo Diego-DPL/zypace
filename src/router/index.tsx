@@ -3,6 +3,7 @@ import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
 import ForgotPasswordPage from '../pages/ForgotPasswordPage';
+import SubscribePage from '../pages/SubscribePage';
 import HomePage from '../pages/HomePage';
 import CalendarPage from '../pages/CalendarPage';
 import SettingsPage from '../pages/SettingsPage';
@@ -34,7 +35,7 @@ const AppRouter = () => {
   // Admins bypass the subscription gate
   const appElement = (el: React.ReactNode) => {
     if (!user) return <Navigate to="/" />;
-    if (!hasAccess && role !== 'admin') return <Navigate to="/settings" />;
+    if (!hasAccess && role !== 'admin') return <Navigate to="/subscribe" />;
     return el;
   };
 
@@ -46,6 +47,7 @@ const AppRouter = () => {
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/app" />} />
           <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/app" />} />
           <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/app" />} />
+          <Route path="/subscribe"      element={user ? <SubscribePage /> : <Navigate to="/register" />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/security" element={<SecurityPage />} />

@@ -77,8 +77,8 @@ export const createCheckoutSession = onCall(
       customer:          customerId,
       mode:              'subscription',
       line_items:        [{ price: PRICE_ID, quantity: 1 }],
-      success_url:       `${APP_URL}/settings?sub=ok`,
-      cancel_url:        `${APP_URL}/settings?sub=canceled`,
+      success_url:       `${APP_URL}/app?sub=ok`,
+      cancel_url:        `${APP_URL}/subscribe?canceled=true`,
       metadata:          { uid },
       subscription_data: { metadata: { uid }, trial_period_days: 30 },
     };
