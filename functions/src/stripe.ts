@@ -16,7 +16,7 @@ const REASON_LABELS: Record<string, string> = {
 
 const REGION   = 'europe-west1';
 const APP_URL  = 'https://www.zypace.com';
-const PRICE_ID = 'price_1TU6XG2L6uGjMe5kxEPqh3rx';
+const PRICE_ID = 'price_1TUTC9RqrUcauGyU6vdSu5z4';
 
 export const stripeSecretKey = defineSecret('STRIPE_SECRET_KEY');
 
