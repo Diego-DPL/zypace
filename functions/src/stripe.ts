@@ -1,9 +1,18 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret }       from 'firebase-functions/params';
-import { getFirestore }       from 'firebase-admin/firestore';
+import { getFirestore, Timestamp } from 'firebase-admin/firestore';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
 import { resendApiKey, sendOffboardingEmail } from './emailService';
+
+const REASON_LABELS: Record<string, string> = {
+  not_using:       'No le estaba sacando el partido esperado',
+  price:           'Precio no encaja con el presupuesto',
+  other_app:       'Prefiere otra aplicación',
+  break:           'Descanso del running',
+  missing_feature: 'Falta una función necesaria',
+  other:           'Otro motivo',
+};
 
 const REGION   = 'europe-west1';
 const APP_URL  = 'https://www.zypace.com';
@@ -150,6 +159,20 @@ export const cancelSubscription = onCall(
       subscription_cancel_at_period_end: true,
       cancellation_reason:   reason   || null,
       cancellation_feedback: feedback || null,
+    });
+
+    // Save to cancellations collection for admin analytics
+    await db.collection('cancellations').add({
+      uid,
+      email:        user.email        ?? null,
+      first_name:   user.first_name   ?? null,
+      last_name:    user.last_name    ?? null,
+      reason,
+      reason_label: REASON_LABELS[reason] ?? reason,
+      feedback:     feedback || null,
+      cancelled_at: Timestamp.now(),
+      was_trial:    isTrial,
+      period_end_ms: periodEndMs,
     });
 
     // Send offboarding email (best-effort)

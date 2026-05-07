@@ -782,6 +782,153 @@ function StripePaymentsPanel({ users }: { users: UserDoc[] }) {
   );
 }
 
+// ── Cancellations Panel ───────────────────────────────────────────────
+interface Cancellation {
+  id:           string;
+  uid:          string;
+  email:        string | null;
+  first_name:   string | null;
+  last_name:    string | null;
+  reason:       string;
+  reason_label: string;
+  feedback:     string | null;
+  cancelled_at: any;
+  was_trial:    boolean;
+  period_end_ms: number | null;
+}
+
+const REASON_EMOJI: Record<string, string> = {
+  not_using:       '🎯',
+  price:           '💸',
+  other_app:       '🔄',
+  break:           '⏸️',
+  missing_feature: '🔧',
+  other:           '💬',
+};
+
+function CancellationsPanel() {
+  const [cancellations, setCancellations] = useState<Cancellation[]>([]);
+  const [loading,       setLoading]       = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const q    = query(collection(db, 'cancellations'), orderBy('cancelled_at', 'desc'));
+      const snap = await getDocs(q);
+      setCancellations(snap.docs.map(d => ({ id: d.id, ...d.data() } as Cancellation)));
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const byReason = cancellations.reduce<Record<string, number>>((acc, c) => {
+    acc[c.reason] = (acc[c.reason] ?? 0) + 1;
+    return acc;
+  }, {});
+
+  const withFeedback = cancellations.filter(c => c.feedback);
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-zinc-200">Cancelaciones</h3>
+        <button onClick={load} disabled={loading}
+          className="text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+          ↻ Recargar
+        </button>
+      </div>
+
+      {/* Stats */}
+      {cancellations.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {Object.entries(byReason).sort((a, b) => b[1] - a[1]).map(([reason, count]) => (
+            <div key={reason} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xl mb-1">{REASON_EMOJI[reason] ?? '❓'}</p>
+              <p className="text-2xl font-bold text-zinc-100">{count}</p>
+              <p className="text-[11px] text-zinc-500 mt-0.5 leading-snug">
+                {cancellations.find(c => c.reason === reason)?.reason_label ?? reason}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* List */}
+      {loading ? (
+        <div className="flex items-center gap-3 py-6 text-xs text-zinc-500">
+          <div className="w-4 h-4 rounded-full border border-zinc-600 border-t-lime-400 animate-spin" />
+          Cargando…
+        </div>
+      ) : cancellations.length === 0 ? (
+        <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center">
+          <p className="text-sm text-zinc-500">No hay cancelaciones registradas todavía.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {cancellations.map(c => (
+            <div key={c.id} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 space-y-2">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-zinc-100">
+                      {[c.first_name, c.last_name].filter(Boolean).join(' ') || c.email || '—'}
+                    </span>
+                    {c.was_trial && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-lime-950/50 text-lime-400 border-lime-800">
+                        Trial
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-zinc-500 mt-0.5">{c.email}</p>
+                </div>
+                <p className="text-xs text-zinc-600 shrink-0">
+                  {c.cancelled_at?.toDate?.().toLocaleDateString('es-ES') ?? '—'}
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-base">{REASON_EMOJI[c.reason] ?? '❓'}</span>
+                <span className="text-xs text-zinc-400">{c.reason_label}</span>
+              </div>
+
+              {c.feedback && (
+                <div className="bg-zinc-800/60 rounded-lg px-3 py-2 text-xs text-zinc-300 leading-relaxed border-l-2 border-lime-400/40">
+                  "{c.feedback}"
+                </div>
+              )}
+
+              {c.period_end_ms && (
+                <p className="text-[11px] text-zinc-700">
+                  Acceso hasta: {new Date(c.period_end_ms).toLocaleDateString('es-ES')}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Feedback-only view */}
+      {withFeedback.length > 0 && (
+        <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            Solo feedback escrito ({withFeedback.length})
+          </p>
+          {withFeedback.map(c => (
+            <div key={c.id} className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-zinc-500">{c.email}</span>
+                <span className="text-[10px] text-zinc-700">· {REASON_EMOJI[c.reason]} {c.reason_label}</span>
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed">"{c.feedback}"</p>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Invites Panel ─────────────────────────────────────────────────────
 interface Invite {
   email:      string;
@@ -1446,7 +1593,14 @@ const AdminPage = () => {
       )}
 
       {/* ── PAYMENTS TAB ── */}
-      {tab === 'payments' && <StripePaymentsPanel users={users} />}
+      {tab === 'payments' && (
+        <div className="space-y-10">
+          <StripePaymentsPanel users={users} />
+          <div className="border-t border-zinc-800 pt-8">
+            <CancellationsPanel />
+          </div>
+        </div>
+      )}
 
       {/* ── INVITES TAB ── */}
       {tab === 'invites' && <InvitesPanel />}

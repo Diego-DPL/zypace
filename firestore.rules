@@ -76,6 +76,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── Cancellations (admin-only) ────────────────────────────────────
+    match /cancellations/{id} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Invites (admin-only; read/write via Cloud Functions only) ────
     match /invites/{email} {
       allow read, write: if isAdmin();

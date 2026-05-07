@@ -7,6 +7,14 @@ const firestore_1 = require("firebase-admin/firestore");
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
 const emailService_1 = require("./emailService");
+const REASON_LABELS = {
+    not_using: 'No le estaba sacando el partido esperado',
+    price: 'Precio no encaja con el presupuesto',
+    other_app: 'Prefiere otra aplicación',
+    break: 'Descanso del running',
+    missing_feature: 'Falta una función necesaria',
+    other: 'Otro motivo',
+};
 const REGION = 'europe-west1';
 const APP_URL = 'https://www.zypace.com';
 const PRICE_ID = 'price_1TU6XG2L6uGjMe5kxEPqh3rx';
@@ -101,7 +109,7 @@ exports.createPortalSession = (0, https_1.onCall)({ region: REGION, cors: true, 
 });
 // ── cancelSubscription ────────────────────────────────────────────────
 exports.cancelSubscription = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey, emailService_1.resendApiKey] }, async (request) => {
-    var _a;
+    var _a, _b, _c, _d, _e;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
@@ -125,6 +133,19 @@ exports.cancelSubscription = (0, https_1.onCall)({ region: REGION, cors: true, i
         subscription_cancel_at_period_end: true,
         cancellation_reason: reason || null,
         cancellation_feedback: feedback || null,
+    });
+    // Save to cancellations collection for admin analytics
+    await db.collection('cancellations').add({
+        uid,
+        email: (_b = user.email) !== null && _b !== void 0 ? _b : null,
+        first_name: (_c = user.first_name) !== null && _c !== void 0 ? _c : null,
+        last_name: (_d = user.last_name) !== null && _d !== void 0 ? _d : null,
+        reason,
+        reason_label: (_e = REASON_LABELS[reason]) !== null && _e !== void 0 ? _e : reason,
+        feedback: feedback || null,
+        cancelled_at: firestore_1.Timestamp.now(),
+        was_trial: isTrial,
+        period_end_ms: periodEndMs,
     });
     // Send offboarding email (best-effort)
     if (user.email) {
