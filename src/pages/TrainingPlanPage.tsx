@@ -576,7 +576,7 @@ const TrainingPlanPage = () => {
     setMigrating(true);
     setMigrateResult(null);
     try {
-      const migrateStrengthFn = httpsCallable(functions, 'migrateStrengthExercises');
+      const migrateStrengthFn = httpsCallable(functions, 'migrateStrengthExercises', { timeout: 180000 });
       const res  = await migrateStrengthFn({ plan_id: plan.id });
       const data = res.data as { converted: number; message: string };
       setMigrateResult(data.message);

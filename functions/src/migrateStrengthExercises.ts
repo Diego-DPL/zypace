@@ -10,7 +10,7 @@ const openAiApiKey = defineSecret('OPENAI_API_KEY');
 const REGION = 'europe-west1';
 
 export const migrateStrengthExercises = onCall(
-  { region: REGION, cors: true, invoker: 'public', secrets: [openAiApiKey], timeoutSeconds: 120 },
+  { region: REGION, cors: true, invoker: 'public', secrets: [openAiApiKey], timeoutSeconds: 180 },
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');
@@ -38,69 +38,52 @@ export const migrateStrengthExercises = onCall(
       return { converted: 0, message: 'No hay entrenamientos de fuerza en este plan.' };
     }
 
-    // Build prompt with all descriptions in one call
-    const workoutList = targets.map(d => ({
-      id: d.id,
-      description: d.data().description as string,
-    }));
+    // Call AI in parallel — one request per workout to keep each call short
+    async function extractExercises(id: string, description: string): Promise<{ id: string; exercises: any[] } | null> {
+      const prompt = `Extrae los ejercicios de esta descripción de entrenamiento de fuerza.
+Devuelve SOLO JSON: {"exercises":[{"sets":3,"reps":"10","name":"Nombre","notes":"obs. breve o null"}]}
+Reglas: sets=entero, reps puede ser "10", "10-12", "25 m/lado", "30s", etc.
+Ignora el texto introductorio antes de los dos puntos y notas finales tras ";".
+Descripción: ${description}`;
 
-    const prompt = `Eres un asistente que extrae ejercicios de descripciones de entrenamientos de fuerza.
-
-Devuelve SOLO JSON válido con este formato exacto:
-{"workouts":[{"id":"<id>","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"observación opcional o null"}]}]}
-
-Reglas:
-- "sets" es un número entero
-- "reps" puede ser "10", "10-12", "25 m/lado", "30s", "1 min", etc.
-- "name" es el nombre del ejercicio sin sets ni reps
-- "notes" solo si hay algo relevante (pausa, ritmo excéntrico, etc.), si no pon null
-- Si la descripción tiene formato "ejercicio NxM/lado", incluye "/lado" en reps
-- Ignora el texto introductorio ("Sesión de fuerza X:", "terminar con...", etc.)
-
-Entrenamientos a procesar:
-${JSON.stringify(workoutList, null, 2)}`;
-
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openAiApiKey.value()}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        temperature: 0,
-        messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' },
-      }),
-    });
-
-    if (!response.ok) {
-      throw new HttpsError('internal', `OpenAI error: ${response.status}`);
+      const res = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openAiApiKey.value()}` },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          temperature: 0,
+          messages: [{ role: 'user', content: prompt }],
+          response_format: { type: 'json_object' },
+        }),
+      });
+      if (!res.ok) return null;
+      const json = await res.json() as any;
+      try {
+        const parsed = JSON.parse(json.choices?.[0]?.message?.content || '{}');
+        if (Array.isArray(parsed.exercises) && parsed.exercises.length > 0) {
+          return { id, exercises: parsed.exercises };
+        }
+      } catch { /* skip */ }
+      return null;
     }
 
-    const json = await response.json() as any;
-    const raw  = json.choices?.[0]?.message?.content || '{}';
-    let parsed: { workouts: { id: string; exercises: any[] }[] };
+    const results = await Promise.all(
+      targets.map(d => extractExercises(d.id, d.data().description as string))
+    );
 
-    try {
-      parsed = JSON.parse(raw);
-    } catch {
-      throw new HttpsError('internal', 'La IA devolvió JSON inválido');
-    }
-
-    // Save exercises back to Firestore
+    // Save back to Firestore in a batch
     const batch = db.batch();
     let updated = 0;
 
-    for (const w of (parsed.workouts || [])) {
-      if (!w.id || !Array.isArray(w.exercises) || w.exercises.length === 0) continue;
-      const docRef = db.collection('users').doc(uid).collection('workouts').doc(w.id);
-      const snap   = targets.find(d => d.id === w.id);
+    for (const result of results) {
+      if (!result) continue;
+      const snap = targets.find(d => d.id === result.id);
       if (!snap) continue;
       const existing = snap.data().explanation_json || {};
-      batch.update(docRef, {
-        explanation_json: { ...existing, exercises: w.exercises },
-      });
+      batch.update(
+        db.collection('users').doc(uid).collection('workouts').doc(result.id),
+        { explanation_json: { ...existing, exercises: result.exercises } },
+      );
       updated++;
     }
 
