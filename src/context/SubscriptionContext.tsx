@@ -13,13 +13,14 @@ export type SubscriptionStatus =
 
 interface SubscriptionContextType {
   /** True if the user can access the app (active/trialing subscription OR exempt). */
-  hasAccess:          boolean;
-  isExempt:           boolean;
-  subscriptionStatus: SubscriptionStatus;
+  hasAccess:            boolean;
+  isExempt:             boolean;
+  subscriptionStatus:   SubscriptionStatus;
   /** Unix ms timestamp of current period end, or null. */
-  periodEnd:          number | null;
-  adminPromoCode:     string | null;
-  loading:            boolean;
+  periodEnd:            number | null;
+  cancelAtPeriodEnd:    boolean;
+  adminPromoCode:       string | null;
+  loading:              boolean;
 }
 
 const SubscriptionContext = createContext<SubscriptionContextType | undefined>(undefined);
@@ -27,11 +28,12 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export const SubscriptionProvider = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
 
-  const [isExempt,           setIsExempt]           = useState(false);
-  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus>(null);
-  const [periodEnd,          setPeriodEnd]          = useState<number | null>(null);
-  const [adminPromoCode,     setAdminPromoCode]     = useState<string | null>(null);
-  const [loading,            setLoading]            = useState(true);
+  const [isExempt,            setIsExempt]            = useState(false);
+  const [subscriptionStatus,  setSubscriptionStatus]  = useState<SubscriptionStatus>(null);
+  const [periodEnd,           setPeriodEnd]           = useState<number | null>(null);
+  const [cancelAtPeriodEnd,   setCancelAtPeriodEnd]   = useState(false);
+  const [adminPromoCode,      setAdminPromoCode]      = useState<string | null>(null);
+  const [loading,             setLoading]             = useState(true);
 
   useEffect(() => {
     if (!user) {
@@ -52,6 +54,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
           setIsExempt(!!data.is_exempt);
           setSubscriptionStatus((data.subscription_status as SubscriptionStatus) ?? null);
           setPeriodEnd(data.subscription_current_period_end?.toMillis?.() ?? null);
+          setCancelAtPeriodEnd(!!data.subscription_cancel_at_period_end);
           setAdminPromoCode((data.admin_promo_code as string | undefined) ?? null);
         }
         setLoading(false);
@@ -69,7 +72,7 @@ export const SubscriptionProvider = ({ children }: { children: React.ReactNode }
 
   return (
     <SubscriptionContext.Provider
-      value={{ hasAccess, isExempt, subscriptionStatus, periodEnd, adminPromoCode, loading }}
+      value={{ hasAccess, isExempt, subscriptionStatus, periodEnd, cancelAtPeriodEnd, adminPromoCode, loading }}
     >
       {children}
     </SubscriptionContext.Provider>

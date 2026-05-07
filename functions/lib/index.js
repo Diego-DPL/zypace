@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listInvites = exports.revokeInvite = exports.createInvite = exports.assignDiscountToUser = exports.setUserExempt = exports.toggleDiscountCode = exports.listDiscountCodes = exports.createDiscountCode = exports.stripeWebhookHandler = exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.weeklyEmailSummary = exports.dailyRaceReminder = exports.onPlanCreated = exports.onIncidentUpdated = exports.onUserCreated = exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
+exports.listInvites = exports.revokeInvite = exports.createInvite = exports.assignDiscountToUser = exports.setUserExempt = exports.toggleDiscountCode = exports.listDiscountCodes = exports.createDiscountCode = exports.stripeWebhookHandler = exports.cancelSubscription = exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.weeklyEmailSummary = exports.dailyRaceReminder = exports.onPlanCreated = exports.onIncidentUpdated = exports.onUserCreated = exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var stravaOAuth_1 = require("./stravaOAuth");
@@ -69,6 +69,7 @@ var stripe_1 = require("./stripe");
 Object.defineProperty(exports, "createCheckoutSession", { enumerable: true, get: function () { return stripe_1.createCheckoutSession; } });
 Object.defineProperty(exports, "createPortalSession", { enumerable: true, get: function () { return stripe_1.createPortalSession; } });
 Object.defineProperty(exports, "validateDiscountCode", { enumerable: true, get: function () { return stripe_1.validateDiscountCode; } });
+Object.defineProperty(exports, "cancelSubscription", { enumerable: true, get: function () { return stripe_1.cancelSubscription; } });
 var stripeWebhook_1 = require("./stripeWebhook");
 Object.defineProperty(exports, "stripeWebhookHandler", { enumerable: true, get: function () { return stripeWebhook_1.stripeWebhookHandler; } });
 var stripeAdmin_1 = require("./stripeAdmin");

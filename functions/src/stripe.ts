@@ -3,6 +3,7 @@ import { defineSecret }       from 'firebase-functions/params';
 import { getFirestore }       from 'firebase-admin/firestore';
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
+import { resendApiKey, sendOffboardingEmail } from './emailService';
 
 const REGION   = 'europe-west1';
 const APP_URL  = 'https://www.zypace.com';
@@ -115,6 +116,54 @@ export const createPortalSession = onCall(
     });
 
     return { url: session.url };
+  },
+);
+
+// ── cancelSubscription ────────────────────────────────────────────────
+export const cancelSubscription = onCall(
+  { region: REGION, cors: true, invoker: 'public', secrets: [stripeSecretKey, resendApiKey] },
+  async (request) => {
+    const uid = request.auth?.uid;
+    if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');
+
+    const { reason, feedback } = request.data as { reason: string; feedback?: string };
+
+    const db      = getFirestore();
+    const stripe  = stripeClient();
+
+    const userSnap = await db.collection('users').doc(uid).get();
+    const user     = userSnap.data();
+    if (!user) throw new HttpsError('not-found', 'Usuario no encontrado');
+
+    const subscriptionId = user.subscription_id as string | undefined;
+    if (!subscriptionId) throw new HttpsError('not-found', 'No tienes una suscripción activa');
+
+    // Cancel at period end — user keeps access until the billing cycle ends
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
+
+    const periodEndMs  = (subscription.current_period_end as number) * 1000;
+    const isTrial      = subscription.status === 'trialing';
+
+    await db.collection('users').doc(uid).update({
+      subscription_cancel_at_period_end: true,
+      cancellation_reason:   reason   || null,
+      cancellation_feedback: feedback || null,
+    });
+
+    // Send offboarding email (best-effort)
+    if (user.email) {
+      try {
+        await sendOffboardingEmail(user.email, user.first_name || '', periodEndMs, isTrial);
+        console.log(`[cancelSubscription] Offboarding email sent to: ${user.email}`);
+      } catch (err) {
+        console.error('[cancelSubscription] Failed to send offboarding email:', err);
+      }
+    }
+
+    console.log(`[cancelSubscription] uid=${uid} reason=${reason} periodEnd=${periodEndMs}`);
+    return { success: true, periodEndMs, isTrial };
   },
 );
 

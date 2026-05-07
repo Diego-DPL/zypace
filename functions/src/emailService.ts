@@ -263,6 +263,49 @@ function weeklySummaryHtml(firstName: string, stats: WeeklyStats): string {
   return layout('Tu resumen semanal · Zypace', body);
 }
 
+// ── Offboarding email ─────────────────────────────────────────────────
+function offboardingHtml(firstName: string, periodEndDate: string, isTrial: boolean): string {
+  const name = firstName || 'corredor';
+  const body = isTrial ? `
+    ${h1(`Hasta pronto, ${name}`)}
+    ${p('Has cancelado durante el periodo de prueba. <strong style="color:#18181b;">No se ha realizado ningún cargo</strong> en tu cuenta.')}
+    ${p('Esperamos haberte dado algo útil durante estos días. Si en algún momento vuelves a plantearte preparar una carrera en serio, aquí estaremos — con todo listo para ti.', true)}
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:#18181b;">¿Nos das una última oportunidad?</p>
+      <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6;">Si hay algo que podríamos haber hecho mejor, escríbenos. Leemos cada mensaje personalmente y muchas mejoras del producto nacen exactamente de conversaciones así.</p>
+    </div>
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/subscription`, 'Reactivar mi cuenta')}
+    </div>
+
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('¿Tienes algún comentario? Escríbenos a <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>. Ojalá nos veamos pronto en la línea de salida.', true)}
+    </div>
+  ` : `
+    ${h1(`Hasta pronto, ${name}`)}
+    ${p(`Tu suscripción seguirá activa hasta el <strong style="color:#18181b;">${periodEndDate}</strong>. Hasta entonces, tienes acceso completo a todo — tu plan, tu calendario y tu historial de entrenamientos.`)}
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;border-left:3px solid ${LIME};">
+      <p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#18181b;">¿Cambias de opinión? Puedes reactivar en cualquier momento</p>
+      <p style="margin:0;font-size:13px;color:#71717a;line-height:1.6;">Un clic desde la configuración de tu cuenta y vuelves a estar dentro. Sin colas, sin papeleos, sin perder nada.</p>
+    </div>
+
+    ${p('Ha sido un placer entrenarte contigo. Esperamos que la próxima carrera salga redonda — con o sin nosotros.', true)}
+    ${p('Si hay algo que podríamos haber hecho mejor, escríbenos. Leemos cada mensaje personalmente y tu opinión da forma directamente al producto.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/subscription`, 'Reactivar mi suscripción')}
+    </div>
+
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('¿Alguna duda o comentario? <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>', true)}
+    </div>
+  `;
+  return layout('Hasta pronto · Zypace', body);
+}
+
 // ── Trial start email ─────────────────────────────────────────────────
 function trialStartHtml(firstName: string, trialEndDate: string): string {
   const name = firstName || 'corredor';
@@ -420,6 +463,27 @@ export async function sendWeeklySummaryEmail(
     to:      [to],
     subject: `Tu resumen semanal · ${stats.weekLabel}`,
     html:    weeklySummaryHtml(firstName, stats),
+  });
+}
+
+export async function sendOffboardingEmail(
+  to: string,
+  firstName: string,
+  periodEndMs: number,
+  isTrial: boolean,
+): Promise<void> {
+  const periodEndDate = new Date(periodEndMs).toLocaleDateString('es-ES', {
+    day: 'numeric', month: 'long', year: 'numeric',
+  });
+  const resend = new Resend(resendApiKey.value());
+  const subject = isTrial
+    ? 'Sin cargos — hasta pronto'
+    : `Tu acceso sigue activo hasta el ${periodEndDate}`;
+  await resend.emails.send({
+    from:    FROM,
+    to:      [to],
+    subject,
+    html:    offboardingHtml(firstName, periodEndDate, isTrial),
   });
 }
 

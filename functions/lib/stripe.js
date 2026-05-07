@@ -1,11 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.stripeSecretKey = void 0;
+exports.validateDiscountCode = exports.cancelSubscription = exports.createPortalSession = exports.createCheckoutSession = exports.stripeSecretKey = void 0;
 const https_1 = require("firebase-functions/v2/https");
 const params_1 = require("firebase-functions/params");
 const firestore_1 = require("firebase-admin/firestore");
 /* eslint-disable @typescript-eslint/no-require-imports */
 const Stripe = require('stripe');
+const emailService_1 = require("./emailService");
 const REGION = 'europe-west1';
 const APP_URL = 'https://www.zypace.com';
 const PRICE_ID = 'price_1TU6XG2L6uGjMe5kxEPqh3rx';
@@ -97,6 +98,46 @@ exports.createPortalSession = (0, https_1.onCall)({ region: REGION, cors: true, 
         return_url: `${APP_URL}/settings`,
     });
     return { url: session.url };
+});
+// ── cancelSubscription ────────────────────────────────────────────────
+exports.cancelSubscription = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey, emailService_1.resendApiKey] }, async (request) => {
+    var _a;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid)
+        throw new https_1.HttpsError('unauthenticated', 'No autenticado');
+    const { reason, feedback } = request.data;
+    const db = (0, firestore_1.getFirestore)();
+    const stripe = stripeClient();
+    const userSnap = await db.collection('users').doc(uid).get();
+    const user = userSnap.data();
+    if (!user)
+        throw new https_1.HttpsError('not-found', 'Usuario no encontrado');
+    const subscriptionId = user.subscription_id;
+    if (!subscriptionId)
+        throw new https_1.HttpsError('not-found', 'No tienes una suscripción activa');
+    // Cancel at period end — user keeps access until the billing cycle ends
+    const subscription = await stripe.subscriptions.update(subscriptionId, {
+        cancel_at_period_end: true,
+    });
+    const periodEndMs = subscription.current_period_end * 1000;
+    const isTrial = subscription.status === 'trialing';
+    await db.collection('users').doc(uid).update({
+        subscription_cancel_at_period_end: true,
+        cancellation_reason: reason || null,
+        cancellation_feedback: feedback || null,
+    });
+    // Send offboarding email (best-effort)
+    if (user.email) {
+        try {
+            await (0, emailService_1.sendOffboardingEmail)(user.email, user.first_name || '', periodEndMs, isTrial);
+            console.log(`[cancelSubscription] Offboarding email sent to: ${user.email}`);
+        }
+        catch (err) {
+            console.error('[cancelSubscription] Failed to send offboarding email:', err);
+        }
+    }
+    console.log(`[cancelSubscription] uid=${uid} reason=${reason} periodEnd=${periodEndMs}`);
+    return { success: true, periodEndMs, isTrial };
 });
 // ── validateDiscountCode ───────────────────────────────────────────────
 exports.validateDiscountCode = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey] }, async (request) => {

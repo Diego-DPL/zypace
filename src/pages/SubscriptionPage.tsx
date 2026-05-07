@@ -3,6 +3,7 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import { useSubscription } from '../context/SubscriptionContext';
 import { useAuth } from '../context/AuthContext';
+import CancellationModal from '../components/CancellationModal';
 
 const fns = getFunctions(undefined, 'europe-west1');
 
@@ -25,7 +26,7 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }
 
 export default function SubscriptionPage() {
   const { user }                          = useAuth();
-  const { hasAccess, isExempt, subscriptionStatus, periodEnd, adminPromoCode, loading } = useSubscription();
+  const { hasAccess, isExempt, subscriptionStatus, periodEnd, cancelAtPeriodEnd, adminPromoCode, loading } = useSubscription();
   const [searchParams]                    = useSearchParams();
 
   const [promoInput,    setPromoInput]   = useState('');
@@ -33,9 +34,10 @@ export default function SubscriptionPage() {
   const [promoLoading,  setPromoLoading] = useState(false);
   const [promoError,    setPromoError]   = useState('');
 
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [portalLoading,   setPortalLoading]   = useState(false);
-  const [actionError,     setActionError]     = useState('');
+  const [checkoutLoading,    setCheckoutLoading]    = useState(false);
+  const [portalLoading,      setPortalLoading]      = useState(false);
+  const [actionError,        setActionError]        = useState('');
+  const [showCancelModal,    setShowCancelModal]    = useState(false);
 
   const sessionId  = searchParams.get('session_id');
   const wasCanceled = searchParams.get('canceled') === 'true';
@@ -172,9 +174,13 @@ export default function SubscriptionPage() {
 
           {periodEnd && (
             <p className="text-sm text-zinc-400">
-              {status === 'canceled'
-                ? `Acceso hasta: ${formatDate(periodEnd)}`
-                : `Próxima renovación: ${formatDate(periodEnd)}`}
+              {cancelAtPeriodEnd
+                ? <><span className="text-yellow-400 font-medium">Cancelación programada</span> · Acceso hasta: {formatDate(periodEnd)}</>
+                : status === 'canceled'
+                  ? `Acceso hasta: ${formatDate(periodEnd)}`
+                  : status === 'trialing'
+                    ? `Prueba gratuita hasta: ${formatDate(periodEnd)}`
+                    : `Próxima renovación: ${formatDate(periodEnd)}`}
             </p>
           )}
 
@@ -195,7 +201,25 @@ export default function SubscriptionPage() {
           >
             {portalLoading ? 'Cargando portal…' : 'Gestionar suscripción'}
           </button>
+
+          {/* Cancel button — only when not already cancelling */}
+          {!cancelAtPeriodEnd && (status === 'active' || status === 'trialing') && (
+            <button
+              onClick={() => setShowCancelModal(true)}
+              className="w-full py-2 text-xs text-zinc-600 hover:text-zinc-400 transition-colors"
+            >
+              Cancelar suscripción
+            </button>
+          )}
         </div>
+      )}
+
+      {/* ── Cancellation modal ─────────────────────────────────────── */}
+      {showCancelModal && (
+        <CancellationModal
+          onClose={() => setShowCancelModal(false)}
+          onCanceled={() => setShowCancelModal(false)}
+        />
       )}
 
       {/* ── No subscription / checkout ─────────────────────────────── */}
