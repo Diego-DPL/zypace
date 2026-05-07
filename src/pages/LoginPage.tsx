@@ -50,6 +50,11 @@ const LoginPage = () => {
             <input type="password" value={password} onChange={e => setPassword(e.target.value)}
               className="w-full px-3 py-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-white placeholder-zinc-500 focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none text-sm" required />
           </div>
+          <div className="flex justify-end -mt-1">
+            <Link to="/forgot-password" className="text-xs text-zinc-500 hover:text-lime-400 transition-colors">
+              ¿Olvidaste tu contraseña?
+            </Link>
+          </div>
           <button type="submit" disabled={loading}
             className="w-full py-2.5 px-4 font-semibold rounded-lg bg-lime-400 text-black hover:bg-lime-500 disabled:opacity-50 transition-colors text-sm">
             {loading ? 'Iniciando...' : 'Iniciar Sesión'}

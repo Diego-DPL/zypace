@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LandingPage from '../pages/LandingPage';
 import LoginPage from '../pages/LoginPage';
 import RegisterPage from '../pages/RegisterPage';
+import ForgotPasswordPage from '../pages/ForgotPasswordPage';
 import HomePage from '../pages/HomePage';
 import CalendarPage from '../pages/CalendarPage';
 import SettingsPage from '../pages/SettingsPage';
@@ -44,6 +45,7 @@ const AppRouter = () => {
           <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/app" />} />
           <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/app" />} />
           <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/app" />} />
+          <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/app" />} />
           <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/security" element={<SecurityPage />} />

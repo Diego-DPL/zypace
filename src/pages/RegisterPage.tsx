@@ -20,9 +20,10 @@ interface ProfileForm {
 }
 
 const RegisterPage = () => {
-  const [email, setEmail]       = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading]   = useState(false);
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [confirmPassword, setConfirm] = useState('');
+  const [loading, setLoading]         = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const [success, setSuccess]   = useState(false);
   const [showTerms, setShowTerms] = useState(false);
@@ -47,6 +48,7 @@ const RegisterPage = () => {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile.accepted_terms) { setError('Debes aceptar los términos y condiciones'); return; }
+    if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return; }
     setLoading(true);
     setError(null);
     try {
@@ -122,7 +124,7 @@ const RegisterPage = () => {
             <div className="space-y-4">
               <p className={sectionClass}>Acceso</p>
               <div className="grid md:grid-cols-2 gap-4">
-                <div>
+                <div className="md:col-span-2">
                   <label className={labelClass}>Email</label>
                   <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                     placeholder="tu@email.com" className={inputClass} />
@@ -131,6 +133,21 @@ const RegisterPage = () => {
                   <label className={labelClass}>Contraseña</label>
                   <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6}
                     placeholder="Mínimo 6 caracteres" className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Confirmar contraseña</label>
+                  <input
+                    type="password"
+                    value={confirmPassword}
+                    onChange={e => setConfirm(e.target.value)}
+                    required
+                    minLength={6}
+                    placeholder="Repite la contraseña"
+                    className={`${inputClass} ${confirmPassword && confirmPassword !== password ? 'border-red-500 focus:ring-red-500 focus:border-red-500' : confirmPassword && confirmPassword === password ? 'border-lime-500 focus:ring-lime-400 focus:border-lime-400' : ''}`}
+                  />
+                  {confirmPassword && confirmPassword !== password && (
+                    <p className="text-red-400 text-xs mt-1">Las contraseñas no coinciden</p>
+                  )}
                 </div>
               </div>
             </div>
