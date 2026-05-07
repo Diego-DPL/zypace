@@ -7,6 +7,7 @@ exports.sendIncidentResolvedEmail = sendIncidentResolvedEmail;
 exports.sendPlanReadyEmail = sendPlanReadyEmail;
 exports.sendRaceReminderEmail = sendRaceReminderEmail;
 exports.sendWeeklySummaryEmail = sendWeeklySummaryEmail;
+exports.sendReactivationEmail = sendReactivationEmail;
 exports.sendOffboardingEmail = sendOffboardingEmail;
 exports.sendTrialStartEmail = sendTrialStartEmail;
 exports.sendInviteEmail = sendInviteEmail;
@@ -250,6 +251,39 @@ function weeklySummaryHtml(firstName, stats) {
   `;
     return layout('Tu resumen semanal · Zypace', body);
 }
+// ── Reactivation email ────────────────────────────────────────────────
+function reactivationHtml(firstName) {
+    const name = firstName || 'corredor';
+    const body = `
+    ${h1(`¿Volviste a entrenar, ${name}?`)}
+    ${p('Han pasado 30 días desde que te fuiste. Si el running ha vuelto a tu vida, nos alegra saberlo — y tu cuenta sigue aquí, con todo guardado.')}
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;background:#f9fafb;border-radius:8px;overflow:hidden;">
+      ${[
+        ['Tu plan', 'Tu plan de entrenamiento está intacto, listo para retomarlo donde lo dejaste.'],
+        ['Tus zonas', 'Las zonas de ritmo que calibraste siguen guardadas.'],
+        ['Tu historial', 'Todas tus actividades y progreso anterior siguen ahí.'],
+    ].map(([title, desc], i) => `
+        <tr${i > 0 ? ' style="border-top:1px solid #e4e4e7;"' : ''}>
+          <td style="padding:14px 20px;">
+            <p style="margin:0 0 2px;font-size:13px;font-weight:600;color:#18181b;">✓ ${title}</p>
+            <p style="margin:0;font-size:12px;color:#71717a;line-height:1.5;">${desc}</p>
+          </td>
+        </tr>`).join('')}
+    </table>
+
+    ${p('Reactivar es tan fácil como un clic. Sin colas, sin configuraciones, directo al entrenamiento.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/subscription`, 'Volver a Zypace')}
+    </div>
+
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('Si el momento todavía no es el adecuado, no pasa nada. Aquí estaremos cuando lo sea.', true)}
+    </div>
+  `;
+    return layout('¿Volviste a entrenar? Tu plan te espera', body);
+}
 // ── Offboarding email ─────────────────────────────────────────────────
 function offboardingHtml(firstName, periodEndDate, isTrial) {
     const name = firstName || 'corredor';
@@ -419,6 +453,15 @@ async function sendWeeklySummaryEmail(to, firstName, stats) {
         to: [to],
         subject: `Tu resumen semanal · ${stats.weekLabel}`,
         html: weeklySummaryHtml(firstName, stats),
+    });
+}
+async function sendReactivationEmail(to, firstName) {
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: '¿Volviste a entrenar? 👟 Tu plan te espera',
+        html: reactivationHtml(firstName),
     });
 }
 async function sendOffboardingEmail(to, firstName, periodEndMs, isTrial) {

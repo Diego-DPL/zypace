@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.weeklyEmailSummary = exports.dailyRaceReminder = void 0;
+exports.weeklyEmailSummary = exports.reactivationEmailJob = exports.dailyRaceReminder = void 0;
 const scheduler_1 = require("firebase-functions/v2/scheduler");
 const firestore_1 = require("firebase-admin/firestore");
 const emailService_1 = require("./emailService");
@@ -52,6 +52,53 @@ exports.dailyRaceReminder = (0, scheduler_1.onSchedule)({ schedule: '0 9 * * *',
         }
         catch (err) {
             console.error(`[dailyRaceReminder] Error for uid ${uid}:`, err);
+        }
+    }
+});
+/**
+ * Daily at 10:00 Madrid — sends a reactivation email to users who cancelled
+ * exactly 30 days ago and haven't received one yet.
+ */
+exports.reactivationEmailJob = (0, scheduler_1.onSchedule)({ schedule: '0 10 * * *', timeZone: TIMEZONE, region: REGION, secrets: [emailService_1.resendApiKey] }, async () => {
+    const db = (0, firestore_1.getFirestore)();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    // Window: cancelled between 29 and 31 days ago
+    const from = new Date(today);
+    from.setDate(from.getDate() - 31);
+    const to = new Date(today);
+    to.setDate(to.getDate() - 29);
+    console.log(`[reactivationEmailJob] Checking cancellations between ${from.toISOString()} and ${to.toISOString()}`);
+    const snap = await db.collection('cancellations')
+        .where('cancelled_at', '>=', from)
+        .where('cancelled_at', '<=', to)
+        .where('reactivation_sent', '==', false)
+        .get();
+    // Also check docs that don't have the field yet (first run)
+    const snapMissing = await db.collection('cancellations')
+        .where('cancelled_at', '>=', from)
+        .where('cancelled_at', '<=', to)
+        .get();
+    const docs = new Map();
+    for (const d of [...snap.docs, ...snapMissing.docs]) {
+        if (!docs.has(d.id) && !d.data().reactivation_sent)
+            docs.set(d.id, d);
+    }
+    if (docs.size === 0) {
+        console.log('[reactivationEmailJob] No eligible cancellations.');
+        return;
+    }
+    for (const [, cancDoc] of docs) {
+        const data = cancDoc.data();
+        if (!(data === null || data === void 0 ? void 0 : data.email))
+            continue;
+        try {
+            await (0, emailService_1.sendReactivationEmail)(data.email, data.first_name || '');
+            await cancDoc.ref.update({ reactivation_sent: true });
+            console.log(`[reactivationEmailJob] Reactivation email sent to: ${data.email}`);
+        }
+        catch (err) {
+            console.error(`[reactivationEmailJob] Error for ${data.email}:`, err);
         }
     }
 });

@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { useAuth } from '../context/AuthContext';
 import AddGoalModal from '../components/AddGoalModal';
+import OnboardingChecklist from '../components/OnboardingChecklist';
 import {
   collection, getDocs, doc, query, where, orderBy, limit, updateDoc,
 } from 'firebase/firestore';
@@ -281,6 +282,7 @@ const HomePage = () => {
             </div>
           )}
         </div>
+        <OnboardingChecklist />
         {loading ? (
           <p className="text-zinc-500">Cargando datos...</p>
         ) : (
