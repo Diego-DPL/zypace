@@ -53,7 +53,7 @@ const AppRouter = () => {
           <Route path="/app"           element={appElement(<HomePage />)} />
           <Route path="/calendar"      element={appElement(<CalendarPage />)} />
           <Route path="/races"         element={<Navigate to="/calendar" replace />} />
-          <Route path="/settings"      element={appElement(<SettingsPage />)} />
+          <Route path="/settings"      element={user ? <SettingsPage /> : <Navigate to="/" />} />
           <Route path="/training-plan" element={appElement(<TrainingPlanPage />)} />
           <Route path="/subscription"  element={<Navigate to="/settings" replace />} />
           <Route path="/support" element={<SupportPage />} />
