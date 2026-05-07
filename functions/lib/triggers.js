@@ -9,16 +9,35 @@ const emailService_1 = require("./emailService");
  * Fires on: users/{uid} creation (triggered by RegisterPage on sign-up).
  */
 exports.onUserCreated = (0, firestore_1.onDocumentCreated)({ document: 'users/{uid}', region: 'europe-west1', secrets: [emailService_1.resendApiKey] }, async (event) => {
-    var _a;
+    var _a, _b;
     const data = (_a = event.data) === null || _a === void 0 ? void 0 : _a.data();
     if (!data)
         return;
+    const uid = event.params.uid;
     const email = data.email;
     const firstName = data.first_name || '';
     if (!email) {
-        console.warn('[onUserCreated] No email found for uid:', event.params.uid);
+        console.warn('[onUserCreated] No email found for uid:', uid);
         return;
     }
+    const db = (0, firestore_2.getFirestore)();
+    // ── Check invite: if this email was pre-invited, grant is_exempt ──
+    try {
+        const inviteDoc = await db.collection('invites').doc(email.toLowerCase()).get();
+        if (inviteDoc.exists && ((_b = inviteDoc.data()) === null || _b === void 0 ? void 0 : _b.is_exempt)) {
+            await db.collection('users').doc(uid).update({ is_exempt: true });
+            await db.collection('invites').doc(email.toLowerCase()).update({
+                used: true,
+                used_at: new Date(),
+                used_by: uid,
+            });
+            console.log('[onUserCreated] Invited user granted is_exempt:', email);
+        }
+    }
+    catch (err) {
+        console.error('[onUserCreated] Failed to apply invite exemption:', err);
+    }
+    // ── Send welcome email ────────────────────────────────────────────
     try {
         await (0, emailService_1.sendWelcomeEmail)(email, firstName);
         console.log('[onUserCreated] Welcome email sent to:', email);

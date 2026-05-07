@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'dashboard' | 'users' | 'incidents' | 'strava' | 'payments';
+type Tab = 'dashboard' | 'users' | 'incidents' | 'strava' | 'payments' | 'invites';
 type IncidentStatus = 'abierta' | 'en_proceso' | 'resuelta';
 
 interface UserDoc {
@@ -782,6 +782,178 @@ function StripePaymentsPanel({ users }: { users: UserDoc[] }) {
   );
 }
 
+// ── Invites Panel ─────────────────────────────────────────────────────
+interface Invite {
+  email:      string;
+  is_exempt:  boolean;
+  used:       boolean;
+  notes:      string | null;
+  created_at: number | null;
+  used_at:    number | null;
+}
+
+function InvitesPanel() {
+  const fns = getFunctions(undefined, 'europe-west1');
+
+  const [invites,     setInvites]     = useState<Invite[]>([]);
+  const [loading,     setLoading]     = useState(false);
+  const [emailInput,  setEmailInput]  = useState('');
+  const [notesInput,  setNotesInput]  = useState('');
+  const [creating,    setCreating]    = useState(false);
+  const [createErr,   setCreateErr]   = useState('');
+  const [createOk,    setCreateOk]    = useState('');
+  const [revoking,    setRevoking]    = useState<string | null>(null);
+
+  const loadInvites = useCallback(async () => {
+    setLoading(true);
+    try {
+      const fn  = httpsCallable<unknown, Invite[]>(fns, 'listInvites');
+      const res = await fn({});
+      setInvites(res.data);
+    } catch (e: any) { console.error(e); }
+    setLoading(false);
+  }, []);
+
+  useEffect(() => { loadInvites(); }, [loadInvites]);
+
+  const handleCreate = async () => {
+    setCreating(true);
+    setCreateErr('');
+    setCreateOk('');
+    try {
+      const fn = httpsCallable(fns, 'createInvite');
+      await fn({ email: emailInput.trim(), notes: notesInput.trim() || undefined });
+      setCreateOk(`Invitación creada para ${emailInput.trim().toLowerCase()}`);
+      setEmailInput('');
+      setNotesInput('');
+      await loadInvites();
+    } catch (e: any) {
+      setCreateErr(e?.message || 'Error al crear la invitación');
+    }
+    setCreating(false);
+  };
+
+  const handleRevoke = async (email: string) => {
+    setRevoking(email);
+    try {
+      const fn = httpsCallable(fns, 'revokeInvite');
+      await fn({ email });
+      setInvites(prev => prev.filter(i => i.email !== email));
+    } catch (e: any) {
+      console.error('revokeInvite error', e);
+    }
+    setRevoking(null);
+  };
+
+  return (
+    <div className="space-y-6">
+
+      {/* Explainer */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <h3 className="text-sm font-semibold text-zinc-200 mb-1">Invitaciones de acceso</h3>
+        <p className="text-xs text-zinc-500 leading-relaxed">
+          Añade el email de alguien antes de que se registre. Cuando esa persona cree su cuenta,
+          se le concederá acceso gratuito automáticamente (<code className="text-zinc-300">is_exempt: true</code>) sin necesidad de suscripción.
+        </p>
+      </div>
+
+      {/* Create form */}
+      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-5 space-y-4">
+        <p className="text-xs font-bold text-zinc-400 uppercase tracking-wider">Nueva invitación</p>
+        <div className="grid sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1">Email</label>
+            <input
+              value={emailInput}
+              onChange={e => setEmailInput(e.target.value)}
+              type="email"
+              placeholder="usuario@ejemplo.com"
+              className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:ring-2 focus:ring-lime-400 outline-none"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-zinc-500 mb-1">Nota interna (opcional)</label>
+            <input
+              value={notesInput}
+              onChange={e => setNotesInput(e.target.value)}
+              placeholder="Ej: amigo, beta tester…"
+              className="w-full px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-600 focus:ring-2 focus:ring-lime-400 outline-none"
+            />
+          </div>
+        </div>
+        {createErr && <p className="text-xs text-red-400">{createErr}</p>}
+        {createOk  && <p className="text-xs text-green-400">{createOk}</p>}
+        <div className="flex justify-end">
+          <button
+            onClick={handleCreate}
+            disabled={creating || !emailInput.trim()}
+            className="px-4 py-2 text-sm font-semibold bg-lime-400 hover:bg-lime-500 text-black rounded-lg disabled:opacity-50 transition-colors"
+          >
+            {creating ? 'Enviando…' : 'Crear invitación'}
+          </button>
+        </div>
+      </div>
+
+      {/* List */}
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">
+            Invitaciones ({invites.length})
+          </p>
+          <button onClick={loadInvites} disabled={loading}
+            className="text-xs text-zinc-500 hover:text-zinc-300 border border-zinc-800 px-3 py-1.5 rounded-lg transition-colors disabled:opacity-50">
+            ↻ Recargar
+          </button>
+        </div>
+
+        {loading ? (
+          <div className="flex items-center gap-3 py-6 text-xs text-zinc-500">
+            <div className="w-4 h-4 rounded-full border border-zinc-600 border-t-lime-400 animate-spin" />
+            Cargando…
+          </div>
+        ) : invites.length === 0 ? (
+          <div className="bg-zinc-900 border border-dashed border-zinc-700 rounded-xl p-8 text-center">
+            <p className="text-sm text-zinc-500">No hay invitaciones pendientes.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {invites.map(inv => (
+              <div key={inv.email} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 flex items-center justify-between gap-4">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-sm font-medium text-zinc-100">{inv.email}</span>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                      inv.used
+                        ? 'bg-green-950/50 text-green-400 border-green-800'
+                        : 'bg-yellow-950/50 text-yellow-400 border-yellow-800'
+                    }`}>
+                      {inv.used ? 'Usado' : 'Pendiente'}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-zinc-600 mt-0.5">
+                    {inv.created_at ? `Creada: ${new Date(inv.created_at).toLocaleDateString('es-ES')}` : ''}
+                    {inv.used && inv.used_at ? ` · Registrado: ${new Date(inv.used_at).toLocaleDateString('es-ES')}` : ''}
+                    {inv.notes ? ` · ${inv.notes}` : ''}
+                  </p>
+                </div>
+                {!inv.used && (
+                  <button
+                    onClick={() => handleRevoke(inv.email)}
+                    disabled={revoking === inv.email}
+                    className="shrink-0 px-3 py-1.5 text-xs font-semibold rounded-lg border border-red-800 text-red-400 hover:bg-red-950/40 disabled:opacity-50 transition-colors"
+                  >
+                    {revoking === inv.email ? '…' : 'Revocar'}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────
 const AdminPage = () => {
   const { user } = useAuth();
@@ -912,6 +1084,7 @@ const AdminPage = () => {
           ['users',     'Usuarios'],
           ['incidents', 'Incidencias'],
           ['payments',  'Pagos'],
+          ['invites',   'Invitaciones'],
           ['strava',    'Strava'],
         ] as const).map(([id, label]) => (
           <button
@@ -1274,6 +1447,9 @@ const AdminPage = () => {
 
       {/* ── PAYMENTS TAB ── */}
       {tab === 'payments' && <StripePaymentsPanel users={users} />}
+
+      {/* ── INVITES TAB ── */}
+      {tab === 'invites' && <InvitesPanel />}
 
       {/* ── STRAVA TAB ── */}
       {tab === 'strava' && <StravaWebhookPanel />}

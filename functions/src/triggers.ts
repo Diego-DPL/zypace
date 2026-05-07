@@ -18,14 +18,34 @@ export const onUserCreated = onDocumentCreated(
     const data = event.data?.data();
     if (!data) return;
 
+    const uid       = event.params.uid;
     const email     = data.email as string | undefined;
     const firstName = (data.first_name as string | undefined) || '';
 
     if (!email) {
-      console.warn('[onUserCreated] No email found for uid:', event.params.uid);
+      console.warn('[onUserCreated] No email found for uid:', uid);
       return;
     }
 
+    const db = getFirestore();
+
+    // ── Check invite: if this email was pre-invited, grant is_exempt ──
+    try {
+      const inviteDoc = await db.collection('invites').doc(email.toLowerCase()).get();
+      if (inviteDoc.exists && inviteDoc.data()?.is_exempt) {
+        await db.collection('users').doc(uid).update({ is_exempt: true });
+        await db.collection('invites').doc(email.toLowerCase()).update({
+          used:    true,
+          used_at: new Date(),
+          used_by: uid,
+        });
+        console.log('[onUserCreated] Invited user granted is_exempt:', email);
+      }
+    } catch (err) {
+      console.error('[onUserCreated] Failed to apply invite exemption:', err);
+    }
+
+    // ── Send welcome email ────────────────────────────────────────────
     try {
       await sendWelcomeEmail(email, firstName);
       console.log('[onUserCreated] Welcome email sent to:', email);

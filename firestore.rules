@@ -76,6 +76,11 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── Invites (admin-only; read/write via Cloud Functions only) ────
+    match /invites/{email} {
+      allow read, write: if isAdmin();
+    }
+
     // ── Incidents ───────────────────────────────────────────────────
     match /incidents/{incidentId} {
       // User: create their own, read/update their own (only messages + updated_at)

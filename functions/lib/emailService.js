@@ -7,6 +7,7 @@ exports.sendIncidentResolvedEmail = sendIncidentResolvedEmail;
 exports.sendPlanReadyEmail = sendPlanReadyEmail;
 exports.sendRaceReminderEmail = sendRaceReminderEmail;
 exports.sendWeeklySummaryEmail = sendWeeklySummaryEmail;
+exports.sendInviteEmail = sendInviteEmail;
 const resend_1 = require("resend");
 const params_1 = require("firebase-functions/params");
 exports.resendApiKey = (0, params_1.defineSecret)('RESEND_API_KEY');
@@ -14,6 +15,7 @@ const APP_URL = 'https://www.zypace.com';
 const FROM = 'Zypace <noreply@zypace.com>';
 const LIME = '#a3e635';
 const DARK = '#18181b';
+const LOGO_URL = `${APP_URL}/logo.png`;
 // ── Shared layout ─────────────────────────────────────────────────────
 function layout(title, body) {
     return `<!DOCTYPE html>
@@ -30,8 +32,8 @@ function layout(title, body) {
 
         <!-- Header -->
         <tr>
-          <td style="background:${DARK};padding:28px 32px;text-align:center;">
-            <span style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;">ZY<span style="color:${LIME}">PACE</span></span>
+          <td style="background:${DARK};padding:24px 32px;text-align:center;">
+            <img src="${LOGO_URL}" alt="Zypace" width="140" style="display:block;margin:0 auto;height:auto;max-width:140px;" />
           </td>
         </tr>
 
@@ -246,6 +248,48 @@ function weeklySummaryHtml(firstName, stats) {
   `;
     return layout('Tu resumen semanal · Zypace', body);
 }
+// ── Invite email ──────────────────────────────────────────────────────
+function inviteHtml() {
+    const body = `
+    ${h1('Te han invitado a Zypace')}
+    ${p('Has recibido una invitación para acceder a <strong style="color:#18181b;">Zypace</strong>, el entrenador personal de running con IA.')}
+    ${p('Con tu acceso podrás:')}
+
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">
+      ${[
+        ['Genera tu plan', 'La IA construye un plan de entrenamiento personalizado según tu nivel y objetivo de carrera.'],
+        ['Conecta Strava', 'Tus actividades se sincronizan automáticamente y el plan se actualiza en tiempo real.'],
+        ['Sigue tu progreso', 'Visualiza cada semana, marca entrenamientos y prepárate para tu próxima carrera.'],
+    ].map(([title, desc]) => `
+        <tr>
+          <td style="padding:8px 0;vertical-align:top;">
+            <table cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="width:8px;padding-top:5px;vertical-align:top;">
+                  <div style="width:6px;height:6px;background:${LIME};border-radius:50%;"></div>
+                </td>
+                <td style="padding-left:10px;vertical-align:top;">
+                  <p style="margin:0 0 2px;font-size:14px;font-weight:600;color:#18181b;">${title}</p>
+                  <p style="margin:0;font-size:13px;color:#71717a;line-height:1.5;">${desc}</p>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>`).join('')}
+    </table>
+
+    ${p('Tu acceso está activado. Créate una cuenta con este email y entrarás directamente, sin necesidad de suscripción.')}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/register`, 'Crear mi cuenta gratis')}
+    </div>
+
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('¿Tienes alguna pregunta? Escríbenos a <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>.', true)}
+    </div>
+  `;
+    return layout('Tu invitación a Zypace', body);
+}
 // ── Public send functions ─────────────────────────────────────────────
 async function sendWelcomeEmail(to, firstName) {
     const resend = new resend_1.Resend(exports.resendApiKey.value());
@@ -299,6 +343,15 @@ async function sendWeeklySummaryEmail(to, firstName, stats) {
         to: [to],
         subject: `Tu resumen semanal · ${stats.weekLabel}`,
         html: weeklySummaryHtml(firstName, stats),
+    });
+}
+async function sendInviteEmail(to) {
+    const resend = new resend_1.Resend(exports.resendApiKey.value());
+    await resend.emails.send({
+        from: FROM,
+        to: [to],
+        subject: 'Te han invitado a Zypace',
+        html: inviteHtml(),
     });
 }
 //# sourceMappingURL=emailService.js.map
