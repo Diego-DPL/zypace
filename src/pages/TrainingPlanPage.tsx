@@ -567,32 +567,6 @@ const TrainingPlanPage = () => {
 
   const selectedRaceDetails = races.find(r => r.id === selectedRace);
 
-  // ── Migrate strength workouts via AI ──────────────────────────────────────
-  const [migrating, setMigrating] = useState(false);
-  const [migrateResult, setMigrateResult] = useState<string | null>(null);
-
-  const migrateStrengthWorkouts = async () => {
-    if (!user || !plan) return;
-    setMigrating(true);
-    setMigrateResult(null);
-    try {
-      const migrateStrengthFn = httpsCallable(functions, 'migrateStrengthExercises', { timeout: 180000 });
-      const res  = await migrateStrengthFn({ plan_id: plan.id });
-      const data = res.data as { converted: number; message: string };
-      setMigrateResult(data.message);
-      // Reload plan to reflect changes
-      if (data.converted > 0) await fetchPlanForRace(selectedRace);
-    } catch (e: any) {
-      setMigrateResult(`Error: ${e.message}`);
-    } finally {
-      setMigrating(false);
-    }
-  };
-
-  // Show button whenever there are strength workouts (allow re-running to fix bad data)
-  const strengthWorkoutCount = plan?.workouts.filter(w =>
-    w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description)
-  ).length ?? 0;
 
   // Should we show the "next mesocycle" button?
   const todayISO = new Date().toISOString().substring(0, 10);
@@ -679,20 +653,6 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
               <div className="flex gap-3 flex-wrap items-center">
-                {strengthWorkoutCount > 0 && (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={migrateStrengthWorkouts}
-                      disabled={migrating}
-                      className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm flex items-center gap-1.5"
-                    >
-                      {migrating ? 'Procesando…' : `Estructurar fuerza (${strengthWorkoutCount})`}
-                    </button>
-                    {migrateResult && (
-                      <span className="text-xs text-zinc-400">{migrateResult}</span>
-                    )}
-                  </div>
-                )}
                 <button onClick={handleDeletePlan} disabled={loading}
                   className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 text-sm">
                   Eliminar plan

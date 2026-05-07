@@ -1,0 +1,128 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.stripeSecretKey = void 0;
+const https_1 = require("firebase-functions/v2/https");
+const params_1 = require("firebase-functions/params");
+const firestore_1 = require("firebase-admin/firestore");
+/* eslint-disable @typescript-eslint/no-require-imports */
+const Stripe = require('stripe');
+const REGION = 'europe-west1';
+const APP_URL = 'https://www.zypace.com';
+const PRICE_ID = 'price_1TU6XG2L6uGjMe5kxEPqh3rx';
+exports.stripeSecretKey = (0, params_1.defineSecret)('STRIPE_SECRET_KEY');
+function stripeClient() {
+    return new Stripe(exports.stripeSecretKey.value(), { apiVersion: '2026-04-22.dahlia' });
+}
+async function getOrCreateCustomer(stripe, db, uid) {
+    var _a;
+    const snap = await db.collection('users').doc(uid).get();
+    const data = snap.data();
+    if (!data)
+        throw new https_1.HttpsError('not-found', 'Usuario no encontrado');
+    if (data.stripe_customer_id)
+        return data.stripe_customer_id;
+    const customer = await stripe.customers.create({
+        email: data.email,
+        name: data.first_name
+            ? `${data.first_name} ${(_a = data.last_name) !== null && _a !== void 0 ? _a : ''}`.trim()
+            : undefined,
+        metadata: { uid },
+    });
+    await db.collection('users').doc(uid).update({ stripe_customer_id: customer.id });
+    return customer.id;
+}
+// ── createCheckoutSession ──────────────────────────────────────────────
+exports.createCheckoutSession = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey] }, async (request) => {
+    var _a;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid)
+        throw new https_1.HttpsError('unauthenticated', 'No autenticado');
+    const db = (0, firestore_1.getFirestore)();
+    const stripe = stripeClient();
+    const { promoCode } = request.data;
+    const userSnap = await db.collection('users').doc(uid).get();
+    const user = userSnap.data();
+    if (!user)
+        throw new https_1.HttpsError('not-found', 'Usuario no encontrado');
+    if (user.is_exempt) {
+        throw new https_1.HttpsError('failed-precondition', 'Tu cuenta tiene acceso gratuito');
+    }
+    if (user.subscription_status === 'active' || user.subscription_status === 'trialing') {
+        throw new https_1.HttpsError('already-exists', 'Ya tienes una suscripción activa');
+    }
+    const customerId = await getOrCreateCustomer(stripe, db, uid);
+    const params = {
+        customer: customerId,
+        mode: 'subscription',
+        line_items: [{ price: PRICE_ID, quantity: 1 }],
+        success_url: `${APP_URL}/settings?sub=ok`,
+        cancel_url: `${APP_URL}/settings?sub=canceled`,
+        metadata: { uid },
+        subscription_data: { metadata: { uid } },
+    };
+    // Explicit user code takes priority; fall back to admin-assigned code
+    const codeToCheck = (promoCode === null || promoCode === void 0 ? void 0 : promoCode.toUpperCase().trim()) || user.admin_promo_code;
+    if (codeToCheck) {
+        const promos = await stripe.promotionCodes.list({ code: codeToCheck, active: true, limit: 1 });
+        if (promos.data.length > 0) {
+            params.discounts = [{ promotion_code: promos.data[0].id }];
+            params.allow_promotion_codes = false;
+        }
+        else if (promoCode) {
+            // Only throw if the user explicitly typed a code (not admin-assigned)
+            throw new https_1.HttpsError('not-found', 'Código de descuento no válido o expirado');
+        }
+    }
+    else {
+        // Show promo-code field in Checkout UI
+        params.allow_promotion_codes = true;
+    }
+    const session = await stripe.checkout.sessions.create(params);
+    return { url: session.url };
+});
+// ── createPortalSession ────────────────────────────────────────────────
+exports.createPortalSession = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey] }, async (request) => {
+    var _a, _b;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid)
+        throw new https_1.HttpsError('unauthenticated', 'No autenticado');
+    const db = (0, firestore_1.getFirestore)();
+    const stripe = stripeClient();
+    const userSnap = await db.collection('users').doc(uid).get();
+    const customerId = (_b = userSnap.data()) === null || _b === void 0 ? void 0 : _b.stripe_customer_id;
+    if (!customerId)
+        throw new https_1.HttpsError('not-found', 'No hay ninguna suscripción asociada a tu cuenta');
+    const session = await stripe.billingPortal.sessions.create({
+        customer: customerId,
+        return_url: `${APP_URL}/settings`,
+    });
+    return { url: session.url };
+});
+// ── validateDiscountCode ───────────────────────────────────────────────
+exports.validateDiscountCode = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public', secrets: [exports.stripeSecretKey] }, async (request) => {
+    var _a, _b, _c, _d;
+    const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    if (!uid)
+        throw new https_1.HttpsError('unauthenticated', 'No autenticado');
+    const { code } = request.data;
+    if (!(code === null || code === void 0 ? void 0 : code.trim()))
+        throw new https_1.HttpsError('invalid-argument', 'Falta el código');
+    const stripe = stripeClient();
+    const promos = await stripe.promotionCodes.list({
+        code: code.toUpperCase().trim(),
+        active: true,
+        limit: 1,
+    });
+    if (promos.data.length === 0)
+        return { valid: false };
+    const coupon = promos.data[0].coupon;
+    return {
+        valid: true,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        discountValue: (_b = coupon.percent_off) !== null && _b !== void 0 ? _b : (coupon.amount_off ? coupon.amount_off / 100 : 0),
+        currency: (_c = coupon.currency) !== null && _c !== void 0 ? _c : 'eur',
+        duration: coupon.duration,
+        durationInMonths: (_d = coupon.duration_in_months) !== null && _d !== void 0 ? _d : null,
+    };
+});
+//# sourceMappingURL=stripe.js.map

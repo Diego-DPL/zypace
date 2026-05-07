@@ -155,8 +155,12 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
     }) : '';
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
-FORMATO:
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso|fuerza","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+FORMATO (running/descanso):
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+
+FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"phase":"base|desarrollo|especifico|taper"}}]}
+REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
 
 PLAN COMPLETO (contexto): ${race.name} · ${distKm || '?'}km · ${raceISO} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: 1 de ${totalMesocycles} — SOLO desde ${startISO} hasta ${mesoEndISO} (${mesoLenWeeks} semanas)
