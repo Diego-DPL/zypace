@@ -27,15 +27,15 @@ export const migrateStrengthExercises = onCall(
       .where('plan_id', '==', plan_id)
       .get();
 
+    // Include ALL strength workouts — overwrite even existing exercises in case
+    // they were incorrectly populated by a previous text-only parser run.
     const targets = snap.docs.filter(d => {
       const data = d.data();
-      const isStrength = data.explanation_json?.type === 'fuerza' || /fuerza/i.test(data.description || '');
-      const alreadyDone = Array.isArray(data.explanation_json?.exercises) && data.explanation_json.exercises.length > 0;
-      return isStrength && !alreadyDone;
+      return data.explanation_json?.type === 'fuerza' || /fuerza/i.test(data.description || '');
     });
 
     if (targets.length === 0) {
-      return { converted: 0, message: 'Ningún entrenamiento de fuerza pendiente de convertir.' };
+      return { converted: 0, message: 'No hay entrenamientos de fuerza en este plan.' };
     }
 
     // Build prompt with all descriptions in one call

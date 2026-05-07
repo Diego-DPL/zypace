@@ -589,12 +589,10 @@ const TrainingPlanPage = () => {
     }
   };
 
-  // Count how many strength workouts still lack structured exercises
-  const pendingMigration = plan?.workouts.filter(w => {
-    const isStrength = w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description);
-    const alreadyDone = Array.isArray(w.explanation_json?.exercises) && w.explanation_json.exercises.length > 0;
-    return isStrength && !alreadyDone;
-  }).length ?? 0;
+  // Show button whenever there are strength workouts (allow re-running to fix bad data)
+  const strengthWorkoutCount = plan?.workouts.filter(w =>
+    w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description)
+  ).length ?? 0;
 
   // Should we show the "next mesocycle" button?
   const todayISO = new Date().toISOString().substring(0, 10);
@@ -681,22 +679,19 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
               <div className="flex gap-3 flex-wrap items-center">
-                {pendingMigration > 0 && (
+                {strengthWorkoutCount > 0 && (
                   <div className="flex items-center gap-2">
                     <button
                       onClick={migrateStrengthWorkouts}
                       disabled={migrating}
                       className="bg-purple-600 hover:bg-purple-500 text-white font-semibold py-2 px-4 rounded-lg transition-colors disabled:opacity-50 text-sm flex items-center gap-1.5"
                     >
-                      {migrating ? 'Convirtiendo…' : `Convertir fuerza (${pendingMigration})`}
+                      {migrating ? 'Procesando…' : `Estructurar fuerza (${strengthWorkoutCount})`}
                     </button>
                     {migrateResult && (
                       <span className="text-xs text-zinc-400">{migrateResult}</span>
                     )}
                   </div>
-                )}
-                {!pendingMigration && migrateResult && (
-                  <span className="text-xs text-green-500 font-semibold">{migrateResult}</span>
                 )}
                 <button onClick={handleDeletePlan} disabled={loading}
                   className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors disabled:bg-gray-400 text-sm">
