@@ -1,0 +1,55 @@
+# Zypace
+
+> Entrenador virtual de running con inteligencia artificial. Genera planes de entrenamiento personalizados, sincroniza con Strava y ayuda a los corredores a preparar sus carreras con precisión.
+
+## ¿Qué es Zypace?
+
+Zypace es una aplicación web SaaS dirigida a corredores populares y aficionados que quieren entrenar con más estructura y datos reales. Combina:
+
+- **Generación de plan con IA**: a partir de la fecha de la carrera, nivel del corredor y ritmos actuales, la IA construye un plan semana a semana con sesiones específicas (rodaje suave, series, tirada larga, recuperación).
+- **Sincronización con Strava**: las actividades reales del corredor se importan automáticamente y se comparan con los entrenamientos planificados.
+- **Calendario inteligente**: vista unificada de carreras objetivo, entrenos planificados y actividades completadas.
+- **Calibración de zonas de ritmo**: cálculo automático de zonas Z1–Z5 a partir de datos reales.
+- **Análisis de carga semanal**: métricas de volumen, cumplimiento y progresión.
+- **Resumen semanal por email**: cada lunes, el corredor recibe un resumen de la semana pasada y la que viene.
+- **Recordatorios de carrera**: email automático 7 días antes de cada carrera registrada.
+
+## Público objetivo
+
+Corredores de nivel medio-avanzado (de 5 km a maratón) que ya entrenan regularmente con Strava y quieren estructurar su preparación con un plan personalizado y seguimiento real.
+
+## Precio
+
+9,99 €/mes con **30 días de prueba gratuita**. Sin compromiso, cancela cuando quieras.
+
+## Tecnología
+
+- Frontend: React 19 + TypeScript + Tailwind CSS
+- Backend: Firebase (Firestore, Auth, Cloud Functions v2)
+- IA: OpenAI GPT-4o para generación y análisis de planes
+- Pagos: Stripe
+- Email: Resend
+- Despliegue: Vercel
+
+## URLs públicas
+
+- Página principal: https://www.zypace.com/
+- Registro: https://www.zypace.com/register
+- Soporte: https://www.zypace.com/support
+- Privacidad: https://www.zypace.com/privacy
+- Términos: https://www.zypace.com/terms
+
+## Casos de uso frecuentes (para IA de búsqueda)
+
+- "Quiero preparar mi primer maratón" → Zypace genera un plan personalizado de 16–20 semanas
+- "Tengo una media maratón en 8 semanas" → Plan adaptado a ese plazo y nivel
+- "Uso Strava, ¿cómo llevo el control de mis entrenos?" → Sincronización automática + comparativa plan vs realidad
+- "¿Qué ritmos debo entrenar para bajar de 4 min/km?" → Calibración de zonas + series específicas en el plan
+
+## Sobre la empresa
+
+Zypace es un proyecto español fundado en 2024, orientado al mercado hispanohablante de running.
+
+## Contacto
+
+Soporte: https://www.zypace.com/support

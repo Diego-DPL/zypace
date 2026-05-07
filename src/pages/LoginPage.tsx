@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../lib/firebaseClient';
 import { Link } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
 
 const LoginPage = () => {
@@ -30,6 +31,8 @@ const LoginPage = () => {
   };
 
   return (
+    <>
+    <SEOHead title="Iniciar sesión" canonical="/login" noindex />
     <div className="flex justify-center items-center min-h-screen bg-zinc-950">
       <div className="w-full max-w-md p-8 space-y-6 bg-zinc-900 rounded-2xl border border-zinc-800 shadow-xl">
         <div className="flex justify-center mb-2">
@@ -59,6 +62,7 @@ const LoginPage = () => {
         </p>
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,4 +1,13 @@
+import SEOHead from '../components/SEOHead';
+
 const PrivacyPage = () => (
+  <>
+  <SEOHead
+    title="Política de Privacidad"
+    description="Consulta cómo Zypace recopila, usa y protege tus datos personales. Cumplimiento RGPD y derechos del usuario."
+    canonical="/privacy"
+    noindex={false}
+  />
   <main className="max-w-3xl mx-auto px-4 py-12 prose prose-sm sm:prose lg:prose-lg bg-white text-black dark:text-black">
     <h1>Política de Privacidad</h1>
     <p>En Zypace nos comprometemos a proteger tu privacidad. Esta política describe qué datos recopilamos, cómo los usamos y cuáles son tus derechos.</p>
@@ -42,5 +51,6 @@ const PrivacyPage = () => (
 
     <p className="text-xs text-gray-500">Última actualización: 04/05/2026</p>
   </main>
+  </>
 );
 export default PrivacyPage;

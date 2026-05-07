@@ -1,4 +1,12 @@
+import SEOHead from '../components/SEOHead';
+
 const TermsPage = () => (
+  <>
+  <SEOHead
+    title="Términos y Condiciones"
+    description="Condiciones de uso de Zypace, la plataforma de entrenamiento para runners con IA. Lee los términos antes de registrarte."
+    canonical="/terms"
+  />
   <main className="max-w-3xl mx-auto px-4 py-12 prose prose-sm sm:prose lg:prose-lg bg-white text-black dark:text-black">
     <h1>Términos y Condiciones</h1>
     <p>Estos términos regulan el uso de la plataforma Zypace. Al registrarte o usar el servicio, aceptas estas condiciones.</p>
@@ -47,5 +55,6 @@ const TermsPage = () => (
 
     <p className="text-xs text-gray-500">Versión: v2 · Última actualización: 04/05/2026</p>
   </main>
+  </>
 );
 export default TermsPage;

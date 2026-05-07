@@ -1,4 +1,12 @@
+import SEOHead from '../components/SEOHead';
+
 const CookiesPage = () => (
+  <>
+  <SEOHead
+    title="Política de Cookies"
+    description="Información sobre las cookies que utiliza Zypace: tipos, finalidad y cómo gestionarlas o rechazarlas."
+    canonical="/cookies"
+  />
   <main className="max-w-3xl mx-auto px-4 py-12 prose prose-sm sm:prose lg:prose-lg bg-white text-black dark:text-black">
     <h1>Política de Cookies</h1>
     <p>Esta política explica qué son las cookies, qué tipos usamos en Zypace y cómo puedes gestionarlas.</p>
@@ -30,5 +38,6 @@ const CookiesPage = () => (
 
     <p className="text-xs text-gray-500">Última actualización: 04/05/2026</p>
   </main>
+  </>
 );
 export default CookiesPage;

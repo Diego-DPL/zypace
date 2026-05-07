@@ -1,4 +1,88 @@
+# ── Zypace robots.txt ─────────────────────────────────────────────────
+# Public pages: indexed. Authenticated app routes: blocked.
+
 User-agent: *
 Allow: /
+Allow: /privacy
+Allow: /terms
+Allow: /security
+Allow: /cookies
+Allow: /support
+Allow: /login
+Allow: /register
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+Disallow: /strava-callback
+Disallow: /subscription
+
+# ── AI / LLM crawlers ─────────────────────────────────────────────────
+# Welcome — please index the public landing and help pages.
+# Full context in /llms.txt
+
+User-agent: GPTBot
+Allow: /
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+Disallow: /strava-callback
+
+User-agent: OAI-SearchBot
+Allow: /
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+
+User-agent: ClaudeBot
+Allow: /
+Allow: /privacy
+Allow: /terms
+Allow: /support
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+
+User-agent: Google-Extended
+Allow: /
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+
+User-agent: Googlebot
+Allow: /
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
+
+User-agent: Bingbot
+Allow: /
+Disallow: /app
+Disallow: /calendar
+Disallow: /settings
+Disallow: /training-plan
+Disallow: /admin
 
 Sitemap: https://www.zypace.com/sitemap.xml

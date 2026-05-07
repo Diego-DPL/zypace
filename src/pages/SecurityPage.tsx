@@ -1,4 +1,12 @@
+import SEOHead from '../components/SEOHead';
+
 const SecurityPage = () => (
+  <>
+  <SEOHead
+    title="Seguridad"
+    description="Cómo protege Zypace tus datos: infraestructura Firebase, reglas de acceso, cifrado en tránsito y mejores prácticas de seguridad."
+    canonical="/security"
+  />
   <main className="max-w-3xl mx-auto px-4 py-12 prose prose-sm sm:prose lg:prose-lg bg-white text-black dark:text-black">
     <h1>Seguridad</h1>
     <p>En Zypace aplicamos prácticas modernas para proteger tus datos e información personal.</p>
@@ -29,5 +37,6 @@ const SecurityPage = () => (
 
     <p className="text-xs text-gray-500">Última actualización: 04/05/2026</p>
   </main>
+  </>
 );
 export default SecurityPage;

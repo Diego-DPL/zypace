@@ -4,6 +4,7 @@ import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../lib/firebaseClient';
 import { Link } from 'react-router-dom';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
+import SEOHead from '../components/SEOHead';
 
 interface ProfileForm {
   first_name: string;
@@ -86,6 +87,12 @@ const RegisterPage = () => {
   const sectionClass = "text-[11px] font-bold tracking-widest text-zinc-500 uppercase flex items-center gap-2 before:flex-1 before:h-px before:bg-zinc-800 after:flex-1 after:h-px after:bg-zinc-800";
 
   return (
+    <>
+    <SEOHead
+      title="Crear cuenta gratis — 30 días de prueba"
+      description="Crea tu cuenta en Zypace y empieza tu prueba gratuita de 30 días. Planes de entrenamiento con IA y sincronización con Strava. Sin compromiso."
+      canonical="/register"
+    />
     <div className="relative min-h-screen flex justify-center items-start py-10 bg-zinc-950">
       <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_70%_10%,rgba(163,230,53,0.07),transparent_60%)]" />
       <div className="relative w-full max-w-3xl mx-4 p-8 space-y-8 bg-zinc-900 rounded-2xl shadow-xl border border-zinc-800">
@@ -253,6 +260,7 @@ const RegisterPage = () => {
         )}
       </div>
     </div>
+    </>
   );
 };
 

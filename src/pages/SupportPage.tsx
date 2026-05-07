@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import SEOHead from '../components/SEOHead';
 import {
   collection, addDoc, getDocs,
   query, where, orderBy, serverTimestamp,
@@ -406,6 +407,12 @@ const SupportPage = () => {
   const { user } = useAuth();
 
   return (
+    <>
+    <SEOHead
+      title="Soporte y Ayuda"
+      description="Centro de ayuda de Zypace. Encuentra respuestas sobre planes de entrenamiento, integración con Strava, facturación y más. Contacta con el equipo."
+      canonical="/support"
+    />
     <main className="container mx-auto p-4 sm:p-6 lg:p-8 max-w-3xl">
 
       {/* ── Hero ── */}
@@ -587,6 +594,7 @@ const SupportPage = () => {
       )}
 
     </main>
+    </>
   );
 };
 

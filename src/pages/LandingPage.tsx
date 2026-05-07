@@ -1,4 +1,5 @@
 import LandingHeader from "../components/LandingHeader";
+import SEOHead from "../components/SEOHead";
 import { Link } from 'react-router-dom';
 
 const PRICE_FEATURES = [
@@ -70,13 +71,46 @@ const faqs = [
   { q: '¿Cómo se calcula el progreso?', a: 'Comparamos tus entrenos planificados vs actividades reales y señalamos cumplimiento.' },
 ];
 
+const FAQ_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map(item => ({
+    '@type': 'Question',
+    name: item.q,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: item.a,
+    },
+  })),
+};
+
+const LANDING_SCHEMA = {
+  '@context': 'https://schema.org',
+  '@type': 'SoftwareApplication',
+  name: 'Zypace',
+  applicationCategory: 'SportsApplication',
+  operatingSystem: 'Web',
+  url: 'https://www.zypace.com',
+  description: 'Planes de entrenamiento personalizados con IA para runners. Sincroniza Strava, gestiona carreras objetivo y sigue tu progreso semana a semana.',
+  offers: {
+    '@type': 'Offer',
+    price: '9.99',
+    priceCurrency: 'EUR',
+    description: '30 días gratis, luego 9,99 €/mes',
+  },
+};
+
 const LandingPage = () => {
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-white">
+      <SEOHead
+        canonical="/"
+        jsonLd={[LANDING_SCHEMA, FAQ_SCHEMA]}
+      />
       <LandingHeader />
 
       {/* Hero */}
-      <section className="relative overflow-hidden">
+      <section id="inicio" className="relative overflow-hidden" aria-label="Presentación de Zypace">
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_30%_50%,rgba(163,230,53,0.10),transparent_65%)]" />
         <div className="max-w-6xl mx-auto px-6 pt-24 pb-32 text-center">
           <span className="inline-block mb-6 px-3 py-1 rounded-full bg-lime-400/10 border border-lime-400/20 text-lime-400 text-xs font-semibold tracking-widest uppercase">30 días gratis · Sin compromiso</span>
@@ -96,7 +130,7 @@ const LandingPage = () => {
       </section>
 
       {/* Features */}
-      <section className="py-24 bg-zinc-900">
+      <section id="funcionalidades" className="py-24 bg-zinc-900" aria-label="Funcionalidades principales">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Todo lo que necesitas en un solo lugar</h2>
           <p className="text-center text-zinc-500 mb-14">Menos hojas de cálculo. Más claridad. Más progreso.</p>
@@ -113,7 +147,7 @@ const LandingPage = () => {
       </section>
 
       {/* How it works */}
-      <section className="py-24 bg-zinc-950">
+      <section id="como-funciona" className="py-24 bg-zinc-950" aria-label="Cómo funciona Zypace">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">¿Cómo funciona?</h2>
           <p className="text-center text-zinc-500 mb-12">Un flujo simple para mantenerte constante.</p>
@@ -130,7 +164,7 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing */}
-      <section className="py-24 bg-zinc-900">
+      <section id="precio" className="py-24 bg-zinc-900" aria-label="Precio de Zypace">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Precio simple y claro</h2>
           <p className="text-center text-zinc-500 mb-12">Sin planes confusos. Sin costes ocultos.</p>
@@ -192,7 +226,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQs */}
-      <section className="py-24 bg-zinc-950">
+      <section id="preguntas-frecuentes" className="py-24 bg-zinc-950" aria-label="Preguntas frecuentes sobre Zypace">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-white">Preguntas Frecuentes</h2>
           <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-2xl overflow-hidden">
