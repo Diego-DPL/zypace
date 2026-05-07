@@ -7,7 +7,7 @@ import { getFunctions, httpsCallable } from 'firebase/functions';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
 
-type Tab = 'dashboard' | 'users' | 'incidents' | 'strava' | 'payments' | 'invites';
+type Tab = 'dashboard' | 'users' | 'incidents' | 'strava' | 'payments' | 'invites' | 'nps';
 type IncidentStatus = 'abierta' | 'en_proceso' | 'resuelta';
 
 interface UserDoc {
@@ -1101,6 +1101,121 @@ function InvitesPanel() {
   );
 }
 
+// ── NPS Panel ────────────────────────────────────────────────────────
+interface NpsResponse {
+  id:         string;
+  uid:        string;
+  email:      string | null;
+  score:      number;
+  category:   'detractor' | 'passive' | 'promoter';
+  feedback:   string | null;
+  created_at: any;
+}
+
+function NPSPanel() {
+  const [responses, setResponses] = useState<NpsResponse[]>([]);
+  const [loading,   setLoading]   = useState(true);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const snap = await getDocs(
+          query(collection(db, 'nps_responses'), orderBy('created_at', 'desc'), limit(200))
+        );
+        setResponses(snap.docs.map(d => ({ id: d.id, ...d.data() } as NpsResponse)));
+      } catch (e) {
+        console.error('[NPSPanel]', e);
+      }
+      setLoading(false);
+    })();
+  }, []);
+
+  if (loading) return <p className="text-sm text-zinc-500">Cargando…</p>;
+  if (responses.length === 0) return (
+    <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 text-center text-sm text-zinc-500">
+      No hay respuestas NPS todavía.
+    </div>
+  );
+
+  const total      = responses.length;
+  const promoters  = responses.filter(r => r.category === 'promoter').length;
+  const detractors = responses.filter(r => r.category === 'detractor').length;
+  const npsScore   = Math.round(((promoters - detractors) / total) * 100);
+
+  const avgScore = (responses.reduce((s, r) => s + r.score, 0) / total).toFixed(1);
+
+  const scoreColor = npsScore >= 50 ? 'text-lime-400' : npsScore >= 0 ? 'text-yellow-400' : 'text-red-400';
+
+  return (
+    <div className="space-y-6">
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'NPS',          value: npsScore > 0 ? `+${npsScore}` : `${npsScore}`, valueClass: scoreColor },
+          { label: 'Nota media',   value: avgScore,                                       valueClass: 'text-zinc-100' },
+          { label: 'Promotores',   value: `${promoters} (${Math.round(promoters/total*100)}%)`,   valueClass: 'text-lime-400' },
+          { label: 'Detractores',  value: `${detractors} (${Math.round(detractors/total*100)}%)`, valueClass: 'text-red-400' },
+        ].map(stat => (
+          <div key={stat.label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+            <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-1">{stat.label}</p>
+            <p className={`text-2xl font-bold ${stat.valueClass}`}>{stat.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Distribution bar */}
+      <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+        <p className="text-xs font-bold text-zinc-500 uppercase tracking-wider mb-3">Distribución de puntuaciones</p>
+        <div className="flex rounded-full overflow-hidden h-4 gap-px">
+          {Array.from({ length: 11 }, (_, i) => {
+            const count = responses.filter(r => r.score === i).length;
+            const pct   = total > 0 ? (count / total) * 100 : 0;
+            const col   = i <= 6 ? 'bg-red-600' : i <= 8 ? 'bg-yellow-500' : 'bg-lime-400';
+            return pct > 0
+              ? <div key={i} title={`${i}: ${count} resp.`} style={{ width: `${pct}%` }} className={`${col} min-w-[2px]`} />
+              : null;
+          })}
+        </div>
+        <div className="flex justify-between text-[10px] text-zinc-600 mt-1.5">
+          <span>0 — Detractores</span>
+          <span>7–8 Pasivos</span>
+          <span>9–10 Promotores ↗</span>
+        </div>
+      </div>
+
+      {/* Responses list */}
+      <div>
+        <p className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider mb-3">
+          Respuestas ({total})
+        </p>
+        <div className="space-y-2">
+          {responses.map(r => (
+            <div key={r.id} className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-3 flex items-start gap-4">
+              {/* Score badge */}
+              <div className={`text-sm font-bold w-10 shrink-0 text-center py-1 rounded-lg border ${
+                r.category === 'promoter' ? 'bg-lime-950/50 text-lime-400 border-lime-800'
+                : r.category === 'passive' ? 'bg-yellow-950/50 text-yellow-400 border-yellow-800'
+                : 'bg-red-950/50 text-red-400 border-red-800'
+              }`}>
+                {r.score}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-zinc-400 truncate">{r.email ?? r.uid}</p>
+                {r.feedback && (
+                  <p className="text-xs text-zinc-300 mt-1 leading-relaxed italic">"{r.feedback}"</p>
+                )}
+              </div>
+              <p className="text-[10px] text-zinc-600 shrink-0">
+                {r.created_at?.toDate?.().toLocaleDateString('es-ES') ?? '—'}
+              </p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main AdminPage ────────────────────────────────────────────────────
 const AdminPage = () => {
   const { user } = useAuth();
@@ -1232,6 +1347,7 @@ const AdminPage = () => {
           ['incidents', 'Incidencias'],
           ['payments',  'Pagos'],
           ['invites',   'Invitaciones'],
+          ['nps',       'NPS'],
           ['strava',    'Strava'],
         ] as const).map(([id, label]) => (
           <button
@@ -1604,6 +1720,9 @@ const AdminPage = () => {
 
       {/* ── INVITES TAB ── */}
       {tab === 'invites' && <InvitesPanel />}
+
+      {/* ── NPS TAB ── */}
+      {tab === 'nps' && <NPSPanel />}
 
       {/* ── STRAVA TAB ── */}
       {tab === 'strava' && <StravaWebhookPanel />}

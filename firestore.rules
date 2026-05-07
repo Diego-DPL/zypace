@@ -86,6 +86,13 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── NPS responses ────────────────────────────────────────────────
+    match /nps_responses/{id} {
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid;
+      allow read, write: if isAdmin();
+    }
+
     // ── Incidents ───────────────────────────────────────────────────
     match /incidents/{incidentId} {
       // User: create their own, read/update their own (only messages + updated_at)
