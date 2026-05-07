@@ -11,7 +11,6 @@ import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WeeklyAnalysis from '../components/WeeklyAnalysis';
 import AddGoalModal from '../components/AddGoalModal';
-import { parseExercises } from '../lib/strengthParser';
 
 interface Workout {
   id: string;
@@ -568,7 +567,7 @@ const TrainingPlanPage = () => {
 
   const selectedRaceDetails = races.find(r => r.id === selectedRace);
 
-  // ── Migrate strength workouts: parse text → structured exercises ──────────
+  // ── Migrate strength workouts via AI ──────────────────────────────────────
   const [migrating, setMigrating] = useState(false);
   const [migrateResult, setMigrateResult] = useState<string | null>(null);
 
@@ -577,41 +576,12 @@ const TrainingPlanPage = () => {
     setMigrating(true);
     setMigrateResult(null);
     try {
-      const targets = plan.workouts.filter(w => {
-        const isStrength = w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description);
-        const alreadyDone = Array.isArray(w.explanation_json?.exercises) && w.explanation_json.exercises.length > 0;
-        return isStrength && !alreadyDone && w.explanation_json?.details;
-      });
-
-      if (targets.length === 0) {
-        setMigrateResult('No hay ejercicios de fuerza pendientes de convertir.');
-        return;
-      }
-
-      for (const w of targets) {
-        const exercises = parseExercises(w.explanation_json.details);
-        await updateDoc(doc(db, 'users', user.uid, 'workouts', w.id), {
-          explanation_json: { ...w.explanation_json, exercises },
-        });
-      }
-
-      // Update local state so the modal reflects changes immediately
-      setPlan(prev => prev ? {
-        ...prev,
-        workouts: prev.workouts.map(w => {
-          const isTarget = targets.find(t => t.id === w.id);
-          if (!isTarget) return w;
-          return {
-            ...w,
-            explanation_json: {
-              ...w.explanation_json,
-              exercises: parseExercises(w.explanation_json.details),
-            },
-          };
-        }),
-      } : null);
-
-      setMigrateResult(`${targets.length} entrenamiento${targets.length > 1 ? 's' : ''} de fuerza convertido${targets.length > 1 ? 's' : ''}.`);
+      const migrateStrengthFn = httpsCallable(functions, 'migrateStrengthExercises');
+      const res  = await migrateStrengthFn({ plan_id: plan.id });
+      const data = res.data as { converted: number; message: string };
+      setMigrateResult(data.message);
+      // Reload plan to reflect changes
+      if (data.converted > 0) await fetchPlanForRace(selectedRace);
     } catch (e: any) {
       setMigrateResult(`Error: ${e.message}`);
     } finally {
@@ -623,7 +593,7 @@ const TrainingPlanPage = () => {
   const pendingMigration = plan?.workouts.filter(w => {
     const isStrength = w.explanation_json?.type === 'fuerza' || /fuerza/i.test(w.description);
     const alreadyDone = Array.isArray(w.explanation_json?.exercises) && w.explanation_json.exercises.length > 0;
-    return isStrength && !alreadyDone && w.explanation_json?.details;
+    return isStrength && !alreadyDone;
   }).length ?? 0;
 
   // Should we show the "next mesocycle" button?
