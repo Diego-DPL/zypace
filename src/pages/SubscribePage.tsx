@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
 import SEOHead from '../components/SEOHead';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
+import { trackEvent } from '../lib/analytics';
 
 const fns = getFunctions(undefined, 'europe-west1');
 
@@ -66,6 +67,7 @@ export default function SubscribePage() {
   const handleCheckout = async () => {
     setCheckoutLoading(true);
     setCheckoutError('');
+    trackEvent('begin_checkout', { currency: 'EUR', value: 9.99 });
     try {
       const fn  = httpsCallable<{ promoCode?: string }, { url: string }>(fns, 'createCheckoutSession');
       const res = await fn({ promoCode: promoPreview?.valid ? promoInput.trim() : undefined });

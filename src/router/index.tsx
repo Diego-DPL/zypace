@@ -1,38 +1,55 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import LandingPage from '../pages/LandingPage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import ForgotPasswordPage from '../pages/ForgotPasswordPage';
-import SubscribePage from '../pages/SubscribePage';
-import HomePage from '../pages/HomePage';
-import CalendarPage from '../pages/CalendarPage';
-import SettingsPage from '../pages/SettingsPage';
-import StravaCallbackPage from '../pages/StravaCallbackPage';
-import TrainingPlanPage from '../pages/TrainingPlanPage';
-import AdminPage from '../pages/AdminPage';
-import SupportPage from '../pages/SupportPage';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { lazy, Suspense, useEffect } from 'react';
+import { trackPageView, trackEvent } from '../lib/analytics';
 import Layout from '../components/Layout';
-import PrivacyPage from '../pages/PrivacyPage';
-import TermsPage from '../pages/TermsPage';
-import SecurityPage from '../pages/SecurityPage';
-import CookiesPage from '../pages/CookiesPage';
 import { useAuth } from '../context/AuthContext';
 import { useSubscription } from '../context/SubscriptionContext';
+
+// ── Lazy-loaded pages ─────────────────────────────────────────────────
+// Each page is only downloaded when the user first navigates to it.
+const LandingPage        = lazy(() => import('../pages/LandingPage'));
+const LoginPage          = lazy(() => import('../pages/LoginPage'));
+const RegisterPage       = lazy(() => import('../pages/RegisterPage'));
+const ForgotPasswordPage = lazy(() => import('../pages/ForgotPasswordPage'));
+const SubscribePage      = lazy(() => import('../pages/SubscribePage'));
+const HomePage           = lazy(() => import('../pages/HomePage'));
+const CalendarPage       = lazy(() => import('../pages/CalendarPage'));
+const SettingsPage       = lazy(() => import('../pages/SettingsPage'));
+const StravaCallbackPage = lazy(() => import('../pages/StravaCallbackPage'));
+const TrainingPlanPage   = lazy(() => import('../pages/TrainingPlanPage'));
+const AdminPage          = lazy(() => import('../pages/AdminPage'));
+const SupportPage        = lazy(() => import('../pages/SupportPage'));
+const PrivacyPage        = lazy(() => import('../pages/PrivacyPage'));
+const TermsPage          = lazy(() => import('../pages/TermsPage'));
+const SecurityPage       = lazy(() => import('../pages/SecurityPage'));
+const CookiesPage        = lazy(() => import('../pages/CookiesPage'));
+
+const PageLoader = () => (
+  <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-lime-400 animate-spin" />
+  </div>
+);
+
+/** Fires a GA4 page_view on every route change. Must be rendered inside <Router>. */
+function PageTracker() {
+  const location = useLocation();
+  useEffect(() => {
+    trackPageView(location.pathname + location.search);
+    if (location.pathname === '/app' && location.search.includes('sub=ok')) {
+      trackEvent('trial_start', { currency: 'EUR', value: 0 });
+    }
+  }, [location]);
+  return null;
+}
 
 const AppRouter = () => {
   const { user, role, loading } = useAuth();
   const { hasAccess, loading: subLoading } = useSubscription();
 
   if (loading || subLoading) {
-    return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-zinc-700 border-t-lime-400 animate-spin" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
-  // Authenticated users without access go to /subscription instead of app routes
-  // Admins bypass the subscription gate
   const appElement = (el: React.ReactNode) => {
     if (!user) return <Navigate to="/" />;
     if (!hasAccess && role !== 'admin') return <Navigate to="/subscribe" />;
@@ -41,29 +58,31 @@ const AppRouter = () => {
 
   return (
     <Router>
+      <PageTracker />
       <Layout>
-        <Routes>
-          <Route path="/" element={!user ? <LandingPage /> : <Navigate to="/app" />} />
-          <Route path="/login" element={!user ? <LoginPage /> : <Navigate to="/app" />} />
-          <Route path="/register" element={!user ? <RegisterPage /> : <Navigate to="/app" />} />
-          <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/app" />} />
-          <Route path="/subscribe"      element={user ? <SubscribePage /> : <Navigate to="/register" />} />
-          <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/terms" element={<TermsPage />} />
-          <Route path="/security" element={<SecurityPage />} />
-          <Route path="/cookies" element={<CookiesPage />} />
-          <Route path="/app"           element={appElement(<HomePage />)} />
-          <Route path="/calendar"      element={appElement(<CalendarPage />)} />
-          <Route path="/races"         element={<Navigate to="/calendar" replace />} />
-          <Route path="/settings"      element={user ? <SettingsPage /> : <Navigate to="/" />} />
-          <Route path="/training-plan" element={appElement(<TrainingPlanPage />)} />
-          <Route path="/subscription"  element={<Navigate to="/settings" replace />} />
-          <Route path="/support" element={<SupportPage />} />
-          <Route path="/admin" element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
-          <Route path="/strava-callback" element={<StravaCallbackPage />} />
-
-          <Route path="*" element={<Navigate to={user ? "/app" : "/"} />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/"               element={!user ? <LandingPage /> : <Navigate to="/app" />} />
+            <Route path="/login"          element={!user ? <LoginPage /> : <Navigate to="/app" />} />
+            <Route path="/register"       element={!user ? <RegisterPage /> : <Navigate to="/app" />} />
+            <Route path="/forgot-password" element={!user ? <ForgotPasswordPage /> : <Navigate to="/app" />} />
+            <Route path="/subscribe"      element={user ? <SubscribePage /> : <Navigate to="/register" />} />
+            <Route path="/privacy"        element={<PrivacyPage />} />
+            <Route path="/terms"          element={<TermsPage />} />
+            <Route path="/security"       element={<SecurityPage />} />
+            <Route path="/cookies"        element={<CookiesPage />} />
+            <Route path="/app"            element={appElement(<HomePage />)} />
+            <Route path="/calendar"       element={appElement(<CalendarPage />)} />
+            <Route path="/races"          element={<Navigate to="/calendar" replace />} />
+            <Route path="/settings"       element={user ? <SettingsPage /> : <Navigate to="/" />} />
+            <Route path="/training-plan"  element={appElement(<TrainingPlanPage />)} />
+            <Route path="/subscription"   element={<Navigate to="/settings" replace />} />
+            <Route path="/support"        element={<SupportPage />} />
+            <Route path="/admin"          element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
+            <Route path="/strava-callback" element={<StravaCallbackPage />} />
+            <Route path="*"              element={<Navigate to={user ? "/app" : "/"} />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </Router>
   );

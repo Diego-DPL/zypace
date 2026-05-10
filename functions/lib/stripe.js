@@ -17,7 +17,7 @@ const REASON_LABELS = {
 };
 const REGION = 'europe-west1';
 const APP_URL = 'https://www.zypace.com';
-const PRICE_ID = 'price_1TU6XG2L6uGjMe5kxEPqh3rx';
+const PRICE_ID = 'price_1TUTC9RqrUcauGyU6vdSu5z4';
 exports.stripeSecretKey = (0, params_1.defineSecret)('STRIPE_SECRET_KEY');
 function stripeClient() {
     return new Stripe(exports.stripeSecretKey.value(), { apiVersion: '2026-04-22.dahlia' });
@@ -64,8 +64,8 @@ exports.createCheckoutSession = (0, https_1.onCall)({ region: REGION, cors: true
         customer: customerId,
         mode: 'subscription',
         line_items: [{ price: PRICE_ID, quantity: 1 }],
-        success_url: `${APP_URL}/settings?sub=ok`,
-        cancel_url: `${APP_URL}/settings?sub=canceled`,
+        success_url: `${APP_URL}/app?sub=ok`,
+        cancel_url: `${APP_URL}/subscribe?canceled=true`,
         metadata: { uid },
         subscription_data: { metadata: { uid }, trial_period_days: 30 },
     };

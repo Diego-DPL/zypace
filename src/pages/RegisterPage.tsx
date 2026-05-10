@@ -5,6 +5,7 @@ import { auth, db } from '../lib/firebaseClient';
 import { Link } from 'react-router-dom';
 import zypaceLogo from '../assets/zypace_logo_letras.png';
 import SEOHead from '../components/SEOHead';
+import { trackEvent } from '../lib/analytics';
 
 interface ProfileForm {
   first_name: string;
@@ -69,6 +70,7 @@ const RegisterPage = () => {
         accepted_terms_at: new Date().toISOString(),
         created_at:        serverTimestamp(),
       });
+      trackEvent('sign_up', { method: 'email' });
       // Firebase auto-signs in after createUserWithEmailAndPassword.
       // The router detects the new user and redirects to /subscribe.
     } catch (err: any) {

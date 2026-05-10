@@ -25,6 +25,12 @@ interface UserDoc {
   z5_pace_sec_km: number | null;
   zones_confidence: string | null;
   zones_calibrated_at: string | null;
+  // subscription
+  subscription_status: string | null;
+  subscription_cancel_at_period_end: boolean | null;
+  subscription_current_period_end: number | null;
+  trial_end: number | null;
+  is_exempt: boolean | null;
   // loaded on expand
   plan?: any | null;
   workouts?: any[];
@@ -1224,7 +1230,9 @@ const AdminPage = () => {
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [loadingIncidents, setLoadingIncidents] = useState(false);
+  const [stravaUids, setStravaUids] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
+  const [subFilter, setSubFilter] = useState<'all' | 'trialing' | 'active' | 'canceled' | 'none'>('all');
   const [incidentFilter, setIncidentFilter] = useState<'all' | IncidentStatus>('all');
   const [expandedUser, setExpandedUser] = useState<string | null>(null);
   const [selectedIncident, setSelectedIncident] = useState<Incident | null>(null);
@@ -1238,7 +1246,14 @@ const AdminPage = () => {
     setLoadingUsers(true);
     try {
       const snap = await getDocs(collection(db, 'users'));
-      setUsers(snap.docs.map(d => ({ uid: d.id, ...d.data() } as UserDoc)));
+      const loaded = snap.docs.map(d => ({ uid: d.id, ...d.data() } as UserDoc));
+      // Most recent first
+      loaded.sort((a, b) => {
+        const ta = a.created_at?.toDate?.()?.getTime?.() ?? (a.created_at?.seconds ?? 0) * 1000;
+        const tb = b.created_at?.toDate?.()?.getTime?.() ?? (b.created_at?.seconds ?? 0) * 1000;
+        return tb - ta;
+      });
+      setUsers(loaded);
     } catch (e) { console.error('Error loading users', e); }
     setLoadingUsers(false);
   }, []);
@@ -1256,6 +1271,13 @@ const AdminPage = () => {
   useEffect(() => {
     loadUsers();
     loadIncidents();
+    // Build a Set of UIDs that have Strava connected
+    getDocs(collection(db, 'strava_athlete_index'))
+      .then(snap => {
+        const uids = new Set(snap.docs.map(d => d.data().uid as string).filter(Boolean));
+        setStravaUids(uids);
+      })
+      .catch(() => {});
   }, [loadUsers, loadIncidents]);
 
   const expandUser = async (uid: string) => {
@@ -1311,7 +1333,67 @@ const AdminPage = () => {
   const resolvedCount   = incidents.filter(i => i.status === 'resuelta').length;
   const usersWithZones  = users.filter(u => u.z1_pace_sec_km).length;
 
+  // Subscription & activation metrics
+  const sevenDaysAgo    = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const newLast7        = users.filter(u => {
+    const ms = u.created_at?.toDate?.()?.getTime?.() ?? u.created_at?.seconds * 1000;
+    return ms && ms > sevenDaysAgo;
+  }).length;
+  const trialing        = users.filter(u => u.subscription_status === 'trialing').length;
+  const activePaid      = users.filter(u => u.subscription_status === 'active').length;
+  const cancelPending   = users.filter(u => u.subscription_cancel_at_period_end === true).length;
+  const exempt          = users.filter(u => u.is_exempt === true).length;
+
+  // Activation funnel
+  const funnelTotal    = users.length || 1;
+  const funnelSub      = trialing + activePaid + exempt;
+  const funnelStrava   = stravaUids.size;
+
+  // MRR
+  const mrr            = activePaid * 9.99;
+  const mrrPotential   = (activePaid + trialing) * 9.99;
+
+  // At-risk users: cancelled or trial ending in ≤ 7 days
+  const nowSec         = Date.now() / 1000;
+  const sevenDaysSec   = 7 * 24 * 60 * 60;
+  const atRiskUsers    = users.filter(u => {
+    if (u.subscription_cancel_at_period_end) return true;
+    if (u.subscription_status === 'trialing') {
+      const end = u.trial_end ?? u.subscription_current_period_end;
+      if (end && end - nowSec <= sevenDaysSec) return true;
+    }
+    return false;
+  });
+
+  // CSV export
+  const exportCSV = () => {
+    const header = ['Email', 'Nombre', 'Estado suscripción', 'Cancela al final', 'Strava', 'Nivel', 'Zonas', 'Registrado'];
+    const rows = users.map(u => [
+      u.email ?? '',
+      [u.first_name, u.last_name].filter(Boolean).join(' '),
+      u.is_exempt ? 'exento' : (u.subscription_status ?? 'sin_suscripcion'),
+      u.subscription_cancel_at_period_end ? 'sí' : 'no',
+      stravaUids.has(u.uid) ? 'sí' : 'no',
+      u.experience_level ?? '',
+      u.z1_pace_sec_km ? `Z1 ${fmtPace(u.z1_pace_sec_km)}` : '',
+      u.created_at?.toDate?.()?.toLocaleDateString('es-ES') ?? '',
+    ]);
+    const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
+    const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href = url; a.download = `zypace_usuarios_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
+  };
+
   const filteredUsers = users.filter(u => {
+    // Subscription filter
+    if (subFilter === 'trialing'  && u.subscription_status !== 'trialing') return false;
+    if (subFilter === 'active'    && u.subscription_status !== 'active' && !u.is_exempt) return false;
+    if (subFilter === 'canceled'  && u.subscription_status !== 'canceled') return false;
+    if (subFilter === 'none'      && (u.subscription_status === 'active' || u.subscription_status === 'trialing' || u.subscription_status === 'canceled' || u.is_exempt)) return false;
+    // Text search
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -1370,20 +1452,83 @@ const AdminPage = () => {
       {/* ── DASHBOARD TAB ── */}
       {tab === 'dashboard' && (
         <div className="space-y-6">
-          {/* Stats grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              { label: 'Usuarios totales',    value: users.length,     sub: `${usersWithZones} con zonas`,   color: 'text-zinc-100'   },
-              { label: 'Incidencias abiertas', value: openCount,        sub: `${inProgressCount} en proceso`, color: 'text-red-400'    },
-              { label: 'En proceso',           value: inProgressCount,  sub: 'pendientes de respuesta',       color: 'text-yellow-400' },
-              { label: 'Resueltas',            value: resolvedCount,    sub: 'total histórico',               color: 'text-green-400'  },
-            ].map(({ label, value, sub, color }) => (
-              <div key={label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <p className="text-xs text-zinc-500 mb-1">{label}</p>
-                <p className={`text-3xl font-bold ${color}`}>{value}</p>
-                <p className="text-[11px] text-zinc-600 mt-1">{sub}</p>
-              </div>
-            ))}
+
+          {/* MRR banner */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="bg-gradient-to-br from-lime-400/10 to-transparent border border-lime-400/20 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 mb-1">MRR actual</p>
+              <p className="text-3xl font-extrabold text-lime-400">{mrr.toFixed(2)} €</p>
+              <p className="text-[11px] text-zinc-600 mt-1">{activePaid} suscripciones activas × 9,99 €</p>
+            </div>
+            <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+              <p className="text-xs text-zinc-500 mb-1">MRR potencial</p>
+              <p className="text-3xl font-bold text-zinc-200">{mrrPotential.toFixed(2)} €</p>
+              <p className="text-[11px] text-zinc-600 mt-1">Si todos los trials convierten</p>
+            </div>
+            <div className={`bg-zinc-900 border rounded-xl p-4 ${atRiskUsers.length > 0 ? 'border-yellow-800 bg-yellow-950/10' : 'border-zinc-800'}`}>
+              <p className="text-xs text-zinc-500 mb-1">En riesgo de churn</p>
+              <p className={`text-3xl font-bold ${atRiskUsers.length > 0 ? 'text-yellow-400' : 'text-zinc-500'}`}>{atRiskUsers.length}</p>
+              <p className="text-[11px] text-zinc-600 mt-1">Cancelaron o trial expira pronto</p>
+            </div>
+          </div>
+
+          {/* Stats grid — usuarios */}
+          <div>
+            <p className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase mb-3">Usuarios</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Total registrados', value: users.length,  sub: `+${newLast7} últimos 7 días`, color: 'text-zinc-100' },
+                { label: 'En prueba',         value: trialing,       sub: 'subscription_status: trialing', color: 'text-lime-400' },
+                { label: 'Activos pagando',   value: activePaid,     sub: `+ ${exempt} exentos`,           color: 'text-green-400' },
+                { label: 'Cancela al final',  value: cancelPending,  sub: 'riesgo de churn',               color: cancelPending > 0 ? 'text-yellow-400' : 'text-zinc-500' },
+              ].map(({ label, value, sub, color }) => (
+                <div key={label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <p className="text-xs text-zinc-500 mb-1">{label}</p>
+                  <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                  <p className="text-[11px] text-zinc-600 mt-1">{sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Stats grid — activación */}
+          <div>
+            <p className="text-[11px] font-bold tracking-widest text-zinc-500 uppercase mb-3">Activación & producto</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {[
+                { label: 'Strava conectado',  value: funnelStrava,   sub: `${Math.round(funnelStrava / funnelTotal * 100)}% del total`, color: 'text-orange-400' },
+                { label: 'Zonas calibradas',  value: usersWithZones, sub: `${Math.round(usersWithZones / funnelTotal * 100)}% del total`, color: 'text-blue-400' },
+                { label: 'Incidencias abiertas', value: openCount,   sub: `${inProgressCount} en proceso`, color: openCount > 0 ? 'text-red-400' : 'text-zinc-500' },
+                { label: 'Resueltas',         value: resolvedCount,  sub: 'total histórico',               color: 'text-zinc-400' },
+              ].map(({ label, value, sub, color }) => (
+                <div key={label} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
+                  <p className="text-xs text-zinc-500 mb-1">{label}</p>
+                  <p className={`text-3xl font-bold ${color}`}>{value}</p>
+                  <p className="text-[11px] text-zinc-600 mt-1">{sub}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Activation funnel */}
+          <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5">
+            <p className="text-sm font-semibold text-zinc-300 mb-4">Embudo de activación</p>
+            <div className="space-y-3">
+              {[
+                { label: 'Registrado',        value: users.length, pct: 100,                                              color: 'bg-zinc-600' },
+                { label: 'Suscrito (trial o activo)', value: funnelSub, pct: Math.round(funnelSub / funnelTotal * 100),   color: 'bg-lime-500' },
+                { label: 'Strava conectado',  value: funnelStrava, pct: Math.round(funnelStrava / funnelTotal * 100),     color: 'bg-orange-500' },
+                { label: 'Zonas calibradas',  value: usersWithZones, pct: Math.round(usersWithZones / funnelTotal * 100), color: 'bg-blue-500' },
+              ].map(({ label, value, pct, color }) => (
+                <div key={label} className="flex items-center gap-3">
+                  <p className="text-xs text-zinc-400 w-44 shrink-0">{label}</p>
+                  <div className="flex-1 bg-zinc-800 rounded-full h-2">
+                    <div className={`h-2 rounded-full transition-all ${color}`} style={{ width: `${pct}%` }} />
+                  </div>
+                  <p className="text-xs font-semibold text-zinc-300 w-16 text-right shrink-0">{value} <span className="text-zinc-600 font-normal">({pct}%)</span></p>
+                </div>
+              ))}
+            </div>
           </div>
 
           {/* Recent incidents */}
@@ -1429,35 +1574,117 @@ const AdminPage = () => {
               </button>
             </div>
             <div className="space-y-2">
-              {users.slice(0, 5).map(u => (
-                <div key={u.uid} className="flex items-center gap-3 p-2">
-                  <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-200 shrink-0">
-                    {(u.first_name?.[0] || u.email?.[0] || '?').toUpperCase()}
+              {users.slice(0, 5).map(u => {
+                const subBadge =
+                  u.is_exempt             ? { label: 'Exento',   cls: 'bg-blue-950/50 text-blue-400 border-blue-800' } :
+                  u.subscription_status === 'active'   ? { label: 'Activo',   cls: 'bg-green-950/50 text-green-400 border-green-800' } :
+                  u.subscription_status === 'trialing' ? { label: 'Trial',    cls: 'bg-lime-950/50 text-lime-400 border-lime-800' } :
+                  u.subscription_status === 'canceled' ? { label: 'Cancelado',cls: 'bg-red-950/50 text-red-400 border-red-800' } :
+                  null;
+                return (
+                  <div key={u.uid} className="flex items-center gap-3 p-2">
+                    <div className="w-8 h-8 rounded-full bg-zinc-700 flex items-center justify-center text-xs font-bold text-zinc-200 shrink-0">
+                      {(u.first_name?.[0] || u.email?.[0] || '?').toUpperCase()}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm text-zinc-200 truncate">
+                        {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email}
+                      </p>
+                      <p className="text-xs text-zinc-500">{u.email}</p>
+                    </div>
+                    {subBadge && (
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border shrink-0 ${subBadge.cls}`}>
+                        {subBadge.label}
+                      </span>
+                    )}
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-sm text-zinc-200 truncate">
-                      {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email}
-                    </p>
-                    <p className="text-xs text-zinc-500">{u.experience_level ?? '—'} · {u.zones_confidence ? `Zonas ${u.zones_confidence}` : 'Sin zonas'}</p>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
+          {/* At-risk users */}
+          {atRiskUsers.length > 0 && (
+            <div className="bg-zinc-900 border border-yellow-800/50 rounded-xl p-5">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                  <h3 className="text-sm font-semibold text-zinc-300">Usuarios en riesgo de churn</h3>
+                </div>
+                <span className="text-xs text-yellow-400">{atRiskUsers.length} usuarios</span>
+              </div>
+              <div className="space-y-2">
+                {atRiskUsers.map(u => {
+                  const isCancel = u.subscription_cancel_at_period_end;
+                  const endSec   = u.trial_end ?? u.subscription_current_period_end;
+                  const daysLeft = endSec ? Math.ceil((endSec - nowSec) / 86400) : null;
+                  return (
+                    <div key={u.uid} className="flex items-center justify-between p-3 bg-zinc-800/50 rounded-lg">
+                      <div className="min-w-0">
+                        <p className="text-sm text-zinc-200 truncate">
+                          {[u.first_name, u.last_name].filter(Boolean).join(' ') || u.email}
+                        </p>
+                        <p className="text-xs text-zinc-500">{u.email}</p>
+                      </div>
+                      <div className="ml-3 shrink-0 text-right">
+                        {isCancel && (
+                          <span className="text-[11px] font-semibold text-yellow-400">Cancelado</span>
+                        )}
+                        {!isCancel && daysLeft !== null && (
+                          <span className="text-[11px] font-semibold text-orange-400">Trial: {daysLeft}d</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
       {/* ── USERS TAB ── */}
       {tab === 'users' && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between gap-4">
+          {/* Search + filter + export */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
             <input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Buscar por email o nombre…"
               className="w-full max-w-sm px-3 py-2 text-sm bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 placeholder-zinc-500 focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none"
             />
-            <span className="text-xs text-zinc-500 shrink-0">{filteredUsers.length} usuarios</span>
+            <div className="flex items-center gap-1.5 bg-zinc-900 border border-zinc-800 rounded-lg p-1 flex-wrap">
+              {([
+                ['all',      'Todos'],
+                ['trialing', 'Trial'],
+                ['active',   'Activo'],
+                ['canceled', 'Cancelado'],
+                ['none',     'Sin sub.'],
+              ] as const).map(([val, lbl]) => (
+                <button key={val} onClick={() => setSubFilter(val)}
+                  className={`px-3 py-1 rounded-md text-xs font-medium transition-colors ${
+                    subFilter === val ? 'bg-zinc-700 text-zinc-100' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}>
+                  {lbl}
+                  {val === 'all'      && <span className="ml-1.5 text-zinc-600">{users.length}</span>}
+                  {val === 'trialing' && <span className="ml-1.5 text-zinc-600">{trialing}</span>}
+                  {val === 'active'   && <span className="ml-1.5 text-zinc-600">{activePaid}</span>}
+                  {val === 'canceled' && <span className="ml-1.5 text-zinc-600">{users.filter(u => u.subscription_status === 'canceled').length}</span>}
+                  {val === 'none'     && <span className="ml-1.5 text-zinc-600">{users.filter(u => !u.subscription_status && !u.is_exempt).length}</span>}
+                </button>
+              ))}
+            </div>
+            <div className="flex items-center gap-2 ml-auto shrink-0">
+              <span className="text-xs text-zinc-500">{filteredUsers.length} usuarios</span>
+              <button onClick={exportCSV}
+                className="px-3 py-1.5 text-xs font-medium rounded-lg border border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-zinc-200 transition-colors flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1M8 12l4 4m0 0l4-4m-4 4V4" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                CSV
+              </button>
+            </div>
           </div>
 
           {loadingUsers ? (
@@ -1466,7 +1693,15 @@ const AdminPage = () => {
             </div>
           ) : (
             <div className="space-y-2">
-              {filteredUsers.map(u => (
+              {filteredUsers.map(u => {
+                const subBadge =
+                  u.is_exempt             ? { label: 'Exento',    cls: 'bg-blue-950/50 text-blue-400 border-blue-800'   } :
+                  u.subscription_status === 'active'   ? { label: 'Activo',    cls: 'bg-green-950/50 text-green-400 border-green-800' } :
+                  u.subscription_status === 'trialing' ? { label: 'Trial',     cls: 'bg-lime-950/50 text-lime-400 border-lime-800'    } :
+                  u.subscription_status === 'canceled' ? { label: 'Cancelado', cls: 'bg-red-950/50 text-red-400 border-red-800'       } :
+                  { label: 'Sin sub.', cls: 'bg-zinc-800 text-zinc-500 border-zinc-700' };
+                const hasStrava = stravaUids.has(u.uid);
+                return (
                 <div key={u.uid} className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden">
                   {/* Row */}
                   <button
@@ -1486,15 +1721,28 @@ const AdminPage = () => {
                           {u.banned && (
                             <span className="text-[10px] bg-red-950/60 text-red-400 border border-red-800 px-1.5 py-0.5 rounded-full font-bold">BANEADO</span>
                           )}
+                          {u.subscription_cancel_at_period_end && (
+                            <span className="text-[10px] bg-yellow-950/50 text-yellow-400 border border-yellow-800 px-1.5 py-0.5 rounded-full font-bold">CANCELA</span>
+                          )}
                         </p>
                         <p className="text-xs text-zinc-500 truncate">{u.email}</p>
                       </div>
                     </div>
-                    <div className="hidden sm:flex items-center gap-5 text-xs text-zinc-500 shrink-0 ml-4">
-                      <span>{u.experience_level ?? '—'}</span>
-                      <span className={`flex items-center gap-1.5 ${u.z1_pace_sec_km ? 'text-lime-400' : 'text-zinc-600'}`}>
+                    <div className="hidden sm:flex items-center gap-3 text-xs shrink-0 ml-4">
+                      {/* Strava indicator */}
+                      <span title={hasStrava ? 'Strava conectado' : 'Sin Strava'}
+                        className={`flex items-center gap-1 ${hasStrava ? 'text-orange-400' : 'text-zinc-700'}`}>
+                        <span className={`w-2 h-2 rounded-full ${hasStrava ? 'bg-orange-400' : 'bg-zinc-700'}`} />
+                        <span className="hidden md:inline">Strava</span>
+                      </span>
+                      {/* Subscription badge */}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${subBadge.cls}`}>
+                        {subBadge.label}
+                      </span>
+                      {/* Zones */}
+                      <span className={`flex items-center gap-1.5 text-zinc-500 ${u.z1_pace_sec_km ? 'text-lime-400' : ''}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${u.z1_pace_sec_km ? 'bg-lime-400' : 'bg-zinc-700'}`} />
-                        {u.z1_pace_sec_km ? `Zonas ${u.zones_confidence}` : 'Sin zonas'}
+                        <span className="hidden lg:inline">{u.z1_pace_sec_km ? `Z ${u.zones_confidence}` : 'Sin zonas'}</span>
                       </span>
                     </div>
                     <svg
@@ -1616,7 +1864,7 @@ const AdminPage = () => {
                     </div>
                   )}
                 </div>
-              ))}
+              ); })}
               {filteredUsers.length === 0 && !loadingUsers && (
                 <p className="text-zinc-600 text-sm py-8 text-center">No hay usuarios que coincidan con la búsqueda.</p>
               )}
