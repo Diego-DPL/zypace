@@ -17,3 +17,4 @@ export { createCheckoutSession, createPortalSession, validateDiscountCode, cance
 export { stripeWebhookHandler } from './stripeWebhook';
 export { createDiscountCode, listDiscountCodes, toggleDiscountCode, setUserExempt, assignDiscountToUser } from './stripeAdmin';
 export { createInvite, revokeInvite, listInvites } from './invites';
+export { deleteAccount } from './deleteAccount';

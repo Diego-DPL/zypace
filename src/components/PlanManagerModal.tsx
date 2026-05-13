@@ -90,6 +90,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
   // ── UI state ──────────────────────────────────────────────────
   const [showRegenModal, setShowRegenModal] = useState(false);
+  const [regenScope, setRegenScope]         = useState<'both' | 'running' | 'strength'>('both');
   const [progressModal, setProgressModal]   = useState(false);
   const [progressMessageIndex, setProgressMessageIndex] = useState(0);
   const [resultModal, setResultModal]       = useState<{ success: boolean; message: string } | null>(null);
@@ -221,6 +222,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     if (open && raceId) {
       setProfileExists(false);
       setProfileExpanded(false);
+      setRegenScope('both');
       fetchPlan();
       fetchUserProfile();
     }
@@ -375,17 +377,23 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     setLoading(true);
     setProgressModal(true);
     setProgressMessageIndex(0);
+
+    // Helper: is this workout a strength session?
+    const isStrengthWorkout = (explanation: any, description: string) =>
+      explanation?.type === 'fuerza' || /fuerza|gimnasio|gym\b/i.test(description || '');
+
     try {
       const generatePlanFn = httpsCallable(functions, 'generatePlan');
       const res = await generatePlanFn({
         race,
         goal: goal || plan.goal,
         config: {
-          run_days_per_week: runDays,
-          run_days_of_week: runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
-          include_strength: includeStrength,
-          strength_days_of_week: includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
-          strength_days_per_week: includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
+          run_days_per_week:      runDays,
+          run_days_of_week:       runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+          // For 'running' scope, suppress strength so AI generates only running
+          include_strength:       regenScope !== 'running' ? includeStrength : false,
+          strength_days_of_week:  (regenScope !== 'running' && includeStrength && strengthDaysOfWeek.length > 0) ? strengthDaysOfWeek : null,
+          strength_days_per_week: (regenScope !== 'running' && includeStrength) ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
           last_race: hasPreviousMark ? { distance_km: parseFloat(lastRaceDistance) || null, time: lastRaceTime || null, time_seconds: parseTimeToSeconds(lastRaceTime) } : null,
           target_time: targetRaceTime || null, target_time_seconds: parseTimeToSeconds(targetRaceTime),
           methodology, stored_zones: profileZones || undefined,
@@ -417,15 +425,31 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
       const todayISO    = new Date().toISOString().substring(0, 10);
       const tomorrowISO = new Date(Date.now() + 86400000).toISOString().substring(0, 10);
-      const futureSnap = await getDocs(
+      const futureSnap  = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', plan.id), where('workout_date', '>=', tomorrowISO))
       );
-      for (const w of futureSnap.docs) { await deleteDoc(w.ref); }
+
+      // Delete only workouts that fall within the chosen scope
+      for (const w of futureSnap.docs) {
+        const d = w.data();
+        const isStr = isStrengthWorkout(d.explanation_json, d.description);
+        const inScope =
+          regenScope === 'both' ||
+          (regenScope === 'running'  && !isStr) ||
+          (regenScope === 'strength' && isStr);
+        if (inScope) await deleteDoc(w.ref);
+      }
 
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
       const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
       for (const w of functionResponse.plan) {
         if (w.date <= todayISO) continue;
+        const isStr = isStrengthWorkout(w.explanation, w.description);
+        const inScope =
+          regenScope === 'both' ||
+          (regenScope === 'running'  && !isStr) ||
+          (regenScope === 'strength' && isStr);
+        if (!inScope) continue;
         const desc: string = w.description || '';
         const dMatch = desc.match(distRegex);
         const tMatch = desc.match(durRegex);
@@ -449,7 +473,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       setPlanMeta(functionResponse.meta || null);
       onPlanChanged();
       window.dispatchEvent(new Event('workouts-changed'));
-      setResultModal({ success: true, message: 'Mesociclo regenerado desde hoy.' });
+      const scopeLabel = regenScope === 'running' ? 'sesiones de running' : regenScope === 'strength' ? 'sesiones de fuerza' : 'plan completo';
+      setResultModal({ success: true, message: `Regeneradas las ${scopeLabel} desde hoy.` });
     } catch (err: any) {
       setResultModal({ success: false, message: `Error regenerando: ${err.message || err}` });
     } finally {
@@ -1082,62 +1107,311 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       {/* Regen modal (fixed, above plan modal) */}
       {showRegenModal && (
         <div className="fixed inset-0 z-[60] bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-y-auto border border-zinc-700">
-            <div className="p-5 border-b border-zinc-800">
+          <div className="bg-zinc-900 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col border border-zinc-700">
+            <div className="p-5 border-b border-zinc-800 shrink-0">
               <h3 className="text-base font-bold text-zinc-100">Ajusta antes de regenerar</h3>
               <p className="text-xs text-zinc-500 mt-0.5">Los entrenamientos completados se mantienen. El nuevo plan empieza desde mañana.</p>
             </div>
-            <div className="p-5 space-y-5">
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">Objetivo <span className="text-red-400">*</span></label>
-                <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
-                  className="w-full p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-zinc-800 placeholder-zinc-600 focus:ring-1 focus:ring-lime-400 outline-none"
-                  placeholder="Ej: Bajar marca de 10k…" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-2">Días de running</label>
-                <div className="flex gap-1.5 flex-wrap mb-2">
-                  {DAY_LABELS.map((label, dow) => (
-                    <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
-                      className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${runDaysOfWeek.includes(dow) ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-lime-300'}`}>
-                      {label}
+            <div className="overflow-y-auto flex-1 p-5 space-y-5">
+
+              {/* Scope selector */}
+              <div className="border border-zinc-700 rounded-xl p-4 bg-zinc-900 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">¿Qué quieres regenerar?</h4>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: 'both',     label: 'Running + Fuerza', icon: '🏃‍♂️+💪' },
+                    { value: 'running',  label: 'Solo running',      icon: '🏃‍♂️' },
+                    { value: 'strength', label: 'Solo fuerza',       icon: '💪' },
+                  ] as const).map(opt => (
+                    <button key={opt.value} type="button" onClick={() => setRegenScope(opt.value)}
+                      className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 text-xs font-semibold transition-colors ${regenScope === opt.value ? 'border-lime-400 bg-lime-400/10 text-zinc-100' : 'border-zinc-700 bg-zinc-950 text-zinc-400 hover:border-lime-400/40'}`}>
+                      <span className="text-base">{opt.icon}</span>
+                      <span>{opt.label}</span>
                     </button>
                   ))}
                 </div>
-                {runDaysOfWeek.length === 0 && (
-                  <div className="flex items-center gap-2">
-                    <label className="text-xs text-zinc-500">Días/sem:</label>
-                    <input type="number" min={2} max={7} value={runDays}
-                      onChange={e => setRunDays(Math.min(7, Math.max(2, parseInt(e.target.value) || 4)))}
-                      className="w-14 p-1.5 border border-zinc-700 rounded text-sm text-center bg-zinc-900 text-zinc-100" />
-                  </div>
+                {regenScope === 'running' && (
+                  <p className="text-[11px] text-zinc-500">Solo se reemplazarán los entrenamientos de running. Las sesiones de fuerza existentes se conservan.</p>
+                )}
+                {regenScope === 'strength' && (
+                  <p className="text-[11px] text-zinc-500">Solo se reemplazarán las sesiones de fuerza. Los entrenamientos de running existentes se conservan.</p>
                 )}
               </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-2">Metodología</label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  {([
-                    { value: 'polarized', label: 'Polarizado' },
-                    { value: 'norwegian', label: 'Noruego' },
-                    { value: 'classic',   label: 'Clásico' },
-                  ] as const).map(m => (
-                    <button key={m.value} type="button" onClick={() => setMethodology(m.value)}
-                      className={`p-2.5 rounded-lg border-2 text-xs font-semibold transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-400/10 text-zinc-100' : 'border-zinc-700 bg-zinc-900 text-zinc-400 hover:border-lime-400/50'}`}>
-                      {m.label}
+
+              {/* Objetivo */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Objetivo</h4>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Tu objetivo <span className="text-red-400">*</span></label>
+                  <input type="text" value={goal} onChange={e => setGoal(e.target.value)}
+                    className="w-full p-2.5 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-zinc-900 placeholder-zinc-600 focus:ring-1 focus:ring-lime-400 outline-none"
+                    placeholder="Ej: Bajar marca de 10k…" />
+                </div>
+                <div className="pt-2 border-t border-zinc-800 space-y-2">
+                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                    <input type="checkbox" checked={hasPreviousMark} onChange={e => setHasPreviousMark(e.target.checked)} className="accent-orange-500" />
+                    <span className="text-zinc-300 font-medium">Tengo una marca previa de referencia</span>
+                  </label>
+                  {hasPreviousMark ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="block text-[11px] text-zinc-500 mb-1">Distancia (km)</label>
+                        <input type="number" step="0.1" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)}
+                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-zinc-500 mb-1">Tiempo logrado</label>
+                        <input type="text" placeholder="0:45:30" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)}
+                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo</label>
+                        <input type="text" placeholder="0:42:00" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
+                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo (opcional)</label>
+                      <input type="text" placeholder="Ej: 0:45:00 para 10k" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
+                        className="w-full sm:w-56 p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Disponibilidad */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-4">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Disponibilidad semanal</h4>
+
+                {/* Running days — hidden when scope is strength-only */}
+                {regenScope !== 'strength' && (
+                  <div className="space-y-2">
+                    <label className="block text-xs font-medium text-zinc-300">Días de running</label>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {DAY_LABELS.map((label, dow) => (
+                        <button key={dow} type="button" onClick={() => toggleRunDay(dow)}
+                          className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${runDaysOfWeek.includes(dow) ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-lime-300'}`}>
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    {runDaysOfWeek.length > 0 ? (
+                      <p className="text-xs text-lime-600">
+                        Running: {runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                        <button type="button" onClick={() => setRunDaysOfWeek([])} className="ml-2 underline text-zinc-500">limpiar</button>
+                      </p>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-zinc-500">Días/sem:</span>
+                        <input type="number" min={2} max={7} value={runDays}
+                          onChange={e => setRunDays(Math.min(7, Math.max(2, parseInt(e.target.value) || 4)))}
+                          className="w-14 p-1.5 border border-zinc-700 rounded text-sm text-center bg-zinc-900 text-zinc-100" />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Strength days — always visible, but forced on when scope is strength-only */}
+                <div className={`space-y-2 ${regenScope !== 'strength' ? 'pt-3 border-t border-zinc-800' : ''}`}>
+                  {regenScope === 'strength' ? (
+                    <p className="text-xs font-medium text-indigo-400 mb-2">Días de fuerza a regenerar</p>
+                  ) : (
+                    <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                      <input type="checkbox" checked={includeStrength} onChange={e => setIncludeStrength(e.target.checked)} className="accent-indigo-600" />
+                      <span className="text-indigo-400">Incluir entrenamiento de fuerza / gimnasio</span>
+                    </label>
+                  )}
+                  {(includeStrength || regenScope === 'strength') && (
+                    <div className="space-y-2 pl-1">
+                      <div className="flex gap-1.5 flex-wrap">
+                        {DAY_LABELS.map((label, dow) => (
+                          <button key={dow} type="button" onClick={() => toggleStrengthDay(dow)}
+                            className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${strengthDaysOfWeek.includes(dow) ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-indigo-400'}`}>
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {strengthDaysOfWeek.length > 0 ? (
+                        <p className="text-xs text-indigo-400">
+                          Fuerza: {strengthDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                          <button type="button" onClick={() => setStrengthDaysOfWeek([])} className="ml-2 underline text-zinc-500">limpiar</button>
+                        </p>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-zinc-500">Sesiones/sem:</span>
+                          {[1, 2, 3].map(n => (
+                            <button key={n} type="button" onClick={() => { setStrengthDaysCount(n); setStrengthDaysOfWeek([]); }}
+                              className={`w-9 h-9 rounded-lg text-sm font-bold border-2 transition-colors ${strengthDaysCount === n ? 'bg-indigo-600 text-white border-indigo-600' : 'bg-zinc-900 text-zinc-400 border-zinc-800 hover:border-indigo-400'}`}>
+                              {n}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Perfil del corredor */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-4">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Perfil del corredor</h4>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Nivel de experiencia</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {([
+                      { value: 'beginner',     label: 'Principiante', desc: '< 1 año' },
+                      { value: 'intermediate', label: 'Intermedio',   desc: '1–3 años' },
+                      { value: 'advanced',     label: 'Avanzado',     desc: '3+ años' },
+                      { value: 'elite',        label: 'Élite',        desc: 'Alto volumen' },
+                    ] as const).map(lvl => (
+                      <label key={lvl.value} className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 cursor-pointer transition-colors ${experienceLevel === lvl.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
+                        <div className="flex items-center gap-1.5">
+                          <input type="radio" name="regenExp" value={lvl.value} checked={experienceLevel === lvl.value} onChange={() => setExperienceLevel(lvl.value)} className="accent-lime-400" />
+                          <span className="font-semibold text-xs text-zinc-100">{lvl.label}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 ml-4">{lvl.desc}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Rango de edad</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {['18-29', '30-39', '40-49', '50-59', '60+'].map(r => (
+                      <button key={r} type="button" onClick={() => setAgeRange(r)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${ageRange === r ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-lime-400'}`}>
+                        {r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Km por semana actualmente</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[{ label: '< 20 km', value: 15 }, { label: '20–40', value: 30 }, { label: '40–60', value: 50 }, { label: '60–80', value: 70 }, { label: '80–100', value: 90 }, { label: '> 100', value: 110 }].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => setCurrentWeeklyKm(opt.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${currentWeeklyKm === opt.value ? 'bg-lime-400 text-black border-lime-400' : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-lime-400'}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Rodaje largo reciente</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[{ label: '< 10 km', value: 8 }, { label: '10–15', value: 12 }, { label: '15–20', value: 17 }, { label: '20–25', value: 22 }, { label: '25–32', value: 28 }, { label: '> 32', value: 35 }].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => setLongestRecentRunKm(opt.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${longestRecentRunKm === opt.value ? 'bg-blue-500 text-white border-blue-500' : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-blue-400'}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Tiempo máximo por sesión</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[{ label: '45 min', value: 45 }, { label: '60 min', value: 60 }, { label: '75 min', value: 75 }, { label: '90 min', value: 90 }, { label: '2 h', value: 120 }, { label: '2h 30+', value: 150 }].map(opt => (
+                      <button key={opt.value} type="button" onClick={() => setMaxSessionMinutes(opt.value)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${maxSessionMinutes === opt.value ? 'bg-teal-500 text-white border-teal-500' : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-teal-400'}`}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Momento preferido para entrenar</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {([['morning','Mañana'],['afternoon','Tarde'],['evening','Noche'],['any','Flexible']] as const).map(([v, label]) => (
+                      <button key={v} type="button" onClick={() => setPreferredTrainingTime(v)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-medium border-2 transition-colors ${preferredTrainingTime === v ? 'bg-amber-500 text-white border-amber-500' : 'bg-zinc-900 text-zinc-300 border-zinc-700 hover:border-amber-400'}`}>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Lesiones */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Lesiones y limitaciones</h4>
+                <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <input type="checkbox" checked={hasRecentInjury} onChange={e => setHasRecentInjury(e.target.checked)} className="accent-red-500" />
+                  <span className="text-zinc-300">Tengo lesión reciente activa (últimas 8 semanas)</span>
+                </label>
+                {hasRecentInjury && (
+                  <input type="text" value={recentInjuryDetail} onChange={e => setRecentInjuryDetail(e.target.value)}
+                    placeholder="Describe brevemente (ej: tendinitis aquíleo izquierdo)"
+                    className="w-full p-2 border border-red-800 rounded-lg text-xs bg-zinc-900 text-zinc-100 placeholder-zinc-600" />
+                )}
+                <div className="flex flex-wrap gap-1.5">
+                  {['Rodillas', 'Talón de Aquiles', 'Cintilla IT', 'Fascitis plantar', 'Cadera / glúteo', 'Espalda baja', 'Tibias', 'Sin lesiones'].map(area => (
+                    <button key={area} type="button" onClick={() => toggleInjuryArea(area)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-medium border-2 transition-colors ${injuryAreas.includes(area) ? 'bg-red-500 text-white border-red-500' : 'bg-zinc-900 text-zinc-400 border-zinc-700 hover:border-red-400'}`}>
+                      {area}
                     </button>
                   ))}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-medium text-zinc-300 mb-1">Tiempo objetivo (opcional)</label>
-                <input type="text" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
-                  placeholder="Ej: 3:45:00"
-                  className="w-full sm:w-44 p-2 border border-zinc-700 rounded-lg text-sm text-zinc-100 bg-zinc-800 placeholder-zinc-600 focus:ring-1 focus:ring-lime-400 outline-none font-mono" />
+
+              {/* Carrera */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-4">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Datos de la carrera</h4>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Tipo de terreno</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                    {([['road','Asfalto'],['trail','Trail'],['mixed','Mixto'],['track','Pista']] as const).map(([v, label]) => (
+                      <label key={v} className={`flex items-center gap-1.5 p-2 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === v ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
+                        <input type="radio" name="regenTerrain" value={v} checked={raceTerrain === v} onChange={() => setRaceTerrain(v)} className="accent-lime-400" />
+                        <span className="text-xs font-semibold text-zinc-100">{label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Prioridad de esta carrera</label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {([
+                      { value: 'A', label: 'Carrera A', desc: 'Objetivo principal' },
+                      { value: 'B', label: 'Carrera B', desc: 'Secundario' },
+                      { value: 'C', label: 'Carrera C', desc: 'Entrenamiento' },
+                    ] as const).map(p => (
+                      <label key={p.value} className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
+                        <div className="flex items-center gap-1.5">
+                          <input type="radio" name="regenPriority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-lime-400" />
+                          <span className="font-semibold text-xs text-zinc-100">{p.label}</span>
+                        </div>
+                        <span className="text-[10px] text-zinc-500 ml-4">{p.desc}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
               </div>
+
+              {/* Metodología */}
+              <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-950 space-y-3">
+                <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide">Metodología</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+                  {([
+                    { value: 'polarized', label: 'Polarizado',  desc: '80% Z1 · 20% alta intensidad' },
+                    { value: 'norwegian', label: 'Noruego',     desc: '2×umbral/sem · resto Z1' },
+                    { value: 'classic',   label: 'Clásico',     desc: 'Series · Tempo · Largo' },
+                  ] as const).map(m => (
+                    <label key={m.value} className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 cursor-pointer transition-colors ${methodology === m.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
+                      <div className="flex items-center gap-1.5">
+                        <input type="radio" name="regenMethod" value={m.value} checked={methodology === m.value} onChange={() => setMethodology(m.value)} className="accent-lime-400" />
+                        <span className="font-semibold text-xs text-zinc-100">{m.label}</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-500 ml-4">{m.desc}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
             </div>
-            <div className="p-5 border-t border-zinc-800 flex gap-2 justify-end">
+            <div className="p-5 border-t border-zinc-800 flex gap-2 justify-end shrink-0">
               <button onClick={() => setShowRegenModal(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-400 border border-zinc-700 hover:bg-zinc-900 transition-colors">
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-zinc-400 border border-zinc-700 hover:bg-zinc-800 transition-colors">
                 Cancelar
               </button>
               <button disabled={!goal.trim()} onClick={() => { setShowRegenModal(false); handleRegenerateFromToday(); }}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { doc, getDoc, setDoc, deleteDoc } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { sendPasswordResetEmail } from 'firebase/auth';
@@ -18,9 +18,10 @@ const SUB_STATUS_CONFIG: Record<string, { label: string; color: string }> = {
 };
 
 const SettingsPage = () => {
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { hasAccess, isExempt, subscriptionStatus, periodEnd, adminPromoCode } = useSubscription();
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
   // ── Subscription UI ────────────────────────────────────────────
   const [promoInput,      setPromoInput]      = useState('');
@@ -191,6 +192,27 @@ const SettingsPage = () => {
       setPasswordResetMsg({ type: 'error', text: e?.message || 'Error al enviar el email.' });
     } finally {
       setPasswordResetLoading(false);
+    }
+  };
+
+  // ── Delete account ─────────────────────────────────────────────
+  const [deleteModal,   setDeleteModal]   = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError,   setDeleteError]   = useState('');
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm !== 'ELIMINAR') return;
+    setDeleteLoading(true);
+    setDeleteError('');
+    try {
+      const fn = httpsCallable(functions, 'deleteAccount');
+      await fn({});
+      await signOut();
+      navigate('/');
+    } catch (e: any) {
+      setDeleteError(e?.message || 'Error al eliminar la cuenta. Inténtalo de nuevo.');
+      setDeleteLoading(false);
     }
   };
 
@@ -412,6 +434,77 @@ const SettingsPage = () => {
           Centro de soporte →
         </Link>
       </div>
+
+      {/* ── Zona de peligro ── */}
+      <div className="border border-red-900 bg-red-950/20 p-6 rounded-xl space-y-3">
+        <h2 className="text-lg font-bold text-red-400">Zona de peligro</h2>
+        <p className="text-sm text-zinc-400">
+          Eliminar tu cuenta borrará permanentemente todos tus datos: plan de entrenamiento, actividades, perfil y suscripción. Esta acción no se puede deshacer.
+        </p>
+        <button
+          onClick={() => { setDeleteModal(true); setDeleteConfirm(''); setDeleteError(''); }}
+          className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors"
+        >
+          Eliminar mi cuenta
+        </button>
+      </div>
+
+      {/* ── Modal confirmación eliminación ── */}
+      {deleteModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
+          onClick={e => { if (e.target === e.currentTarget && !deleteLoading) { setDeleteModal(false); } }}
+        >
+          <div className="bg-zinc-900 border border-red-900 rounded-2xl p-6 w-full max-w-md space-y-5 shadow-2xl">
+            <div className="flex items-start gap-3">
+              <svg className="w-6 h-6 text-red-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+              <div>
+                <h3 className="text-lg font-bold text-red-400">¿Eliminar cuenta definitivamente?</h3>
+                <p className="text-sm text-zinc-400 mt-1">
+                  Se borrarán todos tus datos personales, plan de entrenamiento, historial de actividades y se cancelará tu suscripción de forma inmediata. Esta acción es irreversible.
+                </p>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-semibold text-zinc-300 mb-2">
+                Escribe <span className="text-red-400 font-mono">ELIMINAR</span> para confirmar
+              </label>
+              <input
+                type="text"
+                value={deleteConfirm}
+                onChange={e => setDeleteConfirm(e.target.value)}
+                disabled={deleteLoading}
+                placeholder="ELIMINAR"
+                className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-zinc-100 text-sm font-mono placeholder-zinc-600 focus:ring-2 focus:ring-red-500 outline-none disabled:opacity-50"
+              />
+            </div>
+
+            {deleteError && (
+              <p className="text-sm text-red-400 bg-red-950/50 border border-red-800 rounded-lg px-3 py-2">{deleteError}</p>
+            )}
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setDeleteModal(false)}
+                disabled={deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-100 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleDeleteAccount}
+                disabled={deleteConfirm !== 'ELIMINAR' || deleteLoading}
+                className="flex-1 px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {deleteLoading ? 'Eliminando…' : 'Eliminar cuenta'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 };

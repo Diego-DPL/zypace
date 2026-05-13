@@ -33,7 +33,7 @@ var __importStar = (this && this.__importStar) || (function () {
     };
 })();
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.listInvites = exports.revokeInvite = exports.createInvite = exports.assignDiscountToUser = exports.setUserExempt = exports.toggleDiscountCode = exports.listDiscountCodes = exports.createDiscountCode = exports.stripeWebhookHandler = exports.cancelSubscription = exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.reactivationEmailJob = exports.weeklyEmailSummary = exports.dailyRaceReminder = exports.onPlanCreated = exports.onIncidentUpdated = exports.onUserCreated = exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
+exports.deleteAccount = exports.listInvites = exports.revokeInvite = exports.createInvite = exports.assignDiscountToUser = exports.setUserExempt = exports.toggleDiscountCode = exports.listDiscountCodes = exports.createDiscountCode = exports.stripeWebhookHandler = exports.cancelSubscription = exports.validateDiscountCode = exports.createPortalSession = exports.createCheckoutSession = exports.reactivationEmailJob = exports.weeklyEmailSummary = exports.dailyRaceReminder = exports.onPlanCreated = exports.onIncidentUpdated = exports.onUserCreated = exports.adminDeletePlan = exports.adminDeleteUser = exports.adminBanUser = exports.deleteStravaWebhook = exports.registerStravaWebhook = exports.getStravaWebhookStatus = exports.stravaWebhookHandler = exports.generateNextMesocycle = exports.generatePlan = exports.analyzeWeek = exports.calibrateZones = exports.syncStrava = exports.stravaExchangeToken = void 0;
 const admin = __importStar(require("firebase-admin"));
 admin.initializeApp();
 var stravaOAuth_1 = require("./stravaOAuth");
@@ -83,4 +83,6 @@ var invites_1 = require("./invites");
 Object.defineProperty(exports, "createInvite", { enumerable: true, get: function () { return invites_1.createInvite; } });
 Object.defineProperty(exports, "revokeInvite", { enumerable: true, get: function () { return invites_1.revokeInvite; } });
 Object.defineProperty(exports, "listInvites", { enumerable: true, get: function () { return invites_1.listInvites; } });
+var deleteAccount_1 = require("./deleteAccount");
+Object.defineProperty(exports, "deleteAccount", { enumerable: true, get: function () { return deleteAccount_1.deleteAccount; } });
 //# sourceMappingURL=index.js.map
