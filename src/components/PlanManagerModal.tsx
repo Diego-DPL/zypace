@@ -360,7 +360,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       window.dispatchEvent(new Event('workouts-changed'));
       setResultModal({
         success: true,
-        message: `Mesociclo ${data.mesocycle_number} generado: ${data.mesocycle_start} → ${data.mesocycle_end} · ${data.workouts_added} entrenamientos añadidos.${data.fallback ? ' (plan algorítmico)' : ''}`,
+        message: `Mesociclo ${data.mesocycle_number} generado: ${data.mesocycle_start} → ${data.mesocycle_end} · ${data.workouts_added} entrenamientos añadidos.`,
       });
     } catch (err: any) {
       setResultModal({ success: false, message: `Error generando mesociclo: ${err.message || err}` });
@@ -568,10 +568,6 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
               <div className="flex items-start justify-between gap-3 flex-wrap">
                 <div>
                   <p className="text-sm text-zinc-400">Objetivo: {plan.goal}</p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5 text-xs">
-                    {plan.model && <span className="bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded text-[11px]">{plan.model}</span>}
-                    {plan.used_fallback && <span className="bg-zinc-800 text-zinc-500 px-2 py-0.5 rounded text-[11px]">Algoritmo local</span>}
-                  </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
                   <button onClick={() => setShowRegenModal(true)} disabled={loading}
@@ -691,7 +687,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                       <li key={v.id}
                         className="flex items-center justify-between border border-zinc-800 rounded-lg px-3 py-2 bg-zinc-900 cursor-pointer hover:bg-zinc-800"
                         onClick={() => handleLoadVersion(v.id)}>
-                        <span className="text-zinc-400">{v.generated_at?.toDate ? v.generated_at.toDate().toLocaleString() : '—'} · {v.model || '—'} {v.used_fallback ? '(fallback)' : ''}</span>
+                        <span className="text-zinc-400">{v.generated_at?.toDate ? v.generated_at.toDate().toLocaleString() : '—'}</span>
                         <span className="text-zinc-600">Ver →</span>
                       </li>
                     ))}
