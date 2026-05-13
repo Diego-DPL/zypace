@@ -4,4 +4,6 @@ export interface Race {
   date: string;
   distance?: string;
   goal_time?: string;
+  terrain?: 'road' | 'trail' | 'mixed' | 'track';
+  priority?: 'A' | 'B' | 'C';
 }

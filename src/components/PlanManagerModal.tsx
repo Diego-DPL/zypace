@@ -36,6 +36,71 @@ interface TrainingPlan {
 
 const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 
+// ── Race priority calendar ─────────────────────────────────────
+interface RacePriorityCalendarProps {
+  races: Race[];
+  priorities: Record<string, 'A' | 'B' | 'C'>;
+  targetRaceId: string;
+  onChange: (updated: Record<string, 'A' | 'B' | 'C'>) => void;
+}
+
+const PRIORITY_COLORS: Record<'A' | 'B' | 'C', { active: string; inactive: string }> = {
+  A: { active: 'bg-lime-400 text-black border-lime-400',   inactive: 'bg-zinc-950 text-zinc-500 border-zinc-700 hover:border-lime-400/60' },
+  B: { active: 'bg-blue-500 text-white border-blue-500',   inactive: 'bg-zinc-950 text-zinc-500 border-zinc-700 hover:border-blue-400/60' },
+  C: { active: 'bg-zinc-500 text-white border-zinc-500',   inactive: 'bg-zinc-950 text-zinc-500 border-zinc-700 hover:border-zinc-400/60' },
+};
+
+function RacePriorityCalendar({ races, priorities, targetRaceId, onChange }: RacePriorityCalendarProps) {
+  const setPriority = (raceId: string, p: 'A' | 'B' | 'C') =>
+    onChange({ ...priorities, [raceId]: p });
+
+  if (races.length === 0) {
+    return (
+      <p className="text-xs text-zinc-600 italic">No hay carreras próximas registradas.</p>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between mb-1">
+        <label className="block text-xs font-medium text-zinc-300">Prioridad de tus carreras</label>
+        <div className="flex gap-3 text-[10px] text-zinc-600">
+          <span><span className="text-lime-400 font-bold">A</span> — taper completo</span>
+          <span><span className="text-blue-400 font-bold">B</span> — taper parcial</span>
+          <span><span className="text-zinc-400 font-bold">C</span> — sin taper</span>
+        </div>
+      </div>
+      {races.map(r => {
+        const isTarget = r.id === targetRaceId;
+        const current  = priorities[r.id] || 'B';
+        return (
+          <div key={r.id}
+            className={`flex items-center gap-3 rounded-lg px-3 py-2 ${isTarget ? 'bg-lime-400/5 border border-lime-400/25' : 'bg-zinc-900 border border-zinc-800'}`}>
+            <div className="min-w-0 flex-1">
+              <p className={`text-xs font-semibold truncate ${isTarget ? 'text-lime-300' : 'text-zinc-300'}`}>
+                {isTarget && <span className="text-lime-400 mr-1">★</span>}
+                {r.name}
+              </p>
+              <p className="text-[10px] text-zinc-500 mt-0.5">
+                {new Date(r.date + 'T00:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}
+                {r.distance && ` · ${r.distance}`}
+              </p>
+            </div>
+            <div className="flex gap-1 shrink-0">
+              {(['A', 'B', 'C'] as const).map(p => (
+                <button key={p} type="button" onClick={() => setPriority(r.id, p)}
+                  className={`w-7 h-7 rounded-md text-xs font-bold border-2 transition-colors ${current === p ? PRIORITY_COLORS[p].active : PRIORITY_COLORS[p].inactive}`}>
+                  {p}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 interface Props {
   open: boolean;
   onClose: () => void;
@@ -77,7 +142,10 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   const [recentInjuryDetail, setRecentInjuryDetail] = useState('');
   const [injuryAreas, setInjuryAreas]   = useState<string[]>([]);
   const [raceTerrain, setRaceTerrain]   = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
-  const [racePriority, setRacePriority] = useState<'A' | 'B' | 'C'>('A');
+
+  // All upcoming races with their priorities (replaces single racePriority selector)
+  const [allRaces, setAllRaces]               = useState<Race[]>([]);
+  const [racePriorities, setRacePriorities]   = useState<Record<string, 'A' | 'B' | 'C'>>({});
   const [profileZones, setProfileZones] = useState<{ z1_sec_km: number; z4_sec_km: number; z5_sec_km: number } | null>(null);
 
   // ── Action loading state ──────────────────────────────────────
@@ -218,6 +286,32 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     if (Array.isArray(d.runner_injury_areas)) setInjuryAreas(d.runner_injury_areas);
   }, [user]);
 
+  // ── Fetch all upcoming races for priority calendar ────────────
+  const fetchAllRaces = useCallback(async () => {
+    if (!user) return;
+    try {
+      const todayISO = new Date().toISOString().substring(0, 10);
+      const snap = await getDocs(query(collection(db, 'users', user.uid, 'races'), orderBy('date', 'asc')));
+      const upcoming = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as Race))
+        .filter(r => r.date >= todayISO);
+      setAllRaces(upcoming);
+      setRacePriorities(prev => {
+        const next: Record<string, 'A' | 'B' | 'C'> = {};
+        upcoming.forEach(r => {
+          // Keep manually set priorities; fall back to saved priority or sensible default
+          next[r.id] = prev[r.id] ?? (r.priority as 'A' | 'B' | 'C') ?? (r.id === raceId ? 'A' : 'B');
+        });
+        return next;
+      });
+    } catch { /* ignore */ }
+  }, [user, raceId]);
+
+  // Pre-fill terrain from the race prop
+  useEffect(() => {
+    if (race?.terrain) setRaceTerrain(race.terrain);
+  }, [race]);
+
   useEffect(() => {
     if (open && raceId) {
       setProfileExists(false);
@@ -225,8 +319,9 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       setRegenScope('both');
       fetchPlan();
       fetchUserProfile();
+      fetchAllRaces();
     }
-  }, [open, raceId, fetchPlan, fetchUserProfile]);
+  }, [open, raceId, fetchPlan, fetchUserProfile, fetchAllRaces]);
 
   // ── Plan actions ──────────────────────────────────────────────
   const handleGeneratePlan = async () => {
@@ -261,12 +356,22 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
           injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
           race_terrain: raceTerrain,
-          race_priority: racePriority,
+          race_priority: racePriorities[raceId] || 'A',
+          races_context: allRaces.map(r => ({
+            name: r.name, date: r.date, distance: r.distance || null,
+            priority: racePriorities[r.id] || (r.id === raceId ? 'A' : 'B'),
+            is_target: r.id === raceId,
+          })),
         },
       });
 
       const functionResponse = res.data as any;
       if (!functionResponse?.plan) throw new Error('Respuesta inválida de la IA');
+
+      // Save priorities back to race documents
+      await Promise.all(Object.entries(racePriorities).map(([rId, pri]) =>
+        setDoc(doc(db, 'users', user.uid, 'races', rId), { priority: pri }, { merge: true }).catch(() => {})
+      ));
 
       // Delete old plan for this race
       const oldPlanSnap = await getDocs(
@@ -402,12 +507,23 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           max_session_minutes: maxSessionMinutes, preferred_training_time: preferredTrainingTime,
           has_recent_injury: hasRecentInjury, recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
           injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
-          race_terrain: raceTerrain, race_priority: racePriority,
+          race_terrain: raceTerrain,
+          race_priority: racePriorities[raceId] || 'A',
+          races_context: allRaces.map(r => ({
+            name: r.name, date: r.date, distance: r.distance || null,
+            priority: racePriorities[r.id] || (r.id === raceId ? 'A' : 'B'),
+            is_target: r.id === raceId,
+          })),
         },
       });
 
       const functionResponse = res.data as any;
       if (!functionResponse?.plan) throw new Error('Respuesta IA inválida');
+
+      // Save priorities
+      await Promise.all(Object.entries(racePriorities).map(([rId, pri]) =>
+        setDoc(doc(db, 'users', user.uid, 'races', rId), { priority: pri }, { merge: true }).catch(() => {})
+      ));
       const meta = functionResponse.meta || {};
 
       await addDoc(collection(db, 'users', user.uid, 'training_plan_versions'), {
@@ -973,6 +1089,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     <h4 className="text-sm font-semibold text-zinc-100">Objetivo y datos de la carrera</h4>
                   </div>
 
+                  {/* Terrain — pre-filled from race, editable here */}
                   <div>
                     <label className="block text-xs font-medium text-zinc-300 mb-1.5">Tipo de terreno</label>
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
@@ -985,24 +1102,13 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-medium text-zinc-300 mb-1.5">Prioridad de esta carrera</label>
-                    <div className="grid grid-cols-3 gap-1.5">
-                      {([
-                        { value: 'A', label: 'Carrera A', desc: 'Objetivo principal' },
-                        { value: 'B', label: 'Carrera B', desc: 'Objetivo secundario' },
-                        { value: 'C', label: 'Carrera C', desc: 'Entrenamiento' },
-                      ] as const).map(p => (
-                        <label key={p.value} className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-950 hover:border-lime-400/50'}`}>
-                          <div className="flex items-center gap-1.5">
-                            <input type="radio" name="priority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-lime-400" />
-                            <span className="font-semibold text-xs text-zinc-100">{p.label}</span>
-                          </div>
-                          <span className="text-[10px] text-zinc-500 ml-4">{p.desc}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
+                  {/* Race calendar with priorities */}
+                  <RacePriorityCalendar
+                    races={allRaces}
+                    priorities={racePriorities}
+                    targetRaceId={raceId}
+                    onChange={setRacePriorities}
+                  />
 
                   <div className="pt-2 border-t border-zinc-800 space-y-2">
                     <label className="flex items-center gap-2 text-xs cursor-pointer">
@@ -1368,24 +1474,12 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     ))}
                   </div>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium text-zinc-300 mb-1.5">Prioridad de esta carrera</label>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {([
-                      { value: 'A', label: 'Carrera A', desc: 'Objetivo principal' },
-                      { value: 'B', label: 'Carrera B', desc: 'Secundario' },
-                      { value: 'C', label: 'Carrera C', desc: 'Entrenamiento' },
-                    ] as const).map(p => (
-                      <label key={p.value} className={`flex flex-col gap-0.5 p-2.5 rounded-lg border-2 cursor-pointer transition-colors ${racePriority === p.value ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-900 hover:border-lime-400/50'}`}>
-                        <div className="flex items-center gap-1.5">
-                          <input type="radio" name="regenPriority" value={p.value} checked={racePriority === p.value} onChange={() => setRacePriority(p.value)} className="accent-lime-400" />
-                          <span className="font-semibold text-xs text-zinc-100">{p.label}</span>
-                        </div>
-                        <span className="text-[10px] text-zinc-500 ml-4">{p.desc}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
+                <RacePriorityCalendar
+                  races={allRaces}
+                  priorities={racePriorities}
+                  targetRaceId={raceId}
+                  onChange={setRacePriorities}
+                />
               </div>
 
               {/* Metodología */}

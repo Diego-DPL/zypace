@@ -82,6 +82,8 @@ export const generatePlan = onCall(
     const injuryAreas        = Array.isArray(config?.injury_areas) ? (config!.injury_areas as string[]) : [];
     const raceTerrain        = (config?.race_terrain as string) || 'road';
     const racePriority       = (config?.race_priority as string) || 'A';
+    interface RaceContext { name: string; date: string; distance?: string | null; priority: string; is_target?: boolean; }
+    const racesContext = Array.isArray(config?.races_context) ? config.races_context as RaceContext[] : null;
 
     // ── Zones ───────────────────────────────────────────────────
     let zones: TrainingZones | null = null;
@@ -200,6 +202,17 @@ export const generatePlan = onCall(
       injuryAreas,
     }) : '';
 
+    // ── Race calendar block ─────────────────────────────────────
+    const racesCalendarBlock = racesContext && racesContext.length > 1
+      ? `CALENDARIO DE OBJETIVOS (${racesContext.length} carreras próximas):
+${racesContext.map(r => {
+  const marker = r.is_target ? ' ← CARRERA OBJETIVO (este mesociclo)' : '';
+  const priLabel = r.priority === 'A' ? 'Prioridad A — taper completo' : r.priority === 'B' ? 'Prioridad B — taper parcial (3-4 días)' : 'Prioridad C — sin taper';
+  return `  • ${r.name} · ${r.date}${r.distance ? ' · ' + r.distance : ''} · ${priLabel}${marker}`;
+}).join('\n')}
+Planifica la carga, las semanas de descarga y los tapers de acuerdo con estas prioridades. Las carreras B y C NO interrumpen el bloque de carga salvo el taper indicado.`
+      : '';
+
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO (running/descanso):
@@ -218,7 +231,7 @@ Objetivo corredor: ${goal} · Ritmo objetivo: ${targetPace || 'no definido'}
 Marca previa: ${lastRace?.distance_km ? `${lastRace.distance_km}km en ${lastRace.time || '?'}` : 'no disponible'}
 
 ${runnerProfileBlock}
-
+${racesCalendarBlock ? `\n${racesCalendarBlock}\n` : ''}
 RESTRICCIONES DE CARGA INICIALES:
 • Semana 1 máx ~${maxWeeklyKmFirstWeek} km totales (no superar volumen actual de golpe)
 • Rodaje largo semana 1 máx ~${Math.round(maxInitialLongRunKm)} km
