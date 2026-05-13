@@ -221,11 +221,11 @@ const CalendarPage = () => {
             onClick={() => setShowAddGoal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
           >+ Añadir objetivo</button>
-          {plan && (
+          {selectedRace && (
             <button
               onClick={() => setShowPlanModal(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
-              Gestionar plan →
+              {plan ? 'Gestionar plan →' : '+ Crear plan'}
             </button>
           )}
         </div>
