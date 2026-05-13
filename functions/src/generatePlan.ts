@@ -11,6 +11,7 @@ import {
   buildDayScheduleHint,
   validateDayCompliance,
   buildStrengthInstructions,
+  buildTrailBlock,
 } from './planHelpers';
 
 const openAiApiKey = defineSecret('OPENAI_API_KEY');
@@ -82,6 +83,7 @@ export const generatePlan = onCall(
     const injuryAreas        = Array.isArray(config?.injury_areas) ? (config!.injury_areas as string[]) : [];
     const raceTerrain        = (config?.race_terrain as string) || 'road';
     const racePriority       = (config?.race_priority as string) || 'A';
+    const elevationGainM     = Number(config?.elevation_gain_m) || 0;
     interface RaceContext { name: string; date: string; distance?: string | null; priority: string; is_target?: boolean; }
     const racesContext = Array.isArray(config?.races_context) ? config.races_context as RaceContext[] : null;
 
@@ -149,9 +151,10 @@ export const generatePlan = onCall(
     const expLabel = experienceLevel === 'beginner' ? 'Principiante (<1 año)' :
                      experienceLevel === 'intermediate' ? 'Intermedio (1-3 años)' :
                      experienceLevel === 'advanced' ? 'Avanzado (3+ años)' : 'Élite/Sub-élite';
-    const terrainLabel = raceTerrain === 'road' ? 'asfalto/ciudad' :
-                         raceTerrain === 'trail' ? 'trail/montaña (incluir subidas, técnica)' :
-                         raceTerrain === 'mixed' ? 'mixto asfalto+trail' : 'pista atletismo';
+    const isTrailRace  = raceTerrain === 'trail' || raceTerrain === 'mixed';
+    const terrainLabel = raceTerrain === 'road'  ? 'asfalto/ciudad' :
+                         raceTerrain === 'trail' ? `trail/montaña${elevationGainM > 0 ? ` · ${elevationGainM}D+` : ''}` :
+                         raceTerrain === 'mixed' ? `mixto asfalto+trail${elevationGainM > 0 ? ` · ${elevationGainM}D+` : ''}` : 'pista atletismo';
     const priorityLabel = racePriority === 'A' ? 'Carrera A — objetivo principal, taper completo' :
                           racePriority === 'B' ? 'Carrera B — objetivo secundario, taper parcial 3-4 días' :
                           'Carrera C — entrenamiento con dorsales, sin taper';
@@ -216,10 +219,11 @@ Planifica la carga, las semanas de descarga y los tapers de acuerdo con estas pr
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO (running/descanso):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|subida|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo/RPE o null","elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
+TRAIL — cuando type==="subida": pon elevation_gain_m con los metros de desnivel de la sesión (ej: 500). Exprésalo en la description como "Xmin/YD+" o "Xkm/YD+".
 
 FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
 REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
 
 PLAN COMPLETO (contexto): ${race.name} · ${distKm || '?'}km · ${raceISO} · ${totalWeeks} semanas totales
@@ -237,8 +241,8 @@ RESTRICCIONES DE CARGA INICIALES:
 • Rodaje largo semana 1 máx ~${Math.round(maxInitialLongRunKm)} km
 • ${maxSessionNote}
 ${hasRecentInjury ? '• LESIÓN RECIENTE: primera semana sin series ni calidad — solo rodajes suaves y fuerza preventiva' : ''}
-${raceTerrain === 'trail' ? '• TRAIL: incluir al menos 1 sesión/semana con subidas o terreno técnico, rodajes de montaña en Z1' : ''}
 ${raceTerrain === 'track' ? '• PISTA: mayor énfasis en series de velocidad y trabajo a ritmo de carrera' : ''}
+${isTrailRace ? buildTrailBlock(elevationGainM, distKm) : ''}
 ${racePriority === 'C' ? '• CARRERA C: no hay taper — última semana igual que las anteriores, sin reducción de carga' : ''}
 
 ${zonesBlock}

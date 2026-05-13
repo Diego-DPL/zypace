@@ -193,11 +193,14 @@ export const syncStrava = onCall(
       .get();
 
     // Group activities by date
-    const actsByDate: Record<string, { distance_m: number }[]> = {};
+    const actsByDate: Record<string, { distance_m: number; elevation_gain_m: number | null }[]> = {};
     for (const d of actsSnap.docs) {
       const a = d.data();
       const date = a.start_date as string;
-      (actsByDate[date] ||= []).push({ distance_m: a.distance_m || 0 });
+      (actsByDate[date] ||= []).push({
+        distance_m: a.distance_m || 0,
+        elevation_gain_m: a.total_elevation_gain ?? null,
+      });
     }
 
     // Match workouts
@@ -220,18 +223,24 @@ export const syncStrava = onCall(
       const targetSecs = timeMatch ? parseInt(timeMatch[1], 10) * 60 : undefined;
 
       let matched = false;
+      let matchedAct: { distance_m: number; elevation_gain_m: number | null } | null = null;
       for (const act of dayActs) {
         if (targetM) {
-          if (Math.abs(act.distance_m - targetM) / targetM <= 0.25) { matched = true; break; }
+          if (Math.abs(act.distance_m - targetM) / targetM <= 0.25) { matched = true; matchedAct = act; break; }
         }
-        if (!matched && targetSecs && act.distance_m > 200) { matched = true; break; }
+        if (!matched && targetSecs && act.distance_m > 200) { matched = true; matchedAct = act; break; }
       }
       if (!matched && !targetM && !targetSecs) {
-        if (dayActs.some(a => a.distance_m >= 1000)) matched = true;
+        const found = dayActs.find(a => a.distance_m >= 1000);
+        if (found) { matched = true; matchedAct = found; }
       }
 
       if (matched) {
-        updateBatch.update(wDoc.ref, { is_completed: true });
+        const update: Record<string, unknown> = { is_completed: true };
+        if (matchedAct?.elevation_gain_m != null && matchedAct.elevation_gain_m > 0) {
+          update.strava_elevation_gain_m = Math.round(matchedAct.elevation_gain_m);
+        }
+        updateBatch.update(wDoc.ref, update);
         matchedWorkouts++;
       }
     }

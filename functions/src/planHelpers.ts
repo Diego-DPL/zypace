@@ -391,6 +391,14 @@ export function buildStrengthInstructions(params: {
     ? '  Nivel ÉLITE: cargas altas (>80% 1RM en fases de fuerza), pliometría avanzada (depth jumps, bounding), periodización ondulante.'
     : '';
 
+  const trailStrengthBlock = isTrail ? `
+FUERZA ESPECÍFICA TRAIL — prioridades adicionales:
+  • Excéntrico de cuádriceps para descensos: step-down excéntrico, sentadilla búlgara excéntrica larga (principal causa de cuádriceps quemados en carrera).
+  • Tobillo y peroneales: equilibrio monopodal en superficies inestables, tibial anterior raises, eversor con banda.
+  • Potencia de subida: hip thrust explosivo + step-up alto (cajón 50-60cm) para la zancada de ascenso.
+  • Estabilidad lateral de rodilla: clamshell pesado, side-lying abduction, Copenhagen plank — prevenir ITB en descensos.
+  • Fase ESPECÍFICO: incluir series de sentadilla excéntrica lenta (5s bajando) — simula control en bajadas prolongadas.` : '';
+
   return `SESIONES DE FUERZA RUNNING-SPECIFIC — instrucciones obligatorias para OpenAI:
 
 Las sesiones de fuerza DEBEN ser DIFERENTES entre sí dentro de la misma semana.
@@ -406,7 +414,7 @@ ${progressionBlock}
 PERIODIZACIÓN POR FASE DEL PLAN:
 ${phaseBlock}
 
-${injuryBlock ? `LESIONES / ÁREAS A PROTEGER:\n${injuryBlock}\n` : ''}${levelBlock ? `NIVEL DEL ATLETA:\n${levelBlock}\n` : ''}
+${injuryBlock ? `LESIONES / ÁREAS A PROTEGER:\n${injuryBlock}\n` : ''}${levelBlock ? `NIVEL DEL ATLETA:\n${levelBlock}\n` : ''}${trailStrengthBlock}
 REGLA CRÍTICA: Si el campo "details" de explanation lleva ejercicios de fuerza, TODOS deben ser diferentes entre las sesiones de la misma semana. Nunca repetir el mismo ejercicio principal en dos sesiones de la misma semana.`;
 }
 
@@ -483,6 +491,7 @@ export interface PlanDay {
     details: string;
     intensity?: string | null;
     phase?: string | null;
+    elevation_gain_m?: number | null;
   };
 }
 
@@ -708,4 +717,46 @@ export function buildFallbackMesocycle(p: FallbackMesocycleParams): { plan: Plan
   }
 
   return { plan: days };
+}
+
+// ── Trail block builder ────────────────────────────────────────
+export function buildTrailBlock(elevationGainM: number, distKm: number): string {
+  const category =
+    elevationGainM >= 5000 ? `Ultra montaña extremo (${elevationGainM}D+) — potencia de subida y control de bajada son las habilidades clave` :
+    elevationGainM >= 3000 ? `Montaña alta (${elevationGainM}D+) — plan orientado a tiempo en pie y D+ acumulado` :
+    elevationGainM >= 1500 ? `Trail medio (${elevationGainM}D+) — combinar km de rodaje con sesiones de subida específicas` :
+    elevationGainM > 0     ? `Trail suave/colinas (${elevationGainM}D+) — introducir subidas progresivamente` :
+                             'Trail (D+ no especificado) — aplicar principios trail generales';
+
+  const weeklyVertTarget = elevationGainM > 0
+    ? `D+ semana pico: ~${Math.round(elevationGainM * 0.35)}m (35% del total de la carrera).`
+    : '';
+
+  const needsPowerHiking = elevationGainM >= 3000 || distKm >= 50;
+
+  return `
+TRAIL RUNNING — REGLAS OBLIGATORIAS:
+Categoría: ${category}
+${weeklyVertTarget}
+
+1. TIPO "subida" (obligatorio en fases desarrollo/específico):
+   - Descripción SIEMPRE en formato "Xmin/YD+" o "Xkm/YD+" — NUNCA solo km.
+   - Pon elevation_gain_m en el campo explanation.
+   - Intensidad por RPE ("RPE 6-7 subiendo, Z1 bajando") — NO ritmos /km.
+   - Mínimo 1 sesión de subida/semana en fase desarrollo y 2/semana en específico.
+   - Ejemplo: {"date":"…","description":"Subida progresiva 45min/600D+","explanation":{"type":"subida","elevation_gain_m":600,"intensity":"RPE 6-7 subida, RPE 4 bajada",…}}
+
+2. RODAJES LARGOS en trail: en tiempo + D+ (ej: "Largo trail 2:30h/800D+").
+   Añadir elevation_gain_m al campo explanation.
+
+3. INTENSIDAD: usar RPE o FC en TODO el plan — los ritmos /km no aplican en montaña.
+   Zonas orientativas: Z1 = RPE 4-5 · Z3 = RPE 6-7 · Z4 = RPE 8 · Z5 = RPE 9-10.
+${needsPowerHiking ? `
+4. POWER HIKING: incluir 1 sesión/semana de caminata de potencia en pendiente fuerte (>15%) durante 45-90min, RPE 5-6. Especialmente en fases base y taper. Descripción: "Power hiking 60min en pendiente".
+` : ''}5. TÉCNICA DE BAJADA: en fase específico, una sesión semanal con bajadas técnicas controladas, RPE bajo. Descripción: "Técnica de bajada 40min — foco en control y postura".
+
+6. Fase BASE trail: solo Z1 con desnivel moderado (max 200-400D+ por sesión). Sin series.
+   Fase DESARROLLO: introducir subidas de calidad + sesión larga con D+ progresivo.
+   Fase ESPECÍFICO: simular perfil de carrera — subidas largas + bajadas técnicas.
+   Fase TAPER: reducir D+ -50%, mantener 1 subida corta de activación.`;
 }

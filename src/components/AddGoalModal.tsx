@@ -29,6 +29,7 @@ const AddGoalModal = ({ open, onClose, onGoalAdded }: AddGoalModalProps) => {
   const [name, setName]        = useState('');
   const [date, setDate]        = useState('');
   const [distance, setDistance] = useState('');
+  const [elevationGainM, setElevationGainM] = useState('');
   const [goalTime, setGoalTime] = useState('');
   const [terrain, setTerrain]  = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
   const [priority, setPriority] = useState<'A' | 'B' | 'C'>('A');
@@ -46,14 +47,15 @@ const AddGoalModal = ({ open, onClose, onGoalAdded }: AddGoalModalProps) => {
       const ref = await addDoc(collection(db, 'users', user.uid, 'races'), {
         name,
         date,
-        distance:  distance  || null,
-        goal_time: goalTime  || null,
+        distance:          distance          || null,
+        elevation_gain_m:  elevationGainM ? parseInt(elevationGainM, 10) : null,
+        goal_time:         goalTime         || null,
         terrain,
         priority,
         created_at: serverTimestamp(),
       });
-      onGoalAdded({ id: ref.id, name, date, distance: distance || undefined, goal_time: goalTime || undefined, terrain, priority });
-      setName(''); setDate(''); setDistance(''); setGoalTime(''); setTerrain('road'); setPriority('A');
+      onGoalAdded({ id: ref.id, name, date, distance: distance || undefined, elevation_gain_m: elevationGainM ? parseInt(elevationGainM, 10) : undefined, goal_time: goalTime || undefined, terrain, priority });
+      setName(''); setDate(''); setDistance(''); setElevationGainM(''); setGoalTime(''); setTerrain('road'); setPriority('A');
       onClose();
     } catch (err: any) {
       setError(err.message);
@@ -98,7 +100,16 @@ const AddGoalModal = ({ open, onClose, onGoalAdded }: AddGoalModalProps) => {
             <label className={labelClass}>Distancia <span className="text-zinc-600 font-normal">(opcional)</span></label>
             <input
               type="text" value={distance} onChange={e => setDistance(e.target.value)}
-              placeholder="10k, Media maratón, Maratón…" className={inputClass}
+              placeholder="10k, Media maratón, 50km…" className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>
+              Desnivel positivo D+ <span className="text-zinc-600 font-normal">(metros, opcional — trail)</span>
+            </label>
+            <input
+              type="number" min="0" value={elevationGainM} onChange={e => setElevationGainM(e.target.value)}
+              placeholder="Ej: 2500" className={inputClass}
             />
           </div>
           <div>

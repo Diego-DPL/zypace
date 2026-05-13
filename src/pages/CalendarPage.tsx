@@ -19,6 +19,7 @@ interface Workout {
   is_completed: boolean;
   distance_km?: number | null;
   duration_min?: number | null;
+  elevation_gain_m?: number | null;
   explanation_json?: any;
 }
 
@@ -43,12 +44,13 @@ function getWeekday(dateISO: string): number {
 function getWorkoutType(w: Workout): string {
   if (w.explanation_json?.type) return w.explanation_json.type;
   const d = w.description.toLowerCase();
-  if (/descanso|rest/.test(d))      return 'descanso';
-  if (/fuerza/.test(d))             return 'fuerza';
-  if (/series|fartlek|\dx/.test(d)) return 'series';
-  if (/umbral/.test(d))             return 'umbral';
-  if (/tempo/.test(d))              return 'tempo';
-  if (/largo/.test(d))              return 'largo';
+  if (/descanso|rest/.test(d))              return 'descanso';
+  if (/fuerza/.test(d))                     return 'fuerza';
+  if (/subida|desnivel|d\+|hill/.test(d))   return 'subida';
+  if (/series|fartlek|\dx/.test(d))         return 'series';
+  if (/umbral/.test(d))                     return 'umbral';
+  if (/tempo/.test(d))                      return 'tempo';
+  if (/largo/.test(d))                      return 'largo';
   return 'suave';
 }
 
@@ -58,6 +60,7 @@ const TYPE_STYLES: Record<string, { bg: string; border: string; dot: string; tex
   series:   { bg: 'bg-red-950/60',    border: 'border-red-800',    dot: 'bg-red-400',    text: 'text-red-400',    label: 'Series', color: '#f87171' },
   umbral:   { bg: 'bg-amber-950/60',  border: 'border-amber-800',  dot: 'bg-amber-400',  text: 'text-amber-400',  label: 'Umbral', color: '#fbbf24' },
   tempo:    { bg: 'bg-orange-950/60', border: 'border-orange-800', dot: 'bg-orange-400', text: 'text-orange-400', label: 'Tempo',  color: '#fb923c' },
+  subida:   { bg: 'bg-yellow-950/60', border: 'border-yellow-700', dot: 'bg-yellow-400', text: 'text-yellow-400', label: 'Subida', color: '#facc15' },
   fuerza:   { bg: 'bg-purple-950/60', border: 'border-purple-800', dot: 'bg-purple-400', text: 'text-purple-400', label: 'Fuerza', color: '#c084fc' },
   descanso: { bg: 'bg-zinc-900',      border: 'border-zinc-800',   dot: 'bg-zinc-600',   text: 'text-zinc-600',   label: 'Desc.',  color: '#52525b' },
 };
@@ -383,6 +386,7 @@ const CalendarPage = () => {
                               <div className="flex gap-3 text-[11px] font-mono text-zinc-500">
                                 {w.distance_km && <span>{w.distance_km} km</span>}
                                 {w.duration_min && <span>{w.duration_min} min</span>}
+                                {w.elevation_gain_m && <span>{w.elevation_gain_m} D+</span>}
                               </div>
                               <button
                                 onClick={() => { setModalWorkout(w); setShowModal(true); }}
@@ -490,9 +494,11 @@ const CalendarPage = () => {
                                       <div className="flex-1" />
                                       <div className={`text-[10px] font-bold leading-tight truncate ${st.text}`}>{st.label}</div>
                                       {w.distance_km ? (
-                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.distance_km}km</div>
+                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.distance_km}km{w.elevation_gain_m ? ` /${w.elevation_gain_m}D+` : ''}</div>
                                       ) : w.duration_min ? (
-                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.duration_min}min</div>
+                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.duration_min}min{w.elevation_gain_m ? ` /${w.elevation_gain_m}D+` : ''}</div>
+                                      ) : w.elevation_gain_m ? (
+                                        <div className="text-[10px] text-zinc-300 font-mono leading-tight">{w.elevation_gain_m}D+</div>
                                       ) : null}
                                     </div>
                                     {canToggle && (
@@ -591,9 +597,9 @@ const CalendarPage = () => {
                               <span className={`flex-1 text-sm min-w-0 ${w.is_completed ? 'line-through text-zinc-600' : isRest ? 'text-zinc-600 italic' : 'text-zinc-100'}`}>
                                 {w.description}
                               </span>
-                              {(w.distance_km || w.duration_min) && (
+                              {(w.distance_km || w.duration_min || w.elevation_gain_m) && (
                                 <span className="flex-shrink-0 text-xs text-zinc-400 font-mono">
-                                  {w.distance_km ? `${w.distance_km}km` : ''}{w.distance_km && w.duration_min ? ' · ' : ''}{w.duration_min ? `${w.duration_min}min` : ''}
+                                  {w.distance_km ? `${w.distance_km}km` : ''}{w.distance_km && w.duration_min ? ' · ' : ''}{w.duration_min ? `${w.duration_min}min` : ''}{w.elevation_gain_m ? ` · ${w.elevation_gain_m}D+` : ''}
                                 </span>
                               )}
                             </li>

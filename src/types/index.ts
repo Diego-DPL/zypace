@@ -6,4 +6,5 @@ export interface Race {
   goal_time?: string;
   terrain?: 'road' | 'trail' | 'mixed' | 'track';
   priority?: 'A' | 'B' | 'C';
+  elevation_gain_m?: number;
 }

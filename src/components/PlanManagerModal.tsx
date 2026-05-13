@@ -353,6 +353,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
           injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
           race_terrain: raceTerrain,
+          elevation_gain_m: race.elevation_gain_m || null,
           race_priority: racePriorities[raceId] || 'A',
           races_context: allRaces.map(r => ({
             name: r.name, date: r.date, distance: r.distance || null,
@@ -393,6 +394,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
         target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
         methodology,
+        race_terrain:               raceTerrain,
+        elevation_gain_m:           race.elevation_gain_m || null,
         total_weeks:                meta.total_weeks || null,
         total_mesocycles:           meta.total_mesocycles || null,
         mesocycle_number:           meta.mesocycle_number || 1,
@@ -412,6 +415,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           plan_id: 'default', workout_date: w.date, description: desc,
           distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
           duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+          elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
           explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
         });
       }
@@ -500,6 +504,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           has_recent_injury: hasRecentInjury, recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
           injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
           race_terrain: raceTerrain,
+          elevation_gain_m: race?.elevation_gain_m || null,
           race_priority: racePriorities[raceId] || 'A',
           races_context: allRaces.map(r => ({
             name: r.name, date: r.date, distance: r.distance || null,
@@ -565,6 +570,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           plan_id: plan.id, workout_date: w.date, description: desc,
           distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
           duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+          elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
           explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
         });
       }
