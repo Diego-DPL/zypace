@@ -18,6 +18,8 @@ interface ProfileForm {
   last_10k_time: string;
   availability_days: Record<string, boolean>;
   accepted_terms: boolean;
+  accepted_age: boolean;
+  marketing_opt_in: boolean;
 }
 
 const RegisterPage = () => {
@@ -33,6 +35,8 @@ const RegisterPage = () => {
     last_10k_time: '',
     availability_days: { mon:false, tue:false, wed:false, thu:false, fri:false, sat:false, sun:false },
     accepted_terms: false,
+    accepted_age: false,
+    marketing_opt_in: false,
   });
 
   const toggleDay = (d: string) =>
@@ -47,7 +51,8 @@ const RegisterPage = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!profile.accepted_terms) { setError('Debes aceptar los términos y condiciones'); return; }
+    if (!profile.accepted_terms) { setError('Debes aceptar los términos, condiciones y política de privacidad.'); return; }
+    if (!profile.accepted_age)   { setError('Debes confirmar que tienes 14 años o más.'); return; }
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return; }
     setLoading(true);
     setError(null);
@@ -65,9 +70,12 @@ const RegisterPage = () => {
         primary_goal:      profile.primary_goal || null,
         last_10k_time_sec: parse10k(profile.last_10k_time),
         availability_days: availability.length ? availability : null,
-        accepted_terms:    true,
-        terms_version:     'v1',
-        accepted_terms_at: new Date().toISOString(),
+        accepted_terms:            true,
+        accepted_privacy_policy:   true,
+        terms_version:             'v1',
+        accepted_terms_at:         new Date().toISOString(),
+        marketing_opt_in:          profile.marketing_opt_in,
+        marketing_opt_in_at:       profile.marketing_opt_in ? new Date().toISOString() : null,
         created_at:        serverTimestamp(),
       });
       trackEvent('sign_up', { method: 'email' });
@@ -240,6 +248,8 @@ const RegisterPage = () => {
             {/* Términos */}
             <div className="space-y-3">
               <p className={sectionClass}>Legal</p>
+
+              {/* T&C + Privacidad — obligatorio */}
               <div className="flex items-start gap-3">
                 <input id="terms" type="checkbox" checked={profile.accepted_terms}
                   onChange={e => setProfile(p => ({...p, accepted_terms: e.target.checked}))}
@@ -247,10 +257,37 @@ const RegisterPage = () => {
                 <label htmlFor="terms" className="text-xs text-zinc-400 leading-relaxed">
                   He leído y acepto los{' '}
                   <button type="button" onClick={() => setShowTerms(true)} className="underline text-lime-400 hover:text-lime-300">
-                    términos y condiciones
-                  </button>.
+                    Términos y Condiciones
+                  </button>
+                  {' '}y la{' '}
+                  <Link to="/privacy" target="_blank" className="underline text-lime-400 hover:text-lime-300">
+                    Política de Privacidad
+                  </Link>
+                  , incluyendo el tratamiento de mis datos personales para la prestación del servicio. <span className="text-red-400">*</span>
                 </label>
               </div>
+
+              {/* Edad mínima — obligatorio */}
+              <div className="flex items-start gap-3">
+                <input id="age" type="checkbox" checked={profile.accepted_age}
+                  onChange={e => setProfile(p => ({...p, accepted_age: e.target.checked}))}
+                  className="mt-0.5 h-4 w-4 accent-lime-400 border-zinc-700 rounded" required />
+                <label htmlFor="age" className="text-xs text-zinc-400 leading-relaxed">
+                  Confirmo que tengo <strong className="text-zinc-300">14 años o más</strong>. (Los menores de 14 años necesitan autorización parental conforme a la LOPDGDD.) <span className="text-red-400">*</span>
+                </label>
+              </div>
+
+              {/* Comunicaciones comerciales — opcional */}
+              <div className="flex items-start gap-3">
+                <input id="marketing" type="checkbox" checked={profile.marketing_opt_in}
+                  onChange={e => setProfile(p => ({...p, marketing_opt_in: e.target.checked}))}
+                  className="mt-0.5 h-4 w-4 accent-lime-400 border-zinc-700 rounded" />
+                <label htmlFor="marketing" className="text-xs text-zinc-400 leading-relaxed">
+                  Acepto recibir comunicaciones sobre novedades, consejos de entrenamiento y ofertas de Zypace. (Opcional — puedes darte de baja en cualquier momento.)
+                </label>
+              </div>
+
+              <p className="text-[11px] text-zinc-600">Los campos marcados con <span className="text-red-400">*</span> son obligatorios.</p>
             </div>
 
             {error && <p className="text-red-400 text-sm text-center">{error}</p>}
@@ -277,7 +314,10 @@ const RegisterPage = () => {
                 <p><strong className="text-zinc-300">Strava:</strong> La sincronización importa datos deportivos. Puedes revocar el acceso en cualquier momento.</p>
                 <p><strong className="text-zinc-300">Modificaciones:</strong> Podemos actualizar estos términos. Continuar usando el servicio implica aceptación.</p>
               </div>
-              <div className="flex justify-end">
+              <div className="flex items-center justify-between">
+                <Link to="/terms" target="_blank" className="text-xs text-lime-400 underline hover:text-lime-300">
+                  Ver términos completos →
+                </Link>
                 <button onClick={() => setShowTerms(false)} className="px-4 py-2 text-sm font-medium rounded-lg border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors">Cerrar</button>
               </div>
             </div>
