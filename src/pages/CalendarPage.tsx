@@ -208,25 +208,14 @@ const CalendarPage = () => {
             <button
               onClick={() => syncStrava()}
               disabled={syncing}
-              className="px-2.5 py-1.5 bg-lime-400 text-black rounded text-xs font-semibold hover:bg-lime-500 disabled:opacity-50 transition-colors"
-              title="Sincronizar actividades recientes de Strava"
-            >{syncing ? '…' : 'Sync'}</button>
-            <button
-              onClick={() => syncStrava({ full: true })}
-              disabled={syncing}
-              className="px-2.5 py-1.5 bg-zinc-700 text-zinc-300 rounded text-xs hover:bg-zinc-600 disabled:opacity-50 transition-colors"
-              title="Sincronización completa"
-            >Full</button>
-            <button
-              onClick={() => {
-                if (window.confirm('¿Resetear la sincronización? Se eliminarán todas las actividades guardadas y se re-importarán desde Strava.')) {
-                  syncStrava({ reset: true, full: true });
-                }
-              }}
-              disabled={syncing}
-              className="px-2.5 py-1.5 bg-zinc-700 text-zinc-300 rounded text-xs hover:bg-red-900/60 hover:text-red-300 disabled:opacity-50 transition-colors"
-              title="Resetear y re-sincronizar todo"
-            >Reset</button>
+              className="w-8 h-8 flex items-center justify-center rounded-lg bg-lime-400 text-black hover:bg-lime-500 disabled:opacity-50 transition-colors"
+              title="Sincronizar actividades de Strava"
+            >
+              <svg className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" />
+                <path d="M21 3v5h-5" />
+              </svg>
+            </button>
           </div>
           <button
             onClick={() => setShowAddGoal(true)}
