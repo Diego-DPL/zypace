@@ -16,7 +16,7 @@ const HomePage           = lazy(() => import('../pages/HomePage'));
 const CalendarPage       = lazy(() => import('../pages/CalendarPage'));
 const SettingsPage       = lazy(() => import('../pages/SettingsPage'));
 const StravaCallbackPage = lazy(() => import('../pages/StravaCallbackPage'));
-const TrainingPlanPage   = lazy(() => import('../pages/TrainingPlanPage'));
+const ProfilePage        = lazy(() => import('../pages/ProfilePage'));
 const AdminPage          = lazy(() => import('../pages/AdminPage'));
 const SupportPage        = lazy(() => import('../pages/SupportPage'));
 const PrivacyPage        = lazy(() => import('../pages/PrivacyPage'));
@@ -75,7 +75,8 @@ const AppRouter = () => {
             <Route path="/calendar"       element={appElement(<CalendarPage />)} />
             <Route path="/races"          element={<Navigate to="/calendar" replace />} />
             <Route path="/settings"       element={user ? <SettingsPage /> : <Navigate to="/" />} />
-            <Route path="/training-plan"  element={appElement(<TrainingPlanPage />)} />
+            <Route path="/profile"        element={appElement(<ProfilePage />)} />
+            <Route path="/training-plan"  element={<Navigate to="/calendar" replace />} />
             <Route path="/subscription"   element={<Navigate to="/settings" replace />} />
             <Route path="/support"        element={<SupportPage />} />
             <Route path="/admin"          element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />

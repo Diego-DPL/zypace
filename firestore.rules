@@ -68,7 +68,8 @@ service cloud.firestore {
 
     // ── Strava athlete index (internal — only Cloud Functions write) ─
     match /strava_athlete_index/{athleteId} {
-      allow read, write: if false;
+      allow read: if isAdmin();
+      allow write: if false;
     }
 
     // ── Discount codes (admin-only; no client read/write) ───────────

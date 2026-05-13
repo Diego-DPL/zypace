@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   collection, getDocs, doc, query, where, orderBy, updateDoc,
@@ -9,6 +8,7 @@ import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WorkoutModal from '../components/WorkoutModal';
 import AddGoalModal from '../components/AddGoalModal';
+import PlanManagerModal from '../components/PlanManagerModal';
 import pwrdByStrava from '../assets/1.2-Strava-API-Logos/Powered by Strava/pwrdBy_strava_white/api_logo_pwrdBy_strava_horiz_white.svg';
 // import RaceCalendar from '../components/RaceCalendar';
 
@@ -95,6 +95,7 @@ const CalendarPage = () => {
   const [modalWorkout, setModalWorkout] = useState<Workout | null>(null);
   const [showModal, setShowModal]       = useState(false);
   const [showAddGoal, setShowAddGoal]   = useState(false);
+  const [showPlanModal, setShowPlanModal] = useState(false);
   const [syncing, setSyncing]           = useState(false);
 
   const syncStrava = async (opts: { full?: boolean; reset?: boolean } = {}) => {
@@ -228,10 +229,11 @@ const CalendarPage = () => {
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
           >+ Añadir objetivo</button>
           {plan && (
-            <Link to={`/training-plan?race=${selectedRace}`}
+            <button
+              onClick={() => setShowPlanModal(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
               Gestionar plan →
-            </Link>
+            </button>
           )}
         </div>
       </div>
@@ -613,10 +615,11 @@ const CalendarPage = () => {
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center text-2xl">📋</div>
           <h2 className="text-lg font-semibold text-zinc-100 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
           <p className="text-sm text-zinc-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
-          <Link to={`/training-plan?race=${selectedRace}`}
+          <button
+            onClick={() => setShowPlanModal(true)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors">
             Crear plan de entrenamiento →
-          </Link>
+          </button>
         </div>
       )}
 
@@ -640,6 +643,14 @@ const CalendarPage = () => {
           setRaces(prev => [...prev, race].sort((a, b) => a.date.localeCompare(b.date)));
           if (!selectedRace) setSelectedRace(race.id);
         }}
+      />
+
+      <PlanManagerModal
+        open={showPlanModal}
+        onClose={() => setShowPlanModal(false)}
+        raceId={selectedRace}
+        race={selectedRaceDetails ?? null}
+        onPlanChanged={() => { if (selectedRace) fetchPlanForRace(selectedRace); }}
       />
     </main>
   );

@@ -37,7 +37,7 @@ const AppHeader = () => {
         </div>
         <nav className="hidden md:flex items-center gap-8 text-sm font-medium">
           <Link to="/calendar" className="text-zinc-400 hover:text-lime-400 transition-colors">Calendario</Link>
-          <Link to="/training-plan" className="text-zinc-400 hover:text-lime-400 transition-colors">Mi Plan</Link>
+          <Link to="/profile" className="text-zinc-400 hover:text-lime-400 transition-colors">Perfil</Link>
           <Link to="/settings" className="text-zinc-400 hover:text-lime-400 transition-colors flex items-center gap-1.5">
             Ajustes
             {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
@@ -63,7 +63,7 @@ const AppHeader = () => {
         <div className="px-4 pt-2 pb-4 space-y-4 text-sm bg-zinc-950">
           <div className="flex flex-col gap-2">
             <Link onClick={() => setOpen(false)} to="/calendar" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Calendario</Link>
-            <Link onClick={() => setOpen(false)} to="/training-plan" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Mi Plan</Link>
+            <Link onClick={() => setOpen(false)} to="/profile" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300">Perfil</Link>
             <Link onClick={() => setOpen(false)} to="/settings" className="py-2 px-3 rounded hover:bg-zinc-800 text-zinc-300 flex items-center gap-2">
               Ajustes
               {hasBillingIssue && <span className="w-1.5 h-1.5 rounded-full bg-yellow-400" />}
