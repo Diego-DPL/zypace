@@ -526,7 +526,10 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   if (!open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/60 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget && !progressModal) onClose(); }}
+    >
       <div className="bg-zinc-950 rounded-2xl shadow-2xl w-full max-w-2xl max-h-[95vh] flex flex-col border border-zinc-800">
 
         {/* Modal header */}

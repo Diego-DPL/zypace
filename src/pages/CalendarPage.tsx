@@ -168,6 +168,16 @@ const CalendarPage = () => {
     return () => window.removeEventListener('workouts-changed', handler);
   }, [selectedRace, fetchPlanForRace]);
 
+  // Auto-scroll to current week when plan loads in calendar view
+  useEffect(() => {
+    if (!plan || !calendarView) return;
+    const raf = requestAnimationFrame(() => {
+      document.getElementById('current-week')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan?.id, calendarView]);
+
   const handleToggleComplete = async (workoutId: string, currentlyCompleted: boolean) => {
     if (!user || !plan) return;
     const next = !currentlyCompleted;
@@ -401,7 +411,7 @@ const CalendarPage = () => {
                         const allDone   = trainDays.length > 0 && doneDays.length === trainDays.length;
 
                         return (
-                          <div key={key} className={`mb-3 rounded-xl overflow-hidden transition-opacity ${isPastWeek ? 'opacity-60' : ''}`}
+                          <div key={key} id={isCurrentWeek ? 'current-week' : undefined} className={`mb-3 rounded-xl overflow-hidden transition-opacity ${isPastWeek ? 'opacity-60' : ''}`}
                             style={{ border: isCurrentWeek ? '1.5px solid #a3e635' : '1px solid #3f3f46' }}>
                             {/* Week header */}
                             <div className={`flex items-center justify-between px-3 py-2 ${isCurrentWeek ? 'bg-lime-400/10' : 'bg-zinc-900'}`}>
