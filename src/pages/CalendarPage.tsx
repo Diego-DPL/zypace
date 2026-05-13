@@ -218,7 +218,11 @@ const CalendarPage = () => {
               title="Sincronización completa"
             >Full</button>
             <button
-              onClick={() => syncStrava({ reset: true, full: true })}
+              onClick={() => {
+                if (window.confirm('¿Resetear la sincronización? Se eliminarán todas las actividades guardadas y se re-importarán desde Strava.')) {
+                  syncStrava({ reset: true, full: true });
+                }
+              }}
               disabled={syncing}
               className="px-2.5 py-1.5 bg-zinc-700 text-zinc-300 rounded text-xs hover:bg-red-900/60 hover:text-red-300 disabled:opacity-50 transition-colors"
               title="Resetear y re-sincronizar todo"

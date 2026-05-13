@@ -84,6 +84,10 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   const [loading, setLoading]               = useState(false);
   const [loadingNextMeso, setLoadingNextMeso] = useState(false);
 
+  // ── Profile collapse state ────────────────────────────────────
+  const [profileExists, setProfileExists]   = useState(false);
+  const [profileExpanded, setProfileExpanded] = useState(false);
+
   // ── UI state ──────────────────────────────────────────────────
   const [showRegenModal, setShowRegenModal] = useState(false);
   const [progressModal, setProgressModal]   = useState(false);
@@ -199,7 +203,10 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     if (d.z1_pace_sec_km && d.z4_pace_sec_km && d.z5_pace_sec_km) {
       setProfileZones({ z1_sec_km: d.z1_pace_sec_km, z4_sec_km: d.z4_pace_sec_km, z5_sec_km: d.z5_pace_sec_km });
     }
-    if (d.runner_experience_level)        setExperienceLevel(d.runner_experience_level);
+    if (d.runner_experience_level) {
+      setExperienceLevel(d.runner_experience_level);
+      setProfileExists(true);
+    }
     if (d.runner_age_range)               setAgeRange(d.runner_age_range);
     if (d.runner_current_weekly_km)       setCurrentWeeklyKm(Number(d.runner_current_weekly_km));
     if (d.runner_longest_recent_run_km)   setLongestRecentRunKm(Number(d.runner_longest_recent_run_km));
@@ -212,6 +219,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
   useEffect(() => {
     if (open && raceId) {
+      setProfileExists(false);
+      setProfileExpanded(false);
       fetchPlan();
       fetchUserProfile();
     }
@@ -717,6 +726,28 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
               <form onSubmit={e => { e.preventDefault(); startGeneration(); }} className="space-y-4">
 
+                {/* Profile summary strip (returning users) */}
+                {profileExists && !profileExpanded && (
+                  <div className="border border-zinc-700 rounded-xl px-4 py-3 bg-zinc-900 flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-[10px] font-semibold text-zinc-500 uppercase tracking-wide mb-0.5">Perfil del corredor</p>
+                      <p className="text-sm text-zinc-200">
+                        {experienceLevel === 'beginner' ? 'Principiante' : experienceLevel === 'intermediate' ? 'Intermedio' : experienceLevel === 'advanced' ? 'Avanzado' : 'Élite'}
+                        {' · '}{ageRange}
+                        {' · '}{currentWeeklyKm} km/sem
+                        {hasRecentInjury && <span className="text-red-400 ml-1.5">· Lesión activa</span>}
+                      </p>
+                    </div>
+                    <button type="button" onClick={() => setProfileExpanded(true)}
+                      className="text-xs text-lime-400 hover:text-lime-300 underline shrink-0">
+                      Editar
+                    </button>
+                  </div>
+                )}
+
+                {/* Sections 1-4: full profile form (first-time or expanded) */}
+                {(!profileExists || profileExpanded) && (
+                  <>
                 {/* Section 1: Perfil del corredor */}
                 <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-900">
                   <div className="flex items-center gap-2 mb-3">
@@ -901,6 +932,15 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     </div>
                   </div>
                 </div>
+
+                {profileExpanded && (
+                  <button type="button" onClick={() => setProfileExpanded(false)}
+                    className="text-xs text-zinc-500 hover:text-zinc-300 underline w-full text-right pr-1">
+                    Ocultar perfil ↑
+                  </button>
+                )}
+                  </>
+                )}
 
                 {/* Section 5: Objetivo */}
                 <div className="border border-zinc-800 rounded-xl p-4 bg-zinc-900 space-y-4">
