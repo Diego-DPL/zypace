@@ -35,7 +35,8 @@ export const generateNextMesocycle = onCall(
     const plan = planDoc.data()!;
 
     // ── 2. Load race ────────────────────────────────────────────
-    const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+    const primaryRaceId = plan.primary_race_id || plan.race_id;
+    const raceDoc = await db.collection('users').doc(uid).collection('races').doc(primaryRaceId).get();
     if (!raceDoc.exists) throw new HttpsError('not-found', 'Carrera no encontrada');
     const race = raceDoc.data()!;
 
@@ -218,7 +219,7 @@ export const generateNextMesocycle = onCall(
           .reduce((s: number, w: any) => s + (w.distance_km || 0), 0);
         await db.collection('users').doc(uid).collection('mesocycle_history').add({
           plan_id:             planId,
-          race_id:             plan.race_id,
+          race_id:             primaryRaceId,
           mesocycle_number:    prevMesoNumber,
           start_date:          plan.mesocycle_start_date,
           end_date:            prevMesoEnd,

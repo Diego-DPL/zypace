@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import {
-  collection, getDocs, doc, query, where, orderBy, updateDoc,
+  collection, getDocs, doc, getDoc, query, where, orderBy, updateDoc,
 } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
@@ -132,23 +132,19 @@ const CalendarPage = () => {
     fetchRaces();
   }, [user]);
 
-  const fetchPlanForRace = useCallback(async (raceId: string) => {
-    if (!user || !raceId) return;
+  const fetchPlan = useCallback(async () => {
+    if (!user) return;
     setLoadingPlan(true);
     setPlan(null);
     try {
-      const planSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', raceId))
-      );
-      if (planSnap.empty) return;
-      const planDoc  = planSnap.docs[0];
-      const planData = planDoc.data();
-      const planId   = planDoc.id;
+      const planDocSnap = await getDoc(doc(db, 'users', user.uid, 'training_plans', 'default'));
+      if (!planDocSnap.exists()) return;
+      const planData = planDocSnap.data();
       const workoutsSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', planId), orderBy('workout_date', 'asc'))
+        query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', 'default'), orderBy('workout_date', 'asc'))
       );
       const workoutsData = workoutsSnap.docs.map(d => ({ id: d.id, ...d.data() } as Workout));
-      setPlan({ id: planId, ...planData, workouts: workoutsData } as TrainingPlan);
+      setPlan({ id: 'default', ...planData, workouts: workoutsData } as TrainingPlan);
     } catch (e) {
       console.warn('Error loading plan:', e);
     } finally {
@@ -156,17 +152,26 @@ const CalendarPage = () => {
     }
   }, [user]);
 
+  // Load plan on mount
   useEffect(() => {
-    if (selectedRace) fetchPlanForRace(selectedRace);
-    else setPlan(null);
-  }, [selectedRace, fetchPlanForRace]);
+    if (user) fetchPlan();
+  }, [user, fetchPlan]);
+
+  // Sync selectedRace to plan's primary race when plan loads and no race is selected yet
+  useEffect(() => {
+    if (plan && !selectedRace) {
+      const primaryRaceId = (plan as any).primary_race_id || (plan as any).race_id;
+      if (primaryRaceId) setSelectedRace(primaryRaceId);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan]);
 
   // Re-sync after external changes (e.g., completing from another tab)
   useEffect(() => {
-    const handler = () => { if (selectedRace) fetchPlanForRace(selectedRace); };
+    const handler = () => fetchPlan();
     window.addEventListener('workouts-changed', handler);
     return () => window.removeEventListener('workouts-changed', handler);
-  }, [selectedRace, fetchPlanForRace]);
+  }, [fetchPlan]);
 
   // Auto-scroll to current week when plan loads in calendar view
   useEffect(() => {
@@ -199,6 +204,7 @@ const CalendarPage = () => {
   };
 
   const selectedRaceDetails = races.find(r => r.id === selectedRace);
+  const planPrimaryRace = races.find(r => r.id === ((plan as any)?.primary_race_id || (plan as any)?.race_id));
   const mesoEnd = plan?.mesocycle_end_date;
   const daysUntilMesoEnd = mesoEnd
     ? Math.ceil((new Date(mesoEnd).getTime() - new Date(todayISO).getTime()) / 86400000)
@@ -231,7 +237,7 @@ const CalendarPage = () => {
             onClick={() => setShowAddGoal(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-300 text-sm font-semibold hover:bg-zinc-700 transition-colors"
           >+ Añadir objetivo</button>
-          {selectedRace && (
+          {(plan || selectedRace) && (
             <button
               onClick={() => setShowPlanModal(true)}
               className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-lime-400/10 border border-lime-400/30 text-lime-400 text-sm font-semibold hover:bg-lime-400/20 transition-colors">
@@ -276,7 +282,7 @@ const CalendarPage = () => {
             <div className="mb-5 px-4 py-3 bg-zinc-900 rounded-xl border border-zinc-800 shadow-sm flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-base font-bold text-zinc-100">{selectedRaceDetails?.name}</h2>
+                  <h2 className="text-base font-bold text-zinc-100">{planPrimaryRace?.name || selectedRaceDetails?.name}</h2>
                   {plan.mesocycle_number && plan.total_mesocycles && (
                     <span className="text-[11px] font-semibold bg-indigo-900/50 text-indigo-400 border border-indigo-800 px-2 py-0.5 rounded-full">
                       Meso {plan.mesocycle_number}/{plan.total_mesocycles}
@@ -606,23 +612,25 @@ const CalendarPage = () => {
               onClose={() => setShowModal(false)}
               workout={plan?.workouts.find(w => w.id === modalWorkout?.id) ?? modalWorkout}
               onCompleteToggle={handleToggleComplete}
-              onSaved={() => { if (selectedRace) fetchPlanForRace(selectedRace); }}
+              onSaved={() => fetchPlan()}
             />
           </div>
         );
       })()}
 
-      {/* No plan for this race */}
-      {!loadingPlan && selectedRace && !plan && (
+      {/* No plan yet */}
+      {!loadingPlan && !plan && races.length > 0 && (
         <div className="text-center py-16 px-4">
           <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-zinc-900 flex items-center justify-center text-2xl">📋</div>
-          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Sin plan para {selectedRaceDetails?.name}</h2>
-          <p className="text-sm text-zinc-500 mb-6">Crea un plan de entrenamiento personalizado con IA para esta carrera.</p>
-          <button
-            onClick={() => setShowPlanModal(true)}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors">
-            Crear plan de entrenamiento →
-          </button>
+          <h2 className="text-lg font-semibold text-zinc-100 mb-2">Sin plan de entrenamiento</h2>
+          <p className="text-sm text-zinc-500 mb-6">Crea un plan de entrenamiento personalizado con IA para tus objetivos.</p>
+          {selectedRace && (
+            <button
+              onClick={() => setShowPlanModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-lime-400 text-black font-semibold rounded-lg hover:bg-lime-500 transition-colors">
+              Crear plan de entrenamiento →
+            </button>
+          )}
         </div>
       )}
 
@@ -653,7 +661,7 @@ const CalendarPage = () => {
         onClose={() => setShowPlanModal(false)}
         raceId={selectedRace}
         race={selectedRaceDetails ?? null}
-        onPlanChanged={() => { if (selectedRace) fetchPlanForRace(selectedRace); }}
+        onPlanChanged={() => fetchPlan()}
       />
     </main>
   );

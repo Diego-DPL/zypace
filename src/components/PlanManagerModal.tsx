@@ -214,20 +214,17 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
   // ── Fetch plan ────────────────────────────────────────────────
   const fetchPlan = useCallback(async () => {
-    if (!user || !raceId) return;
+    if (!user) return;
     setLoadingPlan(true);
     setPlan(null);
     setMesoHistory([]);
     setVersions([]);
     try {
-      const planSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', raceId))
-      );
-      if (planSnap.empty) return;
+      const planDocSnap = await getDoc(doc(db, 'users', user.uid, 'training_plans', 'default'));
+      if (!planDocSnap.exists()) return;
 
-      const planDoc  = planSnap.docs[0];
-      const planData = planDoc.data();
-      const planId   = planDoc.id;
+      const planData = planDocSnap.data();
+      const planId   = 'default';
 
       const workoutsSnap = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', planId), orderBy('workout_date', 'asc'))
@@ -261,7 +258,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     } finally {
       setLoadingPlan(false);
     }
-  }, [user, raceId]);
+  }, [user]);
 
   // Fetch user profile to pre-fill form
   const fetchUserProfile = useCallback(async () => {
@@ -313,7 +310,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   }, [race]);
 
   useEffect(() => {
-    if (open && raceId) {
+    if (open) {
       setProfileExists(false);
       setProfileExpanded(false);
       setRegenScope('both');
@@ -321,7 +318,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       fetchUserProfile();
       fetchAllRaces();
     }
-  }, [open, raceId, fetchPlan, fetchUserProfile, fetchAllRaces]);
+  }, [open, fetchPlan, fetchUserProfile, fetchAllRaces]);
 
   // ── Plan actions ──────────────────────────────────────────────
   const handleGeneratePlan = async () => {
@@ -373,21 +370,16 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         setDoc(doc(db, 'users', user.uid, 'races', rId), { priority: pri }, { merge: true }).catch(() => {})
       ));
 
-      // Delete old plan for this race
-      const oldPlanSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', raceId))
+      // Delete old workouts from the existing default plan
+      const oldWorkoutsSnap = await getDocs(
+        query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', 'default'))
       );
-      for (const oldPlan of oldPlanSnap.docs) {
-        const oldWorkoutsSnap = await getDocs(
-          query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', oldPlan.id))
-        );
-        for (const w of oldWorkoutsSnap.docs) { await deleteDoc(w.ref); }
-        await deleteDoc(oldPlan.ref);
-      }
+      for (const w of oldWorkoutsSnap.docs) { await deleteDoc(w.ref); }
 
       const meta = functionResponse.meta || {};
-      const planRef = await addDoc(collection(db, 'users', user.uid, 'training_plans'), {
-        race_id:                    raceId,
+      const planRef = doc(db, 'users', user.uid, 'training_plans', 'default');
+      await setDoc(planRef, {
+        primary_race_id:            raceId,
         goal,
         model:                      meta.model || null,
         used_fallback:              meta.fallback ?? null,
@@ -417,7 +409,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         const dMatch = desc.match(distRegex);
         const tMatch = desc.match(durRegex);
         await addDoc(collection(db, 'users', user.uid, 'workouts'), {
-          plan_id: planRef.id, workout_date: w.date, description: desc,
+          plan_id: 'default', workout_date: w.date, description: desc,
           distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
           duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
           explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
@@ -425,7 +417,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       }
 
       await addDoc(collection(db, 'users', user.uid, 'training_plan_versions'), {
-        plan_id: planRef.id, race_id: raceId, goal,
+        plan_id: 'default', race_id: raceId, goal,
         model: meta.model || null, used_fallback: meta.fallback ?? null,
         plan_json: { workouts: functionResponse.plan }, generated_at: serverTimestamp(),
       });
