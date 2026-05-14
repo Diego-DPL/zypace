@@ -3,6 +3,7 @@ import LandingHeader from "../components/LandingHeader";
 import SEOHead from "../components/SEOHead";
 import { Link } from 'react-router-dom';
 import appVideo from '../assets/render_app_iphone.mp4';
+import appVideoPoster from '../assets/render_app_tres_iphone.png';
 
 const PRICE_FEATURES = [
   'Planes de entrenamiento personalizados con IA',
@@ -111,22 +112,28 @@ const LandingPage = () => {
     const container = scrollContainerRef.current;
     if (!video || !container) return;
 
-    video.pause();
-    video.currentTime = 0;
+    // Force load — mobile browsers ignore preload="auto" until explicitly called
+    video.load();
 
-    const onScroll = () => {
+    const syncToScroll = () => {
+      // Wait until the browser has enough data to seek
+      if (!video.duration || isNaN(video.duration) || video.readyState < 1) return;
       const rect = container.getBoundingClientRect();
       const scrolledInto = -rect.top;
       const scrollable = container.offsetHeight - window.innerHeight;
       if (scrollable <= 0) return;
       const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
-      if (video.duration && !isNaN(video.duration)) {
-        video.currentTime = progress * video.duration;
-      }
+      video.currentTime = progress * video.duration;
     };
 
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    // Sync once metadata is available (fires on mobile after load())
+    video.addEventListener('loadedmetadata', syncToScroll);
+    window.addEventListener('scroll', syncToScroll, { passive: true });
+
+    return () => {
+      video.removeEventListener('loadedmetadata', syncToScroll);
+      window.removeEventListener('scroll', syncToScroll);
+    };
   }, []);
 
   return (
@@ -162,6 +169,7 @@ const LandingPage = () => {
         <div className="sticky top-0 h-screen w-full overflow-hidden bg-zinc-950">
           <video
             ref={videoRef}
+            poster={appVideoPoster}
             muted
             playsInline
             preload="auto"
