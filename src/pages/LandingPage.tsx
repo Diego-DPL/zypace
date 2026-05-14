@@ -191,23 +191,21 @@ const LandingPage = () => {
             ref={overlayRef}
             className="absolute inset-0 flex items-start justify-center pointer-events-none bg-zinc-950/80"
           >
-            <div className="mt-24 md:mt-28 px-6 text-center">
-              {/* Ambient glow */}
-              <div className="absolute -translate-x-1/2 left-1/2 w-96 h-40 rounded-full bg-lime-400/10 blur-3xl pointer-events-none" />
-              <p className="relative text-[11px] font-medium tracking-[0.3em] uppercase text-zinc-500 mb-4">
-                Vista previa
-              </p>
-              <p
-                className="relative text-5xl md:text-7xl font-bold tracking-tight leading-tight"
-                style={{
-                  background: 'linear-gradient(to bottom, #ffffff 20%, #a3e635)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  backgroundClip: 'text',
-                }}
-              >
-                Nuestra APP
-              </p>
+            <div className="mt-20 md:mt-24 px-8 md:px-16">
+              <div className="border-l-2 border-lime-400 pl-5 md:pl-7">
+                <p
+                  className="font-display font-extrabold leading-none tracking-tight text-white uppercase"
+                  style={{ fontSize: 'clamp(2.8rem, 11vw, 6.5rem)' }}
+                >
+                  Nuestra
+                </p>
+                <p
+                  className="font-display font-extrabold leading-none tracking-tight text-white uppercase"
+                  style={{ fontSize: 'clamp(2.8rem, 11vw, 6.5rem)' }}
+                >
+                  APP
+                </p>
+              </div>
             </div>
           </div>
 

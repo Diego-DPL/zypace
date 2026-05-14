@@ -1,2 +1,6 @@
 @import "tailwindcss";
 
+@theme {
+  --font-display: 'Syne', sans-serif;
+}
+
