@@ -174,7 +174,7 @@ const LandingPage = () => {
       </section>
 
       {/* Scroll-driven video preview */}
-      <div ref={scrollContainerRef} style={{ height: '400vh' }} className="relative">
+      <div ref={scrollContainerRef} className="relative h-[250vh] md:h-[400vh]">
         <div className="sticky top-0 h-screen w-full overflow-hidden bg-zinc-950">
           <video
             ref={videoRef}
