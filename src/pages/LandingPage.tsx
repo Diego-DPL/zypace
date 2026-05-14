@@ -106,6 +106,7 @@ const LANDING_SCHEMA = {
 const LandingPage = () => {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -116,14 +117,22 @@ const LandingPage = () => {
     video.load();
 
     const syncToScroll = () => {
-      // Wait until the browser has enough data to seek
-      if (!video.duration || isNaN(video.duration) || video.readyState < 1) return;
       const rect = container.getBoundingClientRect();
       const scrolledInto = -rect.top;
       const scrollable = container.offsetHeight - window.innerHeight;
       if (scrollable <= 0) return;
       const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
-      video.currentTime = progress * video.duration;
+
+      // Video seek
+      if (video.duration && !isNaN(video.duration) && video.readyState >= 1) {
+        video.currentTime = progress * video.duration;
+      }
+
+      // Overlay fades out in the first 20% of scroll progress
+      if (overlayRef.current) {
+        const opacity = Math.max(0, 1 - progress / 0.2);
+        overlayRef.current.style.opacity = String(opacity);
+      }
     };
 
     // Sync once metadata is available (fires on mobile after load())
@@ -177,6 +186,20 @@ const LandingPage = () => {
           >
             <source src={appVideo} type="video/mp4" />
           </video>
+          {/* Text overlay — fades out on first 20% of scroll */}
+          <div
+            ref={overlayRef}
+            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+          >
+            <div className="text-center px-6">
+              <span className="inline-block px-6 py-3 rounded-2xl bg-black/50 backdrop-blur-sm border border-lime-400/20 shadow-[0_0_40px_rgba(163,230,53,0.15)]">
+                <span className="text-2xl md:text-4xl font-extrabold tracking-tight text-lime-400 drop-shadow-[0_0_12px_rgba(163,230,53,0.6)]">
+                  Nuestra app
+                </span>
+              </span>
+            </div>
+          </div>
+
           {/* Subtle gradient at bottom so next section entry feels smooth */}
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none" />
         </div>
