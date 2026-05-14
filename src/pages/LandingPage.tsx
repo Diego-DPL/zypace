@@ -186,18 +186,14 @@ const LandingPage = () => {
           >
             <source src={appVideo} type="video/mp4" />
           </video>
-          {/* Text overlay — fades out on first 20% of scroll */}
+          {/* Dark overlay with text — entire section shaded, fades out on first 20% of scroll */}
           <div
             ref={overlayRef}
-            className="absolute inset-0 flex items-center justify-center pointer-events-none"
+            className="absolute inset-0 flex items-start justify-center pointer-events-none bg-zinc-950/80"
           >
-            <div className="text-center px-6">
-              <span className="inline-block px-6 py-3 rounded-2xl bg-black/50 backdrop-blur-sm border border-lime-400/20 shadow-[0_0_40px_rgba(163,230,53,0.15)]">
-                <span className="text-2xl md:text-4xl font-extrabold tracking-tight text-lime-400 drop-shadow-[0_0_12px_rgba(163,230,53,0.6)]">
-                  Nuestra app
-                </span>
-              </span>
-            </div>
+            <p className="mt-16 md:mt-20 text-3xl md:text-5xl font-extrabold tracking-tight text-lime-400 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
+              Nuestra APP
+            </p>
           </div>
 
           {/* Subtle gradient at bottom so next section entry feels smooth */}
