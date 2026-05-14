@@ -191,7 +191,10 @@ const LandingPage = () => {
             ref={overlayRef}
             className="absolute inset-0 flex items-start justify-center pointer-events-none bg-zinc-950/80"
           >
-            <p className="mt-16 md:mt-20 text-3xl md:text-5xl font-extrabold tracking-tight text-lime-400 drop-shadow-[0_2px_24px_rgba(0,0,0,0.9)]">
+            <p
+              className="mt-28 md:mt-32 text-4xl md:text-6xl font-black uppercase tracking-widest text-lime-400"
+              style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 rgba(163,230,53,0.25)' }}
+            >
               Nuestra APP
             </p>
           </div>
