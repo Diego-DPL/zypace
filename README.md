@@ -267,7 +267,7 @@ Issues and pull requests are welcome. For major changes, please open an issue fi
 
 ## License
 
-Proprietary — all rights reserved. Contact the author for licensing inquiries.
+This project is **source available — view only**. You are welcome to read and inspect the code, but copying, using, distributing, or creating derivative works is not permitted. See [LICENSE](./LICENSE) for full terms.
 
 ---
 

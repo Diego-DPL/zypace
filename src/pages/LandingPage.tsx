@@ -1,6 +1,7 @@
 import LandingHeader from "../components/LandingHeader";
 import SEOHead from "../components/SEOHead";
 import { Link } from 'react-router-dom';
+import appRender from '../assets/render_app_tres_iphone.png';
 
 const PRICE_FEATURES = [
   'Planes de entrenamiento personalizados con IA',
@@ -126,6 +127,22 @@ const LandingPage = () => {
             <Link to="/login" className="px-8 py-4 rounded-xl font-semibold bg-white/5 hover:bg-white/10 text-white border border-white/10 transition">Ya tengo cuenta</Link>
           </div>
           <p className="mt-4 text-sm text-zinc-500">30 días gratis · Luego 9,99 €/mes · Cancela cuando quieras</p>
+        </div>
+      </section>
+
+      {/* App Preview */}
+      <section className="relative bg-zinc-950 pb-16 overflow-hidden" aria-label="Vista previa de la aplicación">
+        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-zinc-950 to-transparent pointer-events-none" />
+        <div className="max-w-5xl mx-auto px-6 text-center">
+          <p className="text-xs font-semibold text-lime-400 uppercase tracking-widest mb-6">Así se ve por dentro</p>
+          <div className="relative inline-block">
+            <div className="absolute -inset-4 rounded-3xl bg-lime-400/5 blur-2xl pointer-events-none" />
+            <img
+              src={appRender}
+              alt="Vista de la aplicación Zypace: calendario de entrenamientos, plan de la semana y perfil del corredor"
+              className="relative w-full max-w-3xl mx-auto rounded-2xl shadow-2xl shadow-black/60 border border-zinc-800/60"
+            />
+          </div>
         </div>
       </section>
 
