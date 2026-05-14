@@ -1,7 +1,8 @@
+import { useRef, useEffect } from 'react';
 import LandingHeader from "../components/LandingHeader";
 import SEOHead from "../components/SEOHead";
 import { Link } from 'react-router-dom';
-import appRender from '../assets/render_app_tres_iphone.png';
+import appVideo from '../assets/render_app_tres_iphone.mp4';
 
 const PRICE_FEATURES = [
   'Planes de entrenamiento personalizados con IA',
@@ -102,6 +103,32 @@ const LANDING_SCHEMA = {
 };
 
 const LandingPage = () => {
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    const container = scrollContainerRef.current;
+    if (!video || !container) return;
+
+    video.pause();
+    video.currentTime = 0;
+
+    const onScroll = () => {
+      const rect = container.getBoundingClientRect();
+      const scrolledInto = -rect.top;
+      const scrollable = container.offsetHeight - window.innerHeight;
+      if (scrollable <= 0) return;
+      const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
+      if (video.duration && !isNaN(video.duration)) {
+        video.currentTime = progress * video.duration;
+      }
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   return (
     <div className="min-h-screen flex flex-col bg-zinc-950 text-white">
       <SEOHead
@@ -130,24 +157,25 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* App Preview */}
-      <section className="relative bg-zinc-950 pb-16 overflow-hidden" aria-label="Vista previa de la aplicación">
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-zinc-950 to-transparent pointer-events-none" />
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <p className="text-xs font-semibold text-lime-400 uppercase tracking-widest mb-6">Así se ve por dentro</p>
-          <div className="relative inline-block">
-            <div className="absolute -inset-4 rounded-3xl bg-lime-400/5 blur-2xl pointer-events-none" />
-            <img
-              src={appRender}
-              alt="Vista de la aplicación Zypace: calendario de entrenamientos, plan de la semana y perfil del corredor"
-              className="relative w-full max-w-3xl mx-auto rounded-2xl shadow-2xl shadow-black/60 border border-zinc-800/60"
-            />
-          </div>
+      {/* Scroll-driven video preview */}
+      <div ref={scrollContainerRef} style={{ height: '400vh' }} className="relative">
+        <div className="sticky top-0 h-screen w-full overflow-hidden bg-zinc-950">
+          <video
+            ref={videoRef}
+            muted
+            playsInline
+            preload="auto"
+            className="absolute inset-0 w-full h-full object-cover"
+          >
+            <source src={appVideo} type="video/mp4" />
+          </video>
+          {/* Subtle gradient at bottom so next section entry feels smooth */}
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none" />
         </div>
-      </section>
+      </div>
 
-      {/* Features */}
-      <section id="funcionalidades" className="py-24 bg-zinc-900" aria-label="Funcionalidades principales">
+      {/* Features — slides over video as scroll continues */}
+      <section id="funcionalidades" className="relative z-10 py-24 bg-zinc-900" aria-label="Funcionalidades principales">
         <div className="max-w-6xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Todo lo que necesitas en un solo lugar</h2>
           <p className="text-center text-zinc-500 mb-14">Menos hojas de cálculo. Más claridad. Más progreso.</p>
@@ -164,7 +192,7 @@ const LandingPage = () => {
       </section>
 
       {/* How it works */}
-      <section id="como-funciona" className="py-24 bg-zinc-950" aria-label="Cómo funciona Zypace">
+      <section id="como-funciona" className="relative z-10 py-24 bg-zinc-950" aria-label="Cómo funciona Zypace">
         <div className="max-w-5xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">¿Cómo funciona?</h2>
           <p className="text-center text-zinc-500 mb-12">Un flujo simple para mantenerte constante.</p>
@@ -181,7 +209,7 @@ const LandingPage = () => {
       </section>
 
       {/* Pricing */}
-      <section id="precio" className="py-24 bg-zinc-900" aria-label="Precio de Zypace">
+      <section id="precio" className="relative z-10 py-24 bg-zinc-900" aria-label="Precio de Zypace">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4 text-white">Precio simple y claro</h2>
           <p className="text-center text-zinc-500 mb-12">Sin planes confusos. Sin costes ocultos.</p>
@@ -233,7 +261,7 @@ const LandingPage = () => {
       </section>
 
       {/* CTA */}
-      <section className="py-24 bg-zinc-950">
+      <section className="relative z-10 py-24 bg-zinc-950">
         <div className="max-w-5xl mx-auto px-6 text-center">
           <h2 className="text-3xl md:text-4xl font-bold mb-6 text-white">Convierte tus actividades en progreso real</h2>
           <p className="text-zinc-400 max-w-3xl mx-auto mb-10">La mayoría de los corredores pierden consistencia por falta de visibilidad. Aquí ves plan vs realidad cada día y la IA te ayuda a mantener el rumbo.</p>
@@ -243,7 +271,7 @@ const LandingPage = () => {
       </section>
 
       {/* FAQs */}
-      <section id="preguntas-frecuentes" className="py-24 bg-zinc-950" aria-label="Preguntas frecuentes sobre Zypace">
+      <section id="preguntas-frecuentes" className="relative z-10 py-24 bg-zinc-950" aria-label="Preguntas frecuentes sobre Zypace">
         <div className="max-w-4xl mx-auto px-6">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-10 text-white">Preguntas Frecuentes</h2>
           <div className="divide-y divide-zinc-800 border border-zinc-800 rounded-2xl overflow-hidden">
