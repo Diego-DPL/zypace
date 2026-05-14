@@ -2,7 +2,7 @@ import { useRef, useEffect } from 'react';
 import LandingHeader from "../components/LandingHeader";
 import SEOHead from "../components/SEOHead";
 import { Link } from 'react-router-dom';
-import appVideo from '../assets/render_app_tres_iphone.mp4';
+import appVideo from '../assets/render_app_iphone.mp4';
 
 const PRICE_FEATURES = [
   'Planes de entrenamiento personalizados con IA',
