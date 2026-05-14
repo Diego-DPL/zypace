@@ -191,12 +191,24 @@ const LandingPage = () => {
             ref={overlayRef}
             className="absolute inset-0 flex items-start justify-center pointer-events-none bg-zinc-950/80"
           >
-            <p
-              className="mt-28 md:mt-32 text-4xl md:text-6xl font-black uppercase tracking-widest text-lime-400"
-              style={{ textShadow: '4px 4px 0 #000, 8px 8px 0 rgba(163,230,53,0.25)' }}
-            >
-              Nuestra APP
-            </p>
+            <div className="mt-24 md:mt-28 px-6 text-center">
+              {/* Ambient glow */}
+              <div className="absolute -translate-x-1/2 left-1/2 w-96 h-40 rounded-full bg-lime-400/10 blur-3xl pointer-events-none" />
+              <p className="relative text-[11px] font-medium tracking-[0.3em] uppercase text-zinc-500 mb-4">
+                Vista previa
+              </p>
+              <p
+                className="relative text-5xl md:text-7xl font-bold tracking-tight leading-tight"
+                style={{
+                  background: 'linear-gradient(to bottom, #ffffff 20%, #a3e635)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                  backgroundClip: 'text',
+                }}
+              >
+                Nuestra APP
+              </p>
+            </div>
           </div>
 
           {/* Subtle gradient at bottom so next section entry feels smooth */}
