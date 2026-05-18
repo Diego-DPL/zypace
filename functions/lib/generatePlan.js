@@ -21,7 +21,7 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
     const apiKey = openAiApiKey.value();
     if (!apiKey)
         throw new https_1.HttpsError('internal', 'OPENAI_API_KEY no está configurada');
-    const model = openAiModel.value() || 'gpt-4o-mini';
+    const model = (openAiModel.value() || 'gpt-4o-mini').trim();
     const raceDate = new Date(race.date);
     if (isNaN(raceDate.getTime()))
         throw new https_1.HttpsError('invalid-argument', 'Fecha de carrera inválida');
@@ -60,6 +60,7 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
     const injuryAreas = Array.isArray(config === null || config === void 0 ? void 0 : config.injury_areas) ? config.injury_areas : [];
     const raceTerrain = (config === null || config === void 0 ? void 0 : config.race_terrain) || 'road';
     const racePriority = (config === null || config === void 0 ? void 0 : config.race_priority) || 'A';
+    const elevationGainM = Number(config === null || config === void 0 ? void 0 : config.elevation_gain_m) || 0;
     const racesContext = Array.isArray(config === null || config === void 0 ? void 0 : config.races_context) ? config.races_context : null;
     // ── Zones ───────────────────────────────────────────────────
     let zones = null;
@@ -109,9 +110,10 @@ exports.generatePlan = (0, https_1.onCall)({ region: 'europe-west1', cors: true,
     const expLabel = experienceLevel === 'beginner' ? 'Principiante (<1 año)' :
         experienceLevel === 'intermediate' ? 'Intermedio (1-3 años)' :
             experienceLevel === 'advanced' ? 'Avanzado (3+ años)' : 'Élite/Sub-élite';
+    const isTrailRace = raceTerrain === 'trail' || raceTerrain === 'mixed';
     const terrainLabel = raceTerrain === 'road' ? 'asfalto/ciudad' :
-        raceTerrain === 'trail' ? 'trail/montaña (incluir subidas, técnica)' :
-            raceTerrain === 'mixed' ? 'mixto asfalto+trail' : 'pista atletismo';
+        raceTerrain === 'trail' ? `trail/montaña${elevationGainM > 0 ? ` · ${elevationGainM}D+` : ''}` :
+            raceTerrain === 'mixed' ? `mixto asfalto+trail${elevationGainM > 0 ? ` · ${elevationGainM}D+` : ''}` : 'pista atletismo';
     const priorityLabel = racePriority === 'A' ? 'Carrera A — objetivo principal, taper completo' :
         racePriority === 'B' ? 'Carrera B — objetivo secundario, taper parcial 3-4 días' :
             'Carrera C — entrenamiento con dorsales, sin taper';
@@ -167,10 +169,11 @@ Planifica la carga, las semanas de descarga y los tapers de acuerdo con estas pr
     const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
 
 FORMATO (running/descanso):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|subida|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo/RPE o null","elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
+TRAIL — cuando type==="subida": pon elevation_gain_m con los metros de desnivel de la sesión (ej: 500). Exprésalo en la description como "Xmin/YD+" o "Xkm/YD+".
 
 FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
 REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
 
 PLAN COMPLETO (contexto): ${race.name} · ${distKm || '?'}km · ${raceISO} · ${totalWeeks} semanas totales
@@ -188,8 +191,8 @@ RESTRICCIONES DE CARGA INICIALES:
 • Rodaje largo semana 1 máx ~${Math.round(maxInitialLongRunKm)} km
 • ${maxSessionNote}
 ${hasRecentInjury ? '• LESIÓN RECIENTE: primera semana sin series ni calidad — solo rodajes suaves y fuerza preventiva' : ''}
-${raceTerrain === 'trail' ? '• TRAIL: incluir al menos 1 sesión/semana con subidas o terreno técnico, rodajes de montaña en Z1' : ''}
 ${raceTerrain === 'track' ? '• PISTA: mayor énfasis en series de velocidad y trabajo a ritmo de carrera' : ''}
+${isTrailRace ? (0, planHelpers_1.buildTrailBlock)(elevationGainM, distKm) : ''}
 ${racePriority === 'C' ? '• CARRERA C: no hay taper — última semana igual que las anteriores, sin reducción de carga' : ''}
 
 ${zonesBlock}
@@ -212,7 +215,8 @@ REGLAS (incumplir invalida el plan):
 5. Rodajes suaves SIEMPRE en Z1
 6. Adaptar complejidad de las sesiones al nivel ${expLabel}
 7. Respetar el tiempo máximo de sesión de ${maxSessionMinutes} min
-
+8. EXACTAMENTE ${runDays} sesión/es de running por semana — ni una más, ni una menos. El resto de días son descanso${includeStrength ? ' o fuerza' : ''}.
+${distKm >= 15 ? `9. Una sesión por semana DEBE tener type="largo" (el rodaje más largo de esa semana). No llamarla "suave" aunque sea en Z1. El largo es obligatorio cada semana sin excepción.` : ''}
 Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
     const userPrompt = `Genera el mesociclo 1 (${startISO} → ${mesoEndISO}) del plan para ${race.name}.`;
     // ── OpenAI call ─────────────────────────────────────────────

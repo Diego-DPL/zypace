@@ -11,7 +11,7 @@ const planHelpers_1 = require("./planHelpers");
 const openAiApiKey = (0, params_1.defineSecret)('OPENAI_API_KEY');
 const openAiModel = (0, params_1.defineSecret)('OPENAI_MODEL');
 exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [openAiApiKey, openAiModel], timeoutSeconds: 300, memory: '512MiB' }, async (request) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
@@ -25,7 +25,8 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
         throw new https_1.HttpsError('not-found', 'Plan no encontrado');
     const plan = planDoc.data();
     // ── 2. Load race ────────────────────────────────────────────
-    const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+    const primaryRaceId = plan.primary_race_id || plan.race_id;
+    const raceDoc = await db.collection('users').doc(uid).collection('races').doc(primaryRaceId).get();
     if (!raceDoc.exists)
         throw new https_1.HttpsError('not-found', 'Carrera no encontrada');
     const race = raceDoc.data();
@@ -91,6 +92,7 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
         : Array.isArray(plan.injury_areas) ? plan.injury_areas : [];
     const rp_terrain = plan.race_terrain || 'road';
     const rp_priority = plan.race_priority || 'A';
+    const rp_elevationGainM = Number(plan.elevation_gain_m) || Number(race.elevation_gain_m) || 0;
     // ── 4c. Latest weekly review for this plan ────────────────────
     let latestReview = null;
     try {
@@ -104,7 +106,7 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
         if (!reviewsSnap.empty)
             latestReview = reviewsSnap.docs[0].data();
     }
-    catch ( /* non-critical */_d) { /* non-critical */ }
+    catch ( /* non-critical */_f) { /* non-critical */ }
     // ── 5. Zones ────────────────────────────────────────────────
     let zones = null;
     let targetPace = null;
@@ -195,7 +197,7 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
                 .reduce((s, w) => s + (w.distance_km || 0), 0);
             await db.collection('users').doc(uid).collection('mesocycle_history').add({
                 plan_id: planId,
-                race_id: plan.race_id,
+                race_id: primaryRaceId,
                 mesocycle_number: prevMesoNumber,
                 start_date: plan.mesocycle_start_date,
                 end_date: prevMesoEnd,
@@ -209,7 +211,7 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
                 created_at: firestore_1.FieldValue.serverTimestamp(),
             });
         }
-        catch ( /* non-critical — don't fail mesocycle generation */_e) { /* non-critical — don't fail mesocycle generation */ }
+        catch ( /* non-critical — don't fail mesocycle generation */_g) { /* non-critical — don't fail mesocycle generation */ }
     }
     const performanceNote = adherence < 0.60
         ? `ATENCIÓN: adherencia baja (${Math.round(adherence * 100)}%) — reducir ligeramente la carga del próximo mesociclo.`
@@ -220,7 +222,7 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
     const apiKey = openAiApiKey.value();
     if (!apiKey)
         throw new https_1.HttpsError('internal', 'OPENAI_API_KEY no configurada');
-    const model = openAiModel.value() || 'gpt-4o-mini';
+    const model = (openAiModel.value() || 'gpt-4o-mini').trim();
     const phasesBlock = phases.map(p => `  • ${p.name.toUpperCase()} (sem ${p.startWeek}→${p.endWeek}): ${p.rule}`).join('\n');
     const zonesBlock = zones
         ? `ZONAS: Z1=${zones.z1} · Z4=${zones.z4} · Z5=${zones.z5} · Objetivo=${zones.race}`
@@ -245,8 +247,9 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
     const expLabel = rp_experience === 'beginner' ? 'Principiante (<1 año)' :
         rp_experience === 'intermediate' ? 'Intermedio (1-3 años)' :
             rp_experience === 'advanced' ? 'Avanzado (3+ años)' : 'Élite/Sub-élite';
-    const terrainLabel = rp_terrain === 'trail' ? 'trail/montaña (incluir subidas, técnica)' :
-        rp_terrain === 'mixed' ? 'mixto asfalto+trail' :
+    const isTrailRace = rp_terrain === 'trail' || rp_terrain === 'mixed';
+    const terrainLabel = rp_terrain === 'trail' ? `trail/montaña${rp_elevationGainM > 0 ? ` · ${rp_elevationGainM}D+` : ''}` :
+        rp_terrain === 'mixed' ? `mixto asfalto+trail${rp_elevationGainM > 0 ? ` · ${rp_elevationGainM}D+` : ''}` :
             rp_terrain === 'track' ? 'pista atletismo' : 'asfalto/ciudad';
     const priorityLabel = rp_priority === 'A' ? 'Carrera A — taper completo' :
         rp_priority === 'B' ? 'Carrera B — taper parcial 3-4 días' : 'Carrera C — sin taper';
@@ -302,10 +305,11 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
     const developerInstructions = `Eres un entrenador de running científico y personalizado. Devuelve SOLO JSON válido.
 
 FORMATO (running/descanso):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo o null","phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|subida|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo/RPE o null","elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
+TRAIL — cuando type==="subida": pon elevation_gain_m con los metros de desnivel de la sesión. Exprésalo en description como "Xmin/YD+" o "Xkm/YD+".
 
 FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
-{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"phase":"base|desarrollo|especifico|taper"}}]}
+{"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
 REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
 
 PLAN: ${race.name} · ${distKm || '?'}km · ${race.date} · ${totalWeeks} semanas totales
@@ -329,7 +333,7 @@ ${phasesBlock}
 RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
 
 METODOLOGÍA: ${methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)'}
-${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
+${isTrailRace ? (0, planHelpers_1.buildTrailBlock)(rp_elevationGainM, distKm) : ''}${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `
 CALENDARIO OBLIGATORIO — sigue EXACTAMENTE esta estructura por fecha:
 ${scheduleHint}
 Los días marcados RUNNING deben tener workout de carrera (suave, calidad o largo).
@@ -342,7 +346,8 @@ REGLAS:
 4. Adaptar carga al estado de fatiga y perfil del corredor
 5. Adaptar complejidad al nivel ${expLabel}
 6. Ninguna sesión supere ${rp_maxMin} minutos
-
+7. EXACTAMENTE ${runDays} sesión/es de running por semana — ni una más, ni una menos. El resto de días son descanso${includeStrength ? ' o fuerza' : ''}.
+${distKm >= 15 ? `8. Una sesión por semana DEBE tener type="largo" (el rodaje más largo de esa semana). No llamarla "suave" aunque sea en Z1. El largo es obligatorio cada semana sin excepción.` : ''}
 Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
     async function callResponsesAPI(activeModel) {
         var _a;
@@ -404,7 +409,7 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
             try {
                 parsedPlan = JSON.parse(rawContent.slice(first, last + 1).trim());
             }
-            catch ( /* ignore */_f) { /* ignore */ }
+            catch ( /* ignore */_h) { /* ignore */ }
         }
     }
     // Validate AI respected specific day constraints; force fallback if not
@@ -452,6 +457,7 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
             description: desc,
             distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
             duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+            elevation_gain_m: (_e = (_d = w.explanation) === null || _d === void 0 ? void 0 : _d.elevation_gain_m) !== null && _e !== void 0 ? _e : null,
             explanation_json: w.explanation || null,
             is_completed: false,
             created_at: firestore_1.FieldValue.serverTimestamp(),
