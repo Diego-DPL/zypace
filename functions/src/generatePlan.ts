@@ -41,7 +41,7 @@ export const generatePlan = onCall(
 
     const apiKey = openAiApiKey.value();
     if (!apiKey) throw new HttpsError('internal', 'OPENAI_API_KEY no está configurada');
-    const model = openAiModel.value() || 'gpt-4o-mini';
+    const model = (openAiModel.value() || 'gpt-4o-mini').trim();
 
     const raceDate = new Date(race.date);
     if (isNaN(raceDate.getTime())) throw new HttpsError('invalid-argument', 'Fecha de carrera inválida');
@@ -265,7 +265,8 @@ REGLAS (incumplir invalida el plan):
 5. Rodajes suaves SIEMPRE en Z1
 6. Adaptar complejidad de las sesiones al nivel ${expLabel}
 7. Respetar el tiempo máximo de sesión de ${maxSessionMinutes} min
-
+8. EXACTAMENTE ${runDays} sesión/es de running por semana — ni una más, ni una menos. El resto de días son descanso${includeStrength ? ' o fuerza' : ''}.
+${distKm >= 15 ? `9. Una sesión por semana DEBE tener type="largo" (el rodaje más largo de esa semana). No llamarla "suave" aunque sea en Z1. El largo es obligatorio cada semana sin excepción.` : ''}
 Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
 
     const userPrompt = `Genera el mesociclo 1 (${startISO} → ${mesoEndISO}) del plan para ${race.name}.`;

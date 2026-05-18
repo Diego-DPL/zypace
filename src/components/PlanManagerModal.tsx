@@ -413,6 +413,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         const tMatch = desc.match(durRegex);
         await addDoc(collection(db, 'users', user.uid, 'workouts'), {
           plan_id: 'default', workout_date: w.date, description: desc,
+          type: w.explanation?.type ?? null,
           distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
           duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
           elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
@@ -568,6 +569,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         const tMatch = desc.match(durRegex);
         await addDoc(collection(db, 'users', user.uid, 'workouts'), {
           plan_id: plan.id, workout_date: w.date, description: desc,
+          type: w.explanation?.type ?? null,
           distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
           duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
           elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),

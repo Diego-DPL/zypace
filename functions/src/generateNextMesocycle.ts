@@ -246,7 +246,7 @@ export const generateNextMesocycle = onCall(
     // ── 7. OpenAI call ──────────────────────────────────────────
     const apiKey = openAiApiKey.value();
     if (!apiKey) throw new HttpsError('internal', 'OPENAI_API_KEY no configurada');
-    const model = openAiModel.value() || 'gpt-4o-mini';
+    const model = (openAiModel.value() || 'gpt-4o-mini').trim();
 
     const phasesBlock = phases.map(p =>
       `  • ${p.name.toUpperCase()} (sem ${p.startWeek}→${p.endWeek}): ${p.rule}`
@@ -384,7 +384,8 @@ REGLAS:
 4. Adaptar carga al estado de fatiga y perfil del corredor
 5. Adaptar complejidad al nivel ${expLabel}
 6. Ninguna sesión supere ${rp_maxMin} minutos
-
+7. EXACTAMENTE ${runDays} sesión/es de running por semana — ni una más, ni una menos. El resto de días son descanso${includeStrength ? ' o fuerza' : ''}.
+${distKm >= 15 ? `8. Una sesión por semana DEBE tener type="largo" (el rodaje más largo de esa semana). No llamarla "suave" aunque sea en Z1. El largo es obligatorio cada semana sin excepción.` : ''}
 Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
 
     async function callResponsesAPI(activeModel: string): Promise<string> {
