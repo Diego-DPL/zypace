@@ -18,10 +18,25 @@ async function assertNotSelf(callerUid: string, targetUid: string): Promise<void
   }
 }
 
-async function assertNotAdmin(targetUid: string): Promise<void> {
+async function assertTargetExists(targetUid: string): Promise<void> {
   const doc = await getFirestore().collection('users').doc(targetUid).get();
+  if (!doc.exists) throw new HttpsError('not-found', 'Usuario no encontrado');
   if (doc.data()?.role === 'admin') {
     throw new HttpsError('permission-denied', 'No puedes realizar esta acción sobre otro administrador');
+  }
+}
+
+async function writeAuditLog(action: string, callerUid: string, details: Record<string, unknown>): Promise<void> {
+  try {
+    await getFirestore().collection('audit_logs').add({
+      action,
+      caller_uid: callerUid,
+      ...details,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (err) {
+    // Audit log failure must never break the actual operation
+    console.error('[auditLog] Failed to write audit log:', err);
   }
 }
 
@@ -38,13 +53,15 @@ export const adminBanUser = onCall(
     if (!targetUid) throw new HttpsError('invalid-argument', 'Falta targetUid');
 
     await assertNotSelf(callerUid!, targetUid);
-    await assertNotAdmin(targetUid);
+    await assertTargetExists(targetUid);
 
     // Disable/enable Firebase Auth account
     await getAuth().updateUser(targetUid, { disabled: banned });
 
     // Persist banned flag in Firestore for UI display
     await getFirestore().collection('users').doc(targetUid).update({ banned });
+
+    await writeAuditLog('ban_user', callerUid!, { target_uid: targetUid, banned });
 
     return { success: true, banned };
   }
@@ -63,7 +80,7 @@ export const adminDeleteUser = onCall(
     if (!targetUid) throw new HttpsError('invalid-argument', 'Falta targetUid');
 
     await assertNotSelf(callerUid!, targetUid);
-    await assertNotAdmin(targetUid);
+    await assertTargetExists(targetUid);
 
     const db = getFirestore();
 
@@ -107,6 +124,8 @@ export const adminDeleteUser = onCall(
     // Delete Firebase Auth account last
     await getAuth().deleteUser(targetUid);
 
+    await writeAuditLog('delete_user', callerUid!, { target_uid: targetUid });
+
     return { success: true };
   }
 );
@@ -117,7 +136,8 @@ export const adminDeleteUser = onCall(
 export const adminDeletePlan = onCall(
   { region: REGION, cors: true, invoker: 'public' },
   async (request) => {
-    await assertAdmin(request.auth?.uid);
+    const callerUid = request.auth?.uid;
+    await assertAdmin(callerUid);
 
     const { targetUid, planId } = request.data as { targetUid: string; planId: string };
     if (!targetUid || !planId) throw new HttpsError('invalid-argument', 'Faltan parámetros');
@@ -150,6 +170,8 @@ export const adminDeletePlan = onCall(
 
     // Delete the plan document
     await db.collection('users').doc(targetUid).collection('training_plans').doc(planId).delete();
+
+    await writeAuditLog('delete_plan', callerUid!, { target_uid: targetUid, plan_id: planId });
 
     return { success: true };
   }

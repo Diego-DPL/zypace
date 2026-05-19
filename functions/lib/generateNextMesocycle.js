@@ -19,6 +19,17 @@ exports.generateNextMesocycle = (0, https_1.onCall)({ region: 'europe-west1', co
     if (!planId)
         throw new https_1.HttpsError('invalid-argument', 'Falta plan_id');
     const db = (0, firestore_1.getFirestore)();
+    // ── Rate limiting: max 10 mesocycle generations per user per 24h ────
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentGens = await db
+        .collection('users').doc(uid)
+        .collection('training_plan_versions')
+        .where('generated_at', '>=', since)
+        .count()
+        .get();
+    if (recentGens.data().count >= 10) {
+        throw new https_1.HttpsError('resource-exhausted', 'Límite de generaciones alcanzado. Inténtalo de nuevo en 24 horas.');
+    }
     // ── 1. Load plan ────────────────────────────────────────────
     const planDoc = await db.collection('users').doc(uid).collection('training_plans').doc(planId).get();
     if (!planDoc.exists)
@@ -414,7 +425,7 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
     }
     // Validate AI respected specific day constraints; force fallback if not
     if ((parsedPlan === null || parsedPlan === void 0 ? void 0 : parsedPlan.plan) && Array.isArray(parsedPlan.plan)) {
-        const aiOk = (0, planHelpers_1.validateDayCompliance)(parsedPlan.plan, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null);
+        const aiOk = (0, planHelpers_1.validateDayCompliance)(parsedPlan.plan, runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null, strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null, runDays);
         if (!aiOk) {
             parsedPlan = null;
             usedModel = null;

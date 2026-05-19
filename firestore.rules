@@ -14,18 +14,21 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == userId;
       allow read, write: if isAdmin();
 
-      // Create: own doc, must not include subscription-managed fields
+      // Create: own doc, must not include admin/subscription-managed fields
+      // (email is allowed at creation time — it is set from Firebase Auth during registration)
       allow create: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.keys().hasAny(
           ['stripe_customer_id', 'subscription_id', 'subscription_status',
-           'subscription_current_period_end', 'is_exempt', 'admin_promo_code']
+           'subscription_current_period_end', 'is_exempt', 'admin_promo_code',
+           'role', 'banned']
         );
 
-      // Update: own doc, must not touch subscription-managed fields
+      // Update: own doc, must not touch admin/subscription-managed fields
       allow update: if request.auth != null && request.auth.uid == userId
         && !request.resource.data.diff(resource.data).affectedKeys().hasAny(
           ['stripe_customer_id', 'subscription_id', 'subscription_status',
-           'subscription_current_period_end', 'is_exempt', 'admin_promo_code']
+           'subscription_current_period_end', 'is_exempt', 'admin_promo_code',
+           'role', 'banned', 'email']
         );
 
       // ── Races ──────────────────────────────────────────────────────
@@ -36,20 +39,36 @@ service cloud.firestore {
 
       // ── Training plans ─────────────────────────────────────────────
       match /training_plans/{planId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
         allow read: if isAdmin();
+        // Updates restricted to plan metadata/mesocycle progress fields only
+        allow update: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'model', 'used_fallback', 'openai_error',
+            'total_weeks', 'total_mesocycles', 'mesocycle_number',
+            'mesocycle_length_weeks', 'mesocycle_start_date', 'mesocycle_end_date'
+          ]);
       }
 
       // ── Workouts ───────────────────────────────────────────────────
       match /workouts/{workoutId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, create, delete: if request.auth != null && request.auth.uid == userId;
         allow read: if isAdmin();
+        // Updates restricted to personal log and completion fields only
+        // (structural fields like workout_date, type, distance_km are set at plan
+        //  generation time and must not be modifiable via direct SDK calls)
+        allow update: if request.auth != null && request.auth.uid == userId
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'rpe', 'feeling', 'notes', 'is_completed',
+            'sleep_quality', 'freshness_start', 'description', 'updated_at'
+          ]);
       }
 
       // ── Training plan versions ─────────────────────────────────────
       match /training_plan_versions/{versionId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, create: if request.auth != null && request.auth.uid == userId;
         allow read: if isAdmin();
+        // Versions are immutable — no update or delete from client
       }
 
       // ── Strava tokens (write only via Cloud Function) ──────────────
@@ -94,6 +113,12 @@ service cloud.firestore {
       allow read, write: if isAdmin();
     }
 
+    // ── Audit logs (admin-only; written only by Cloud Functions) ─
+    match /audit_logs/{logId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
     // ── Incidents ───────────────────────────────────────────────────
     match /incidents/{incidentId} {
       // User: create their own, read/update their own (only messages + updated_at)
@@ -104,7 +129,9 @@ service cloud.firestore {
       allow update: if request.auth != null &&
         resource.data.user_uid == request.auth.uid &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['messages', 'updated_at']);
+          .hasOnly(['messages', 'updated_at']) &&
+        request.resource.data.messages.size() > resource.data.messages.size() &&
+        request.resource.data.messages[request.resource.data.messages.size() - 1].sender == 'user';
       // Admin: full access
       allow read, write: if isAdmin();
     }

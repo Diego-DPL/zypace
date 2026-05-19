@@ -186,10 +186,19 @@ const SettingsPage = () => {
     setPasswordResetLoading(true);
     setPasswordResetMsg(null);
     try {
-      await sendPasswordResetEmail(auth, user.email);
-      setPasswordResetMsg({ type: 'success', text: `Se ha enviado un enlace de cambio de contraseña a ${user.email}.` });
+      await sendPasswordResetEmail(auth, user.email, {
+        url: 'https://www.zypace.com/login',
+        handleCodeInApp: false,
+      });
+      setPasswordResetMsg({ type: 'success', text: `Se ha enviado un enlace a ${user.email}. Revisa también la carpeta de spam.` });
     } catch (e: any) {
-      setPasswordResetMsg({ type: 'error', text: e?.message || 'Error al enviar el email.' });
+      const errorMessages: Record<string, string> = {
+        'auth/too-many-requests': 'Demasiados intentos. Espera unos minutos e inténtalo de nuevo.',
+        'auth/user-not-found':    'No se encontró ninguna cuenta con este email.',
+        'auth/invalid-email':     'El email no es válido.',
+        'auth/network-request-failed': 'Error de red. Comprueba tu conexión.',
+      };
+      setPasswordResetMsg({ type: 'error', text: errorMessages[e?.code] || 'Error al enviar el email. Inténtalo de nuevo.' });
     } finally {
       setPasswordResetLoading(false);
     }

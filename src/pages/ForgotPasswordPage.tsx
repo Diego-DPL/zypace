@@ -16,7 +16,10 @@ const ForgotPasswordPage = () => {
     setLoading(true);
     setError(null);
     try {
-      await sendPasswordResetEmail(auth, email);
+      await sendPasswordResetEmail(auth, email, {
+        url: 'https://www.zypace.com/login',
+        handleCodeInApp: false,
+      });
       setSent(true);
     } catch (err: any) {
       const msg: Record<string, string> = {

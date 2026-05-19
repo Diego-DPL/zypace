@@ -3,6 +3,7 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
   TrainingZones, PlanDay,
   secToMinStr, estimateZones,
@@ -38,6 +39,39 @@ export const generatePlan = onCall(
 
     if (!race || !goal) throw new HttpsError('invalid-argument', 'Faltan detalles de la carrera o el objetivo.');
     if (!race.date)     throw new HttpsError('invalid-argument', 'La carrera no tiene fecha.');
+
+    // ── Rate limiting: max 5 plan generations per user per 24h ──────────
+    const db = getFirestore();
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentPlans = await db
+      .collection('users').doc(uid)
+      .collection('training_plan_versions')
+      .where('generated_at', '>=', since)
+      .count()
+      .get();
+    if (recentPlans.data().count >= 5) {
+      throw new HttpsError('resource-exhausted', 'Límite de generaciones alcanzado. Inténtalo de nuevo en 24 horas.');
+    }
+
+    // ── Input validation: prevent oversized/malicious payloads ──────────
+    if (typeof goal === 'string' && goal.length > 200) throw new HttpsError('invalid-argument', 'El objetivo es demasiado largo.');
+    if (race.name && typeof race.name === 'string' && race.name.length > 150) throw new HttpsError('invalid-argument', 'El nombre de la carrera es demasiado largo.');
+    if (config) {
+      const rawWeeklyKm    = Number(config.current_weekly_km);
+      const rawSessionMin  = Number(config.max_session_minutes);
+      const rawElevation   = Number(config.elevation_gain_m);
+      const rawDist        = Number(race.distance);
+      const rawTargetTime  = Number(config.target_time_seconds);
+      const rawInjury      = config.recent_injury_detail;
+      const rawRacesCtx    = config.races_context;
+      if (!isNaN(rawWeeklyKm)   && rawWeeklyKm   > 300) throw new HttpsError('invalid-argument', 'Distancia semanal fuera de rango.');
+      if (!isNaN(rawSessionMin) && rawSessionMin  > 360) throw new HttpsError('invalid-argument', 'Duración de sesión fuera de rango.');
+      if (!isNaN(rawElevation)  && rawElevation   > 6000) throw new HttpsError('invalid-argument', 'Desnivel fuera de rango.');
+      if (!isNaN(rawDist)       && rawDist        > 320) throw new HttpsError('invalid-argument', 'Distancia de carrera fuera de rango.');
+      if (!isNaN(rawTargetTime) && rawTargetTime  > 86400) throw new HttpsError('invalid-argument', 'Tiempo objetivo fuera de rango.');
+      if (typeof rawInjury === 'string' && rawInjury.length > 500) throw new HttpsError('invalid-argument', 'Detalle de lesión demasiado largo.');
+      if (Array.isArray(rawRacesCtx) && rawRacesCtx.length > 20) throw new HttpsError('invalid-argument', 'Demasiadas carreras en el contexto.');
+    }
 
     const apiKey = openAiApiKey.value();
     if (!apiKey) throw new HttpsError('internal', 'OPENAI_API_KEY no está configurada');
@@ -350,6 +384,7 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
         parsedPlan.plan,
         runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
         strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+        runDays,
       );
       if (!aiOk) { parsedPlan = null; usedModel = null; }
     }
@@ -404,3 +439,4 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
     };
   }
 );
+

@@ -1,5 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { getFirestore, Timestamp } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
 import { resendApiKey, sendInviteEmail } from './emailService';
 
 const REGION = 'europe-west1';
@@ -22,6 +23,9 @@ export const createInvite = onCall(
     if (!email?.trim()) throw new HttpsError('invalid-argument', 'Falta el email');
 
     const normalizedEmail = email.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(normalizedEmail) || normalizedEmail.length > 254) {
+      throw new HttpsError('invalid-argument', 'Email inválido');
+    }
     const db = getFirestore();
 
     const existing = await db.collection('invites').doc(normalizedEmail).get();
@@ -37,10 +41,33 @@ export const createInvite = onCall(
       used:       false,
     });
 
-    // Send invite email
+    // Check if a Firebase Auth user already exists with this email.
+    // If so, apply is_exempt immediately (the onUserCreated trigger won't fire again).
+    let isExistingUser = false;
     try {
-      await sendInviteEmail(normalizedEmail);
-      console.log(`[createInvite] Invite email sent to: ${normalizedEmail}`);
+      const authUser = await getAuth().getUserByEmail(normalizedEmail);
+      // User exists — apply exemption directly on their Firestore doc
+      await db.collection('users').doc(authUser.uid).update({ is_exempt: true });
+      await db.collection('invites').doc(normalizedEmail).update({
+        used:    true,
+        used_at: Timestamp.now(),
+        used_by: authUser.uid,
+      });
+      isExistingUser = true;
+      console.log(`[createInvite] Applied invite to existing user: ${normalizedEmail} (uid: ${authUser.uid})`);
+    } catch (err: unknown) {
+      const code = (err as { code?: string })?.code;
+      if (code !== 'auth/user-not-found') {
+        // Unexpected error — log but don't fail; invite doc is already saved
+        console.error('[createInvite] Error checking existing user:', err);
+      }
+      // auth/user-not-found is expected — invite will be applied at account creation via trigger
+    }
+
+    // Send invite email (different copy depending on whether they already have an account)
+    try {
+      await sendInviteEmail(normalizedEmail, isExistingUser);
+      console.log(`[createInvite] Invite email sent to: ${normalizedEmail} (existingUser=${isExistingUser})`);
     } catch (err) {
       console.error('[createInvite] Failed to send invite email:', err);
       // Don't fail the whole function — invite is saved, email is best-effort

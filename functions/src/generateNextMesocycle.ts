@@ -30,6 +30,18 @@ export const generateNextMesocycle = onCall(
 
     const db = getFirestore();
 
+    // ── Rate limiting: max 10 mesocycle generations per user per 24h ────
+    const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const recentGens = await db
+      .collection('users').doc(uid)
+      .collection('training_plan_versions')
+      .where('generated_at', '>=', since)
+      .count()
+      .get();
+    if (recentGens.data().count >= 10) {
+      throw new HttpsError('resource-exhausted', 'Límite de generaciones alcanzado. Inténtalo de nuevo en 24 horas.');
+    }
+
     // ── 1. Load plan ────────────────────────────────────────────
     const planDoc = await db.collection('users').doc(uid).collection('training_plans').doc(planId).get();
     if (!planDoc.exists) throw new HttpsError('not-found', 'Plan no encontrado');
@@ -452,6 +464,7 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
         parsedPlan.plan,
         runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
         strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+        runDays,
       );
       if (!aiOk) { parsedPlan = null; usedModel = null; }
     }
@@ -522,3 +535,4 @@ Genera EXACTAMENTE las fechas de ${nextStartISO} a ${nextEndISO}. Nada más.`;
     };
   }
 );
+

@@ -457,26 +457,51 @@ export function validateDayCompliance(
   plan:               PlanDay[],
   runDaysOfWeek:      number[] | null,
   strengthDaysOfWeek: number[] | null,
+  runDaysCount?:      number,
 ): boolean {
-  if ((!runDaysOfWeek || runDaysOfWeek.length === 0) &&
-      (!strengthDaysOfWeek || strengthDaysOfWeek.length === 0)) return true;
-
   let violations = 0;
-  for (const day of plan) {
-    const dow  = new Date(day.date + 'T00:00:00Z').getUTCDay();
-    const desc = (day.description || '').toLowerCase();
-    const isRest     = /descanso|rest/.test(desc);
-    const isStrength = /fuerza/.test(desc);
-    const isRunning  = !isRest && !isStrength;
 
-    if (runDaysOfWeek && runDaysOfWeek.length > 0) {
-      if (isRunning && !runDaysOfWeek.includes(dow)) violations++;   // running on wrong day
-      if (isRest    &&  runDaysOfWeek.includes(dow)) violations++;   // rest on run day
-    }
-    if (strengthDaysOfWeek && strengthDaysOfWeek.length > 0) {
-      if (isStrength && !strengthDaysOfWeek.includes(dow)) violations++;  // strength on wrong day
+  // Check specific weekday constraints
+  if ((runDaysOfWeek && runDaysOfWeek.length > 0) ||
+      (strengthDaysOfWeek && strengthDaysOfWeek.length > 0)) {
+    for (const day of plan) {
+      const dow  = new Date(day.date + 'T00:00:00Z').getUTCDay();
+      const desc = (day.description || '').toLowerCase();
+      const isRest     = /descanso|rest/.test(desc);
+      const isStrength = /fuerza/.test(desc);
+      const isRunning  = !isRest && !isStrength;
+
+      if (runDaysOfWeek && runDaysOfWeek.length > 0) {
+        if (isRunning && !runDaysOfWeek.includes(dow)) violations++;   // running on wrong day
+        if (isRest    &&  runDaysOfWeek.includes(dow)) violations++;   // rest on run day
+      }
+      if (strengthDaysOfWeek && strengthDaysOfWeek.length > 0) {
+        if (isStrength && !strengthDaysOfWeek.includes(dow)) violations++;  // strength on wrong day
+      }
     }
   }
+
+  // Check run days per week count
+  if (runDaysCount !== undefined && runDaysCount > 0 && plan.length >= 7) {
+    // Group by ISO week
+    const weekCounts: Record<string, number> = {};
+    for (const day of plan) {
+      const d = new Date(day.date + 'T00:00:00Z');
+      // Week key: year + ISO week number
+      const jan4 = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
+      const weekNum = Math.ceil(((d.getTime() - jan4.getTime()) / 86400000 + jan4.getUTCDay() + 1) / 7);
+      const key = `${d.getUTCFullYear()}-W${weekNum}`;
+      const desc = (day.description || '').toLowerCase();
+      const isRest     = /descanso|rest/.test(desc);
+      const isStrength = /fuerza/.test(desc);
+      const isRunning  = !isRest && !isStrength;
+      if (isRunning) weekCounts[key] = (weekCounts[key] || 0) + 1;
+    }
+    for (const [, count] of Object.entries(weekCounts)) {
+      if (count !== runDaysCount) violations++;
+    }
+  }
+
   return violations <= Math.ceil(plan.length * 0.10); // allow ≤10% violations
 }
 

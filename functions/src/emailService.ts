@@ -376,45 +376,53 @@ function trialStartHtml(firstName: string, trialEndDate: string): string {
 }
 
 // ── Invite email ──────────────────────────────────────────────────────
-function inviteHtml(): string {
-  const body = `
+function inviteHtml(existingUser = false): string {
+  const featureRows = [
+    ['Genera tu plan', 'La IA construye un plan de entrenamiento personalizado según tu nivel y objetivo de carrera.'],
+    ['Conecta Strava', 'Tus actividades se sincronizan automáticamente y el plan se actualiza en tiempo real.'],
+    ['Sigue tu progreso', 'Visualiza cada semana, marca entrenamientos y prepárate para tu próxima carrera.'],
+  ].map(([title, desc]) => `
+    <tr>
+      <td style="padding:8px 0;vertical-align:top;">
+        <table cellpadding="0" cellspacing="0">
+          <tr>
+            <td style="width:8px;padding-top:5px;vertical-align:top;line-height:0;font-size:0;">
+              <div style="width:6px;height:6px;min-width:6px;max-width:6px;min-height:6px;max-height:6px;background:${LIME};border-radius:50%;display:block;"></div>
+            </td>
+            <td style="padding-left:10px;vertical-align:top;">
+              <p style="margin:0 0 2px;font-size:14px;font-weight:600;color:#18181b;">${title}</p>
+              <p style="margin:0;font-size:13px;color:#71717a;line-height:1.5;">${desc}</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>`).join('');
+
+  const body = existingUser ? `
+    ${h1('Tu acceso gratuito está activado')}
+    ${p('Hemos activado el acceso gratuito a <strong style="color:#18181b;">Zypace</strong> en tu cuenta. Ya puedes entrar directamente.')}
+    ${p('Con tu acceso podrás:')}
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">${featureRows}</table>
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/app`, 'Ir a mi dashboard')}
+    </div>
+    <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
+      ${p('¿Tienes alguna pregunta? Escríbenos a <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>.', true)}
+    </div>
+  ` : `
     ${h1('Te han invitado a Zypace')}
     ${p('Has recibido una invitación para acceder a <strong style="color:#18181b;">Zypace</strong>, el entrenador personal de running con IA.')}
     ${p('Con tu acceso podrás:')}
-
-    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">
-      ${[
-        ['Genera tu plan', 'La IA construye un plan de entrenamiento personalizado según tu nivel y objetivo de carrera.'],
-        ['Conecta Strava', 'Tus actividades se sincronizan automáticamente y el plan se actualiza en tiempo real.'],
-        ['Sigue tu progreso', 'Visualiza cada semana, marca entrenamientos y prepárate para tu próxima carrera.'],
-      ].map(([title, desc]) => `
-        <tr>
-          <td style="padding:8px 0;vertical-align:top;">
-            <table cellpadding="0" cellspacing="0">
-              <tr>
-                <td style="width:8px;padding-top:5px;vertical-align:top;">
-                  <div style="width:6px;height:6px;background:${LIME};border-radius:50%;"></div>
-                </td>
-                <td style="padding-left:10px;vertical-align:top;">
-                  <p style="margin:0 0 2px;font-size:14px;font-weight:600;color:#18181b;">${title}</p>
-                  <p style="margin:0;font-size:13px;color:#71717a;line-height:1.5;">${desc}</p>
-                </td>
-              </tr>
-            </table>
-          </td>
-        </tr>`).join('')}
-    </table>
-
+    <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0 24px;">${featureRows}</table>
     ${p('Tu acceso está activado. Créate una cuenta con este email y entrarás directamente, sin necesidad de suscripción.')}
-
     <div style="text-align:center;">
       ${ctaButton(`${APP_URL}/register`, 'Crear mi cuenta gratis')}
     </div>
-
     <div style="margin-top:28px;padding-top:20px;border-top:1px solid #e4e4e7;">
       ${p('¿Tienes alguna pregunta? Escríbenos a <a href="mailto:support.zypace@gmail.com" style="color:#18181b;">support.zypace@gmail.com</a>.', true)}
     </div>
   `;
+
   return layout('Tu invitación a Zypace', body);
 }
 
@@ -544,13 +552,13 @@ export async function sendTrialStartEmail(to: string, firstName: string, trialEn
   });
 }
 
-export async function sendInviteEmail(to: string): Promise<void> {
+export async function sendInviteEmail(to: string, existingUser = false): Promise<void> {
   const resend = new Resend(resendApiKey.value());
   await resend.emails.send({
     from:    FROM,
     to:      [to],
-    subject: 'Te han invitado a Zypace',
-    html:    inviteHtml(),
+    subject: existingUser ? 'Tu acceso gratuito a Zypace está activado' : 'Te han invitado a Zypace',
+    html:    inviteHtml(existingUser),
   });
 }
 

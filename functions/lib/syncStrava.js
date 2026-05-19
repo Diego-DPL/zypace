@@ -17,12 +17,26 @@ function extractDistanceKm(description) {
     return isNaN(val) || val <= 0 ? undefined : val;
 }
 exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, invoker: 'public', secrets: [stravaClientId, stravaClientSecret], timeoutSeconds: 300 }, async (request) => {
-    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p;
+    var _a, _b, _c, _d, _e, _f, _g, _h, _j, _k, _l, _m, _o, _p, _q, _r, _s, _t, _u, _v;
     const uid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
     if (!uid)
         throw new https_1.HttpsError('unauthenticated', 'No autenticado');
     const { full = false, reset = false } = ((_b = request.data) !== null && _b !== void 0 ? _b : {});
     const db = (0, firestore_1.getFirestore)();
+    // ── Rate limiting: max 10 syncs per user per hour ─────────
+    const syncCounterRef = db.collection('users').doc(uid).collection('strava_tokens').doc('sync_counter');
+    const counterDoc = await syncCounterRef.get();
+    const counterData = (_c = counterDoc.data()) !== null && _c !== void 0 ? _c : {};
+    const windowStart = (_f = (_e = (_d = counterData.window_start) === null || _d === void 0 ? void 0 : _d.toDate) === null || _e === void 0 ? void 0 : _e.call(_d)) !== null && _f !== void 0 ? _f : new Date(0);
+    const syncCount = (_g = counterData.count) !== null && _g !== void 0 ? _g : 0;
+    const windowExpired = Date.now() - windowStart.getTime() > 60 * 60 * 1000;
+    if (!windowExpired && syncCount >= 10) {
+        throw new https_1.HttpsError('resource-exhausted', 'Demasiadas sincronizaciones. Espera unos minutos.');
+    }
+    // Update counter
+    await syncCounterRef.set(windowExpired
+        ? { count: 1, window_start: new Date() }
+        : { count: syncCount + 1, window_start: windowStart });
     // ── 1. Get Strava tokens ──────────────────────────────────
     const tokenDoc = await db
         .collection('users').doc(uid)
@@ -31,7 +45,7 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
     if (!tokenDoc.exists)
         throw new https_1.HttpsError('failed-precondition', 'Sin tokens Strava');
     const tokenData = tokenDoc.data();
-    const savedScope = (_c = tokenData.scope) !== null && _c !== void 0 ? _c : '';
+    const savedScope = (_h = tokenData.scope) !== null && _h !== void 0 ? _h : '';
     // ── 2. Refresh token if expired ──────────────────────────
     let accessToken = tokenData.access_token;
     const now = Math.floor(Date.now() / 1000);
@@ -52,7 +66,7 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
         accessToken = refreshJson.access_token;
         await tokenDoc.ref.update({
             access_token: refreshJson.access_token,
-            refresh_token: (_d = refreshJson.refresh_token) !== null && _d !== void 0 ? _d : tokenData.refresh_token,
+            refresh_token: (_j = refreshJson.refresh_token) !== null && _j !== void 0 ? _j : tokenData.refresh_token,
             expires_at: refreshJson.expires_at,
             updated_at: firestore_1.FieldValue.serverTimestamp(),
         });
@@ -72,7 +86,7 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
                 });
             }
         }
-        catch (_q) {
+        catch (_w) {
             // Non-critical — webhook will just miss this user until reconnect
         }
     }
@@ -136,15 +150,15 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
                 distance_m: a.distance,
                 moving_time: a.moving_time,
                 start_date: a.start_date.substring(0, 10),
-                sport_type: (_e = a.sport_type) !== null && _e !== void 0 ? _e : null,
-                average_heartrate: (_f = a.average_heartrate) !== null && _f !== void 0 ? _f : null,
-                max_heartrate: (_g = a.max_heartrate) !== null && _g !== void 0 ? _g : null,
-                total_elevation_gain: (_h = a.total_elevation_gain) !== null && _h !== void 0 ? _h : null,
-                suffer_score: (_j = a.suffer_score) !== null && _j !== void 0 ? _j : null,
-                average_cadence: (_k = a.average_cadence) !== null && _k !== void 0 ? _k : null,
-                pr_count: (_l = a.pr_count) !== null && _l !== void 0 ? _l : null,
-                average_watts: (_m = a.average_watts) !== null && _m !== void 0 ? _m : null,
-                perceived_exertion: (_o = a.perceived_exertion) !== null && _o !== void 0 ? _o : null,
+                sport_type: (_k = a.sport_type) !== null && _k !== void 0 ? _k : null,
+                average_heartrate: (_l = a.average_heartrate) !== null && _l !== void 0 ? _l : null,
+                max_heartrate: (_m = a.max_heartrate) !== null && _m !== void 0 ? _m : null,
+                total_elevation_gain: (_o = a.total_elevation_gain) !== null && _o !== void 0 ? _o : null,
+                suffer_score: (_p = a.suffer_score) !== null && _p !== void 0 ? _p : null,
+                average_cadence: (_q = a.average_cadence) !== null && _q !== void 0 ? _q : null,
+                pr_count: (_r = a.pr_count) !== null && _r !== void 0 ? _r : null,
+                average_watts: (_s = a.average_watts) !== null && _s !== void 0 ? _s : null,
+                perceived_exertion: (_t = a.perceived_exertion) !== null && _t !== void 0 ? _t : null,
             });
             importedNew++;
         }
@@ -171,7 +185,10 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
     for (const d of actsSnap.docs) {
         const a = d.data();
         const date = a.start_date;
-        (actsByDate[date] || (actsByDate[date] = [])).push({ distance_m: a.distance_m || 0 });
+        (actsByDate[date] || (actsByDate[date] = [])).push({
+            distance_m: a.distance_m || 0,
+            elevation_gain_m: (_u = a.total_elevation_gain) !== null && _u !== void 0 ? _u : null,
+        });
     }
     // Match workouts
     const updateBatch = db.batch();
@@ -188,27 +205,37 @@ exports.syncStrava = (0, https_1.onCall)({ region: 'europe-west1', cors: true, i
             continue;
         const inferredKm = extractDistanceKm(w.description);
         const targetM = inferredKm ? inferredKm * 1000 : undefined;
-        const timeMatch = (_p = w.description) === null || _p === void 0 ? void 0 : _p.match(/(\d{1,3})\s?(?:min|mins|m)\b/i);
+        const timeMatch = (_v = w.description) === null || _v === void 0 ? void 0 : _v.match(/(\d{1,3})\s?(?:min|mins|m)\b/i);
         const targetSecs = timeMatch ? parseInt(timeMatch[1], 10) * 60 : undefined;
         let matched = false;
+        let matchedAct = null;
         for (const act of dayActs) {
             if (targetM) {
                 if (Math.abs(act.distance_m - targetM) / targetM <= 0.25) {
                     matched = true;
+                    matchedAct = act;
                     break;
                 }
             }
             if (!matched && targetSecs && act.distance_m > 200) {
                 matched = true;
+                matchedAct = act;
                 break;
             }
         }
         if (!matched && !targetM && !targetSecs) {
-            if (dayActs.some(a => a.distance_m >= 1000))
+            const found = dayActs.find(a => a.distance_m >= 1000);
+            if (found) {
                 matched = true;
+                matchedAct = found;
+            }
         }
         if (matched) {
-            updateBatch.update(wDoc.ref, { is_completed: true });
+            const update = { is_completed: true };
+            if ((matchedAct === null || matchedAct === void 0 ? void 0 : matchedAct.elevation_gain_m) != null && matchedAct.elevation_gain_m > 0) {
+                update.strava_elevation_gain_m = Math.round(matchedAct.elevation_gain_m);
+            }
+            updateBatch.update(wDoc.ref, update);
             matchedWorkouts++;
         }
     }

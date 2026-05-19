@@ -19,11 +19,22 @@ async function assertNotSelf(callerUid, targetUid) {
         throw new https_1.HttpsError('invalid-argument', 'No puedes realizar esta acción sobre tu propia cuenta');
     }
 }
-async function assertNotAdmin(targetUid) {
+async function assertTargetExists(targetUid) {
     var _a;
     const doc = await (0, firestore_1.getFirestore)().collection('users').doc(targetUid).get();
+    if (!doc.exists)
+        throw new https_1.HttpsError('not-found', 'Usuario no encontrado');
     if (((_a = doc.data()) === null || _a === void 0 ? void 0 : _a.role) === 'admin') {
         throw new https_1.HttpsError('permission-denied', 'No puedes realizar esta acción sobre otro administrador');
+    }
+}
+async function writeAuditLog(action, callerUid, details) {
+    try {
+        await (0, firestore_1.getFirestore)().collection('audit_logs').add(Object.assign(Object.assign({ action, caller_uid: callerUid }, details), { timestamp: new Date().toISOString() }));
+    }
+    catch (err) {
+        // Audit log failure must never break the actual operation
+        console.error('[auditLog] Failed to write audit log:', err);
     }
 }
 /**
@@ -37,11 +48,12 @@ exports.adminBanUser = (0, https_1.onCall)({ region: REGION, cors: true, invoker
     if (!targetUid)
         throw new https_1.HttpsError('invalid-argument', 'Falta targetUid');
     await assertNotSelf(callerUid, targetUid);
-    await assertNotAdmin(targetUid);
+    await assertTargetExists(targetUid);
     // Disable/enable Firebase Auth account
     await (0, auth_1.getAuth)().updateUser(targetUid, { disabled: banned });
     // Persist banned flag in Firestore for UI display
     await (0, firestore_1.getFirestore)().collection('users').doc(targetUid).update({ banned });
+    await writeAuditLog('ban_user', callerUid, { target_uid: targetUid, banned });
     return { success: true, banned };
 });
 /**
@@ -55,7 +67,7 @@ exports.adminDeleteUser = (0, https_1.onCall)({ region: REGION, cors: true, invo
     if (!targetUid)
         throw new https_1.HttpsError('invalid-argument', 'Falta targetUid');
     await assertNotSelf(callerUid, targetUid);
-    await assertNotAdmin(targetUid);
+    await assertTargetExists(targetUid);
     const db = (0, firestore_1.getFirestore)();
     // Grab athlete_id before deleting tokens subcollection
     const tokenDoc = await db.collection('users').doc(targetUid).collection('strava_tokens').doc('default').get();
@@ -92,6 +104,7 @@ exports.adminDeleteUser = (0, https_1.onCall)({ region: REGION, cors: true, invo
     }
     // Delete Firebase Auth account last
     await (0, auth_1.getAuth)().deleteUser(targetUid);
+    await writeAuditLog('delete_user', callerUid, { target_uid: targetUid });
     return { success: true };
 });
 /**
@@ -99,7 +112,8 @@ exports.adminDeleteUser = (0, https_1.onCall)({ region: REGION, cors: true, invo
  */
 exports.adminDeletePlan = (0, https_1.onCall)({ region: REGION, cors: true, invoker: 'public' }, async (request) => {
     var _a;
-    await assertAdmin((_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid);
+    const callerUid = (_a = request.auth) === null || _a === void 0 ? void 0 : _a.uid;
+    await assertAdmin(callerUid);
     const { targetUid, planId } = request.data;
     if (!targetUid || !planId)
         throw new https_1.HttpsError('invalid-argument', 'Faltan parámetros');
@@ -128,6 +142,7 @@ exports.adminDeletePlan = (0, https_1.onCall)({ region: REGION, cors: true, invo
     }
     // Delete the plan document
     await db.collection('users').doc(targetUid).collection('training_plans').doc(planId).delete();
+    await writeAuditLog('delete_plan', callerUid, { target_uid: targetUid, plan_id: planId });
     return { success: true };
 });
 //# sourceMappingURL=adminActions.js.map

@@ -379,6 +379,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
       const meta = functionResponse.meta || {};
       const planRef = doc(db, 'users', user.uid, 'training_plans', 'default');
+      // Delete old plan doc first so the setDoc below is always a create (not an update)
+      await deleteDoc(planRef);
       await setDoc(planRef, {
         primary_race_id:            raceId,
         goal,

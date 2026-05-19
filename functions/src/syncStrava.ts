@@ -1,6 +1,6 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
-import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue, Timestamp } from 'firebase-admin/firestore';
 
 const stravaClientId     = defineSecret('STRAVA_CLIENT_ID');
 const stravaClientSecret = defineSecret('STRAVA_CLIENT_SECRET');
@@ -41,6 +41,23 @@ export const syncStrava = onCall(
     const { full = false, reset = false } = (request.data ?? {}) as { full?: boolean; reset?: boolean };
 
     const db = getFirestore();
+
+    // ── Rate limiting: max 10 syncs per user per hour ─────────
+    const syncCounterRef = db.collection('users').doc(uid).collection('strava_tokens').doc('sync_counter');
+    const counterDoc = await syncCounterRef.get();
+    const counterData = counterDoc.data() ?? {};
+    const windowStart = (counterData.window_start as Timestamp)?.toDate?.() ?? new Date(0);
+    const syncCount = (counterData.count as number) ?? 0;
+    const windowExpired = Date.now() - windowStart.getTime() > 60 * 60 * 1000;
+    if (!windowExpired && syncCount >= 10) {
+      throw new HttpsError('resource-exhausted', 'Demasiadas sincronizaciones. Espera unos minutos.');
+    }
+    // Update counter
+    await syncCounterRef.set(
+      windowExpired
+        ? { count: 1, window_start: new Date() }
+        : { count: syncCount + 1, window_start: windowStart },
+    );
 
     // ── 1. Get Strava tokens ──────────────────────────────────
     const tokenDoc = await db
