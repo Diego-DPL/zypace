@@ -2,5 +2,35 @@
 
 @theme {
   --font-display: 'Syne', sans-serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
 }
 
+/* ── Scroll-triggered reveal ──────────────────────────────────── */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity  0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── Blueprint SVG path draw animation ───────────────────────── */
+@keyframes drawPath {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+.draw-path {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: drawPath 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
+}
+
+/* ── Bracket hover line ───────────────────────────────────────── */
+@keyframes scanline {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(400%); }
+}
