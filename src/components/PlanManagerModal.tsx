@@ -109,6 +109,35 @@ interface Props {
   onPlanChanged: () => void;
 }
 
+function TimeHMS({ h, m, s, onH, onM, onS, label }: {
+  h: string; m: string; s: string;
+  onH: (v: string) => void; onM: (v: string) => void; onS: (v: string) => void;
+  label?: string;
+}) {
+  const inp = "w-full p-1.5 border border-zinc-700 rounded-md bg-zinc-950 text-zinc-100 text-center text-sm font-mono focus:ring-1 focus:ring-lime-400 outline-none";
+  return (
+    <div>
+      {label && <label className="block text-[11px] text-zinc-500 mb-1">{label}</label>}
+      <div className="flex items-center gap-1">
+        <div className="flex-1 text-center">
+          <input type="number" min="0" max="23" value={h} onChange={e => onH(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="0" className={inp} />
+          <p className="text-[9px] text-zinc-600 mt-0.5 uppercase tracking-wide">h</p>
+        </div>
+        <span className="text-zinc-600 font-bold pb-4">:</span>
+        <div className="flex-1 text-center">
+          <input type="number" min="0" max="59" value={m} onChange={e => onM(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="00" className={inp} />
+          <p className="text-[9px] text-zinc-600 mt-0.5 uppercase tracking-wide">min</p>
+        </div>
+        <span className="text-zinc-600 font-bold pb-4">:</span>
+        <div className="flex-1 text-center">
+          <input type="number" min="0" max="59" value={s} onChange={e => onS(e.target.value.replace(/\D/g, '').slice(0, 2))} placeholder="00" className={inp} />
+          <p className="text-[9px] text-zinc-600 mt-0.5 uppercase tracking-wide">seg</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props) => {
   const { user } = useAuth();
 
@@ -129,8 +158,12 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   const [strengthDaysOfWeek, setStrengthDaysOfWeek] = useState<number[]>([]);
   const [hasPreviousMark, setHasPreviousMark] = useState(false);
   const [lastRaceDistance, setLastRaceDistance] = useState('');
-  const [lastRaceTime, setLastRaceTime] = useState('');
-  const [targetRaceTime, setTargetRaceTime] = useState('');
+  const [lastTimeH, setLastTimeH] = useState('');
+  const [lastTimeM, setLastTimeM] = useState('');
+  const [lastTimeS, setLastTimeS] = useState('');
+  const [targetH, setTargetH] = useState('');
+  const [targetM, setTargetM] = useState('');
+  const [targetS, setTargetS] = useState('');
   const [methodology, setMethodology]   = useState<'polarized' | 'norwegian' | 'classic'>('polarized');
   const [experienceLevel, setExperienceLevel] = useState<'beginner' | 'intermediate' | 'advanced' | 'elite'>('intermediate');
   const [ageRange, setAgeRange]         = useState('30-39');
@@ -142,6 +175,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   const [recentInjuryDetail, setRecentInjuryDetail] = useState('');
   const [injuryAreas, setInjuryAreas]   = useState<string[]>([]);
   const [raceTerrain, setRaceTerrain]   = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
+  const [mountainDaysOfWeek, setMountainDaysOfWeek] = useState<number[]>([]);
+  const [roadOnlyDaysOfWeek, setRoadOnlyDaysOfWeek] = useState<number[]>([]);
 
   // All upcoming races with their priorities (replaces single racePriority selector)
   const [allRaces, setAllRaces]               = useState<Race[]>([]);
@@ -189,6 +224,28 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   }, [open]);
 
   // ── Helpers ───────────────────────────────────────────────────
+  function birthDateToAgeRange(birthDate: string): string {
+    const birth = new Date(birthDate);
+    if (isNaN(birth.getTime())) return '30-39';
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const m = today.getMonth() - birth.getMonth();
+    if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) age--;
+    if (age < 30) return '18-29';
+    if (age < 40) return '30-39';
+    if (age < 50) return '40-49';
+    if (age < 60) return '50-59';
+    return '60+';
+  }
+
+  function assembleTime(h: string, m: string, s: string): string {
+    if (!h && !m && !s) return '';
+    return `${parseInt(h || '0', 10)}:${String(Math.min(parseInt(m || '0', 10), 59)).padStart(2, '0')}:${String(Math.min(parseInt(s || '0', 10), 59)).padStart(2, '0')}`;
+  }
+
+  const lastRaceTime   = assembleTime(lastTimeH, lastTimeM, lastTimeS);
+  const targetRaceTime = assembleTime(targetH, targetM, targetS);
+
   function parseTimeToSeconds(input: string): number | null {
     if (!input) return null;
     const parts = input.trim().split(':').map(p => parseInt(p, 10));
@@ -210,6 +267,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
   const toggleRunDay      = (dow: number) => setRunDaysOfWeek(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort());
   const toggleStrengthDay = (dow: number) => setStrengthDaysOfWeek(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort());
+  const toggleMountainDay = (dow: number) => setMountainDaysOfWeek(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort());
+  const toggleRoadOnlyDay = (dow: number) => setRoadOnlyDaysOfWeek(prev => prev.includes(dow) ? prev.filter(d => d !== dow) : [...prev, dow].sort());
   const toggleInjuryArea  = (area: string) => setInjuryAreas(prev => prev.includes(area) ? prev.filter(a => a !== area) : [...prev, area]);
 
   // ── Fetch plan ────────────────────────────────────────────────
@@ -241,8 +300,16 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       if (planData.strength_days_per_week)  setStrengthDaysCount(Number(planData.strength_days_per_week));
       if (planData.methodology)             setMethodology(planData.methodology as 'polarized' | 'norwegian' | 'classic');
       if (planData.last_race_distance_km)   { setHasPreviousMark(true); setLastRaceDistance(String(planData.last_race_distance_km)); }
-      if (planData.last_race_time_sec)      setLastRaceTime(secsToTimeStr(planData.last_race_time_sec as number));
-      if (planData.target_race_time_sec)    setTargetRaceTime(secsToTimeStr(planData.target_race_time_sec as number));
+      if (planData.last_race_time_sec) {
+        const parts = secsToTimeStr(planData.last_race_time_sec as number).split(':');
+        if (parts.length === 3) { setLastTimeH(parts[0]); setLastTimeM(parts[1]); setLastTimeS(parts[2]); }
+        else if (parts.length === 2) { setLastTimeH('0'); setLastTimeM(parts[0]); setLastTimeS(parts[1]); }
+      }
+      if (planData.target_race_time_sec) {
+        const parts = secsToTimeStr(planData.target_race_time_sec as number).split(':');
+        if (parts.length === 3) { setTargetH(parts[0]); setTargetM(parts[1]); setTargetS(parts[2]); }
+        else if (parts.length === 2) { setTargetH('0'); setTargetM(parts[0]); setTargetS(parts[1]); }
+      }
 
       const versSnap = await getDocs(
         query(collection(db, 'users', user.uid, 'training_plan_versions'), where('plan_id', '==', planId), orderBy('generated_at', 'desc'))
@@ -274,6 +341,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       setProfileExists(true);
     }
     if (d.runner_age_range)               setAgeRange(d.runner_age_range);
+    else if (d.birth_date)                setAgeRange(birthDateToAgeRange(d.birth_date as string));
     if (d.runner_current_weekly_km)       setCurrentWeeklyKm(Number(d.runner_current_weekly_km));
     if (d.runner_longest_recent_run_km)   setLongestRecentRunKm(Number(d.runner_longest_recent_run_km));
     if (d.runner_max_session_minutes)     setMaxSessionMinutes(Number(d.runner_max_session_minutes));
@@ -329,11 +397,13 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         race,
         goal,
         config: {
-          run_days_per_week:      runDays,
-          run_days_of_week:       runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
-          include_strength:       includeStrength,
-          strength_days_of_week:  includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
-          strength_days_per_week: includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
+          run_days_per_week:        runDays,
+          run_days_of_week:         runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+          include_strength:         includeStrength,
+          strength_days_of_week:    includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+          strength_days_per_week:   includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : 0,
+          mountain_days_of_week:    (raceTerrain === 'trail' || raceTerrain === 'mixed') && mountainDaysOfWeek.length > 0 ? mountainDaysOfWeek : null,
+          road_only_days_of_week:   (raceTerrain === 'trail' || raceTerrain === 'mixed') && roadOnlyDaysOfWeek.length > 0 ? roadOnlyDaysOfWeek : null,
           last_race: hasPreviousMark ? {
             distance_km:  parseFloat(lastRaceDistance) || null,
             time:         lastRaceTime || null,
@@ -392,6 +462,8 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         include_strength:           includeStrength,
         strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
         strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
+        mountain_days_of_week:      (raceTerrain === 'trail' || raceTerrain === 'mixed') && mountainDaysOfWeek.length > 0 ? mountainDaysOfWeek : null,
+        road_only_days_of_week:     (raceTerrain === 'trail' || raceTerrain === 'mixed') && roadOnlyDaysOfWeek.length > 0 ? roadOnlyDaysOfWeek : null,
         last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
         last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
         target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
@@ -445,7 +517,16 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       window.dispatchEvent(new Event('workouts-changed'));
       setResultModal({ success: true, message: `¡Mesociclo 1${meta.total_mesocycles > 1 ? ` de ${meta.total_mesocycles}` : ''} generado! Cubre las próximas ${meta.mesocycle_length_weeks || 5} semanas.` });
     } catch (error) {
-      setResultModal({ success: false, message: `Error al generar el plan: ${error instanceof Error ? error.message : 'Error desconocido'}` });
+      const code: string = (error as any)?.code ?? '';
+      const msg: string  = (error instanceof Error ? error.message : '').toLowerCase();
+      const isTimeout = code === 'functions/deadline-exceeded'
+        || msg.includes('deadline') || msg.includes('timeout') || msg.includes('exceeded');
+      setResultModal({
+        success: false,
+        message: isTimeout
+          ? 'La IA está tardando más de lo habitual. Suele funcionar al segundo intento — vuelve a pulsar "Generar plan". Si el error persiste, inténtalo en unos minutos.'
+          : 'No se pudo generar el plan. Por favor, inténtalo de nuevo.',
+      });
     } finally {
       setLoading(false);
       setProgressModal(false);
@@ -1097,12 +1178,86 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                       {([['road','Asfalto'],['trail','Trail'],['mixed','Mixto'],['track','Pista']] as const).map(([v, label]) => (
                         <label key={v} className={`flex items-center gap-1.5 p-2 rounded-lg border-2 cursor-pointer transition-colors ${raceTerrain === v ? 'border-lime-400 bg-lime-400/10' : 'border-zinc-700 bg-zinc-950 hover:border-lime-400/50'}`}>
-                          <input type="radio" name="terrain" value={v} checked={raceTerrain === v} onChange={() => setRaceTerrain(v)} className="accent-lime-400" />
+                          <input type="radio" name="terrain" value={v} checked={raceTerrain === v}
+                            onChange={() => {
+                              setRaceTerrain(v);
+                              if (v !== 'trail' && v !== 'mixed') {
+                                setMountainDaysOfWeek([]);
+                                setRoadOnlyDaysOfWeek([]);
+                              }
+                            }}
+                            className="accent-lime-400" />
                           <span className="text-xs font-semibold text-zinc-100">{label}</span>
                         </label>
                       ))}
                     </div>
                   </div>
+
+                  {/* Trail-specific: mountain vs road day distribution */}
+                  {(raceTerrain === 'trail' || raceTerrain === 'mixed') && (
+                    <div className="bg-amber-950/20 border border-amber-800/40 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">⛰️</span>
+                        <p className="text-xs font-semibold text-amber-300">Distribución de superficie</p>
+                      </div>
+                      <p className="text-xs text-zinc-500 leading-relaxed">
+                        Indica qué días puedes ir a la montaña y cuáles tienes disponibles solo en asfalto.
+                        La IA programará los entrenamientos específicos de trail (series en montaña, desnivel) en los días que te convengan.
+                      </p>
+
+                      {/* Mountain days */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-amber-300/90">
+                          ⛰️ Días que puedo ir a la montaña
+                          <span className="ml-1 text-zinc-600 font-normal">(opcional)</span>
+                        </label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {DAY_LABELS.map((label, dow) => (
+                            <button key={dow} type="button" onClick={() => toggleMountainDay(dow)}
+                              className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                                mountainDaysOfWeek.includes(dow)
+                                  ? 'bg-amber-500 text-black border-amber-500'
+                                  : 'bg-zinc-950 text-zinc-300 border-zinc-700 hover:border-amber-400'
+                              }`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {mountainDaysOfWeek.length > 0 && (
+                          <p className="text-xs text-amber-600">
+                            Montaña: {mountainDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                            <button type="button" onClick={() => setMountainDaysOfWeek([])} className="ml-2 underline text-zinc-500">limpiar</button>
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Road-only days */}
+                      <div className="space-y-2">
+                        <label className="block text-xs font-medium text-zinc-300/90">
+                          🏙️ Días solo en asfalto
+                          <span className="ml-1 text-zinc-600 font-normal">(opcional)</span>
+                        </label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {DAY_LABELS.map((label, dow) => (
+                            <button key={dow} type="button" onClick={() => toggleRoadOnlyDay(dow)}
+                              className={`w-11 h-11 rounded-lg text-xs font-semibold border-2 transition-colors ${
+                                roadOnlyDaysOfWeek.includes(dow)
+                                  ? 'bg-zinc-400 text-black border-zinc-400'
+                                  : 'bg-zinc-950 text-zinc-300 border-zinc-700 hover:border-zinc-400'
+                              }`}>
+                              {label}
+                            </button>
+                          ))}
+                        </div>
+                        {roadOnlyDaysOfWeek.length > 0 && (
+                          <p className="text-xs text-zinc-500">
+                            Solo asfalto: {roadOnlyDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')}
+                            <button type="button" onClick={() => setRoadOnlyDaysOfWeek([])} className="ml-2 underline text-zinc-600">limpiar</button>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Race calendar with priorities */}
                   <RacePriorityCalendar
@@ -1118,29 +1273,17 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                       <span className="text-zinc-300 font-medium">Tengo una marca previa de referencia</span>
                     </label>
                     {hasPreviousMark ? (
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="space-y-2">
                         <div>
                           <label className="block text-[11px] text-zinc-500 mb-1">Distancia (km)</label>
                           <input type="number" step="0.1" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)}
-                            className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-950 text-zinc-100 text-sm" />
+                            className="w-32 p-2 border border-zinc-700 rounded-lg bg-zinc-950 text-zinc-100 text-sm" />
                         </div>
-                        <div>
-                          <label className="block text-[11px] text-zinc-500 mb-1">Tiempo logrado</label>
-                          <input type="text" placeholder="0:45:30" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)}
-                            className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-950 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                        </div>
-                        <div>
-                          <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo</label>
-                          <input type="text" placeholder="0:42:00" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
-                            className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-950 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                        </div>
+                        <TimeHMS h={lastTimeH} m={lastTimeM} s={lastTimeS} onH={setLastTimeH} onM={setLastTimeM} onS={setLastTimeS} label="Tiempo logrado" />
+                        <TimeHMS h={targetH} m={targetM} s={targetS} onH={setTargetH} onM={setTargetM} onS={setTargetS} label="Tiempo objetivo" />
                       </div>
                     ) : (
-                      <div>
-                        <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo (opcional)</label>
-                        <input type="text" placeholder="Ej: 0:45:00 para 10k" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
-                          className="w-full sm:w-56 p-2 border border-zinc-700 rounded-lg bg-zinc-950 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                      </div>
+                      <TimeHMS h={targetH} m={targetM} s={targetS} onH={setTargetH} onM={setTargetM} onS={setTargetS} label="Tiempo objetivo (opcional)" />
                     )}
                   </div>
 
@@ -1261,29 +1404,17 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                     <span className="text-zinc-300 font-medium">Tengo una marca previa de referencia</span>
                   </label>
                   {hasPreviousMark ? (
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="space-y-2">
                       <div>
                         <label className="block text-[11px] text-zinc-500 mb-1">Distancia (km)</label>
                         <input type="number" step="0.1" value={lastRaceDistance} onChange={e => setLastRaceDistance(e.target.value)}
-                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm" />
+                          className="w-32 p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm" />
                       </div>
-                      <div>
-                        <label className="block text-[11px] text-zinc-500 mb-1">Tiempo logrado</label>
-                        <input type="text" placeholder="0:45:30" value={lastRaceTime} onChange={e => setLastRaceTime(e.target.value)}
-                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                      </div>
-                      <div>
-                        <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo</label>
-                        <input type="text" placeholder="0:42:00" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
-                          className="w-full p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                      </div>
+                      <TimeHMS h={lastTimeH} m={lastTimeM} s={lastTimeS} onH={setLastTimeH} onM={setLastTimeM} onS={setLastTimeS} label="Tiempo logrado" />
+                      <TimeHMS h={targetH} m={targetM} s={targetS} onH={setTargetH} onM={setTargetM} onS={setTargetS} label="Tiempo objetivo" />
                     </div>
                   ) : (
-                    <div>
-                      <label className="block text-[11px] text-zinc-500 mb-1">Tiempo objetivo (opcional)</label>
-                      <input type="text" placeholder="Ej: 0:45:00 para 10k" value={targetRaceTime} onChange={e => setTargetRaceTime(e.target.value)}
-                        className="w-full sm:w-56 p-2 border border-zinc-700 rounded-lg bg-zinc-900 text-zinc-100 text-sm font-mono placeholder-zinc-600" />
-                    </div>
+                    <TimeHMS h={targetH} m={targetM} s={targetS} onH={setTargetH} onM={setTargetM} onS={setTargetS} label="Tiempo objetivo (opcional)" />
                   )}
                 </div>
               </div>

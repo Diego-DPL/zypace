@@ -7,12 +7,57 @@ import zypaceLogo from '../assets/zypace_logo_letras.png';
 import SEOHead from '../components/SEOHead';
 import { trackEvent } from '../lib/analytics';
 
+// ISO 3166-1 alpha-2 — EU + main running markets
+const COUNTRIES = [
+  { code: 'ES', name: 'España' },
+  { code: 'MX', name: 'México' },
+  { code: 'AR', name: 'Argentina' },
+  { code: 'CO', name: 'Colombia' },
+  { code: 'CL', name: 'Chile' },
+  { code: 'PE', name: 'Perú' },
+  { code: 'VE', name: 'Venezuela' },
+  { code: 'EC', name: 'Ecuador' },
+  { code: 'BO', name: 'Bolivia' },
+  { code: 'PY', name: 'Paraguay' },
+  { code: 'UY', name: 'Uruguay' },
+  { code: 'US', name: 'Estados Unidos' },
+  { code: 'GB', name: 'Reino Unido' },
+  { code: 'DE', name: 'Alemania' },
+  { code: 'FR', name: 'Francia' },
+  { code: 'IT', name: 'Italia' },
+  { code: 'PT', name: 'Portugal' },
+  { code: 'NL', name: 'Países Bajos' },
+  { code: 'BE', name: 'Bélgica' },
+  { code: 'AT', name: 'Austria' },
+  { code: 'CH', name: 'Suiza' },
+  { code: 'SE', name: 'Suecia' },
+  { code: 'NO', name: 'Noruega' },
+  { code: 'DK', name: 'Dinamarca' },
+  { code: 'FI', name: 'Finlandia' },
+  { code: 'PL', name: 'Polonia' },
+  { code: 'CZ', name: 'República Checa' },
+  { code: 'RO', name: 'Rumanía' },
+  { code: 'HU', name: 'Hungría' },
+  { code: 'GR', name: 'Grecia' },
+  { code: 'IE', name: 'Irlanda' },
+  { code: 'BR', name: 'Brasil' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'CA', name: 'Canadá' },
+  { code: 'JP', name: 'Japón' },
+  { code: 'ZA', name: 'Sudáfrica' },
+  { code: 'MA', name: 'Marruecos' },
+  { code: 'OTHER', name: 'Otro' },
+];
+
 interface ProfileForm {
   first_name: string;
   last_name: string;
   birth_date: string;
   gender: string;
   country: string;
+  address_line1: string;
+  city: string;
+  postal_code: string;
   experience_level: string;
   primary_goal: string;
   last_10k_time: string;
@@ -31,7 +76,8 @@ const RegisterPage = () => {
   const [showTerms, setShowTerms] = useState(false);
   const [profile, setProfile]   = useState<ProfileForm>({
     first_name: '', last_name: '', birth_date: '', gender: '',
-    country: '', experience_level: 'beginner', primary_goal: '',
+    country: '', address_line1: '', city: '', postal_code: '',
+    experience_level: 'beginner', primary_goal: '',
     last_10k_time: '',
     availability_days: { mon:false, tue:false, wed:false, thu:false, fri:false, sat:false, sun:false },
     accepted_terms: false,
@@ -51,6 +97,10 @@ const RegisterPage = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!profile.first_name.trim()) { setError('Introduce tu nombre.'); return; }
+    if (!profile.country)           { setError('Selecciona tu país.'); return; }
+    if (!profile.city.trim())       { setError('Introduce tu ciudad.'); return; }
+    if (!profile.postal_code.trim()){ setError('Introduce tu código postal.'); return; }
     if (!profile.accepted_terms) { setError('Debes aceptar los términos, condiciones y política de privacidad.'); return; }
     if (!profile.accepted_age)   { setError('Debes confirmar que tienes 14 años o más.'); return; }
     if (password !== confirmPassword) { setError('Las contraseñas no coinciden.'); return; }
@@ -61,11 +111,14 @@ const RegisterPage = () => {
       const availability = Object.entries(profile.availability_days).filter(([,v]) => v).map(([k]) => k);
       await setDoc(doc(db, 'users', user.uid), {
         email: user.email,
-        first_name:        profile.first_name   || null,
-        last_name:         profile.last_name    || null,
-        birth_date:        profile.birth_date   || null,
-        gender:            profile.gender       || null,
-        country:           profile.country      || null,
+        first_name:        profile.first_name.trim(),
+        last_name:         profile.last_name.trim()    || null,
+        birth_date:        profile.birth_date          || null,
+        gender:            profile.gender              || null,
+        country:           profile.country,
+        address_line1:     profile.address_line1.trim()|| null,
+        city:              profile.city.trim(),
+        postal_code:       profile.postal_code.trim(),
         experience_level:  profile.experience_level || null,
         primary_goal:      profile.primary_goal || null,
         last_10k_time_sec: parse10k(profile.last_10k_time),
@@ -173,13 +226,16 @@ const RegisterPage = () => {
             <div className="space-y-4">
               <p className={sectionClass}>Perfil</p>
               <div className="grid md:grid-cols-3 gap-4">
-                {[['Nombre','first_name',''],['Apellidos','last_name','']].map(([label, field, placeholder]) => (
-                  <div key={field}>
-                    <label className={labelClass}>{label}</label>
-                    <input value={(profile as any)[field]} onChange={e => setProfile(p => ({...p, [field]: e.target.value}))}
-                      placeholder={placeholder} className={inputClass} />
-                  </div>
-                ))}
+                <div>
+                  <label className={labelClass}>Nombre <span className="text-red-400">*</span></label>
+                  <input value={profile.first_name} onChange={e => setProfile(p => ({...p, first_name: e.target.value}))}
+                    required placeholder="Diego" className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Apellidos</label>
+                  <input value={profile.last_name} onChange={e => setProfile(p => ({...p, last_name: e.target.value}))}
+                    placeholder="López García" className={inputClass} />
+                </div>
                 <div>
                   <label className={labelClass}>Fecha de nacimiento</label>
                   <input type="date" value={profile.birth_date} onChange={e => setProfile(p => ({...p, birth_date: e.target.value}))}
@@ -196,11 +252,48 @@ const RegisterPage = () => {
                     <option value="prefer_not">Prefiero no decir</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            {/* Datos de facturación */}
+            <div className="space-y-4">
+              <p className={sectionClass}>Facturación</p>
+              <p className="text-xs text-zinc-500">
+                Necesarios para emitir facturas legales y calcular el IVA correcto según tu país.
+              </p>
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
-                  <label className={labelClass}>País</label>
-                  <input value={profile.country} onChange={e => setProfile(p => ({...p, country: e.target.value}))} placeholder="España"
-                    className={inputClass} />
+                  <label className={labelClass}>País <span className="text-red-400">*</span></label>
+                  <select value={profile.country} onChange={e => setProfile(p => ({...p, country: e.target.value}))}
+                    required className={selectClass}>
+                    <option value="">— Selecciona —</option>
+                    {COUNTRIES.map(c => (
+                      <option key={c.code} value={c.code}>{c.name}</option>
+                    ))}
+                  </select>
                 </div>
+                <div>
+                  <label className={labelClass}>Ciudad <span className="text-red-400">*</span></label>
+                  <input value={profile.city} onChange={e => setProfile(p => ({...p, city: e.target.value}))}
+                    required placeholder="Madrid" className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Código postal <span className="text-red-400">*</span></label>
+                  <input value={profile.postal_code} onChange={e => setProfile(p => ({...p, postal_code: e.target.value}))}
+                    required placeholder="28001" className={inputClass} />
+                </div>
+                <div className="md:col-span-3">
+                  <label className={labelClass}>Dirección <span className="text-zinc-600 font-normal">(opcional, para facturas completas)</span></label>
+                  <input value={profile.address_line1} onChange={e => setProfile(p => ({...p, address_line1: e.target.value}))}
+                    placeholder="Calle Mayor 12, 2º A" className={inputClass} />
+                </div>
+              </div>
+            </div>
+
+            {/* Nivel + objetivo */}
+            <div className="space-y-4">
+              <p className={sectionClass}>Entrenamiento</p>
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className={labelClass}>Nivel</label>
                   <select value={profile.experience_level} onChange={e => setProfile(p => ({...p, experience_level: e.target.value}))}

@@ -10,47 +10,82 @@ interface AddRaceFormProps {
 
 const TERRAIN_OPTIONS = [
   { value: 'road',  label: 'Asfalto' },
-  { value: 'trail', label: 'Trail' },
-  { value: 'mixed', label: 'Mixto' },
-  { value: 'track', label: 'Pista' },
+  { value: 'trail', label: 'Trail'   },
+  { value: 'mixed', label: 'Mixto'   },
+  { value: 'track', label: 'Pista'   },
 ] as const;
 
 const PRIORITY_OPTIONS = [
   { value: 'A', label: 'A', desc: 'Objetivo principal' },
-  { value: 'B', label: 'B', desc: 'Secundario' },
-  { value: 'C', label: 'C', desc: 'Con dorsales' },
+  { value: 'B', label: 'B', desc: 'Secundario'         },
+  { value: 'C', label: 'C', desc: 'Con dorsales'       },
+] as const;
+
+const DISTANCE_PRESETS = [
+  { value: '5 km',     label: '5 km'      },
+  { value: '10 km',    label: '10 km'     },
+  { value: '21 km',    label: '21 km',  sub: 'Media'    },
+  { value: '42 km',    label: '42 km',  sub: 'Maratón'  },
+  { value: '50 km',    label: '50 km'     },
+  { value: '80 km',    label: '80 km'     },
+  { value: '100 km',   label: '100 km+'   },
+  { value: '__custom', label: 'Otro'      },
 ] as const;
 
 const AddRaceForm = ({ onRaceAdded }: AddRaceFormProps) => {
-  const { user }                = useAuth();
-  const [name, setName]         = useState('');
-  const [date, setDate]         = useState('');
-  const [distance, setDistance] = useState('');
-  const [elevationGainM, setElevationGainM] = useState('');
-  const [goalTime, setGoalTime] = useState('');
-  const [terrain, setTerrain]   = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
-  const [priority, setPriority] = useState<'A' | 'B' | 'C'>('A');
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState<string | null>(null);
+  const { user } = useAuth();
+
+  const [name,            setName]            = useState('');
+  const [date,            setDate]            = useState('');
+  const [terrain,         setTerrain]         = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
+  const [distancePreset,  setDistancePreset]  = useState('');
+  const [distanceCustom,  setDistanceCustom]  = useState('');
+  const [elevationGainM,  setElevationGainM]  = useState('');
+  const [goalH,           setGoalH]           = useState('');
+  const [goalM,           setGoalM]           = useState('');
+  const [goalS,           setGoalS]           = useState('');
+  const [priority,        setPriority]        = useState<'A' | 'B' | 'C'>('A');
+  const [loading,         setLoading]         = useState(false);
+  const [error,           setError]           = useState<string | null>(null);
+
+  const isTrail = terrain === 'trail' || terrain === 'mixed';
+
+  const distanceValue = distancePreset === '__custom'
+    ? (distanceCustom.trim() ? distanceCustom.trim() + ' km' : null)
+    : distancePreset || null;
+
+  const goalTimeValue = (goalH || goalM || goalS)
+    ? `${parseInt(goalH || '0', 10)}:${String(Math.min(parseInt(goalM || '0', 10), 59)).padStart(2, '0')}:${String(Math.min(parseInt(goalS || '0', 10), 59)).padStart(2, '0')}`
+    : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
     setLoading(true);
     setError(null);
+    const elevNum = isTrail && elevationGainM ? parseInt(elevationGainM, 10) : null;
     try {
       const ref = await addDoc(collection(db, 'users', user.uid, 'races'), {
         name,
         date,
-        distance:          distance          || null,
-        elevation_gain_m:  elevationGainM ? parseInt(elevationGainM, 10) : null,
-        goal_time:         goalTime         || null,
+        distance:         distanceValue,
+        elevation_gain_m: elevNum,
+        goal_time:        goalTimeValue,
         terrain,
         priority,
         created_at: serverTimestamp(),
       });
-      onRaceAdded({ id: ref.id, name, date, distance: distance || undefined, elevation_gain_m: elevationGainM ? parseInt(elevationGainM, 10) : undefined, goal_time: goalTime || undefined, terrain, priority });
-      setName(''); setDate(''); setDistance(''); setElevationGainM(''); setGoalTime(''); setTerrain('road'); setPriority('A');
+      onRaceAdded({
+        id: ref.id, name, date, terrain, priority,
+        distance: distanceValue ?? undefined,
+        elevation_gain_m: elevNum ?? undefined,
+        goal_time: goalTimeValue ?? undefined,
+      });
+      setName(''); setDate(''); setTerrain('road');
+      setDistancePreset(''); setDistanceCustom('');
+      setElevationGainM('');
+      setGoalH(''); setGoalM(''); setGoalS('');
+      setPriority('A');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -58,8 +93,9 @@ const AddRaceForm = ({ onRaceAdded }: AddRaceFormProps) => {
     }
   };
 
-  const inputClass = "w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 placeholder-zinc-500 text-sm focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition";
   const labelClass = "block text-xs font-medium text-zinc-400 mb-1.5";
+  const chipBase   = "px-3 py-1.5 rounded-lg text-xs font-semibold border-2 transition-colors";
+  const timeInput  = "w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 text-center text-lg font-mono focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition";
 
   return (
     <div className="p-6 bg-zinc-900 border border-zinc-800 rounded-xl shadow-lg">
@@ -68,42 +104,97 @@ const AddRaceForm = ({ onRaceAdded }: AddRaceFormProps) => {
         <h2 className="text-xl font-bold text-zinc-100">Añadir carrera</h2>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
+
+        {/* Name */}
         <div>
           <label className={labelClass}>Nombre de la carrera</label>
           <input type="text" value={name} onChange={e => setName(e.target.value)}
-            placeholder="Ej: Maratón de Madrid" className={inputClass} required />
+            placeholder="Ej: Maratón de Madrid"
+            className="w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 placeholder-zinc-500 text-sm focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition"
+            required />
         </div>
+
+        {/* Date */}
         <div>
           <label className={labelClass}>Fecha</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)}
-            className={inputClass} required />
-        </div>
-        <div>
-          <label className={labelClass}>Distancia</label>
-          <input type="text" value={distance} onChange={e => setDistance(e.target.value)}
-            placeholder="10k, Media maratón, 50km…" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Desnivel positivo D+ <span className="text-zinc-600 font-normal">(m, trail)</span></label>
-          <input type="number" min="0" value={elevationGainM} onChange={e => setElevationGainM(e.target.value)}
-            placeholder="Ej: 2500" className={inputClass} />
-        </div>
-        <div>
-          <label className={labelClass}>Tiempo objetivo <span className="text-zinc-600 font-normal">(hh:mm:ss)</span></label>
-          <input type="text" value={goalTime} onChange={e => setGoalTime(e.target.value)}
-            placeholder="1:45:00" className={inputClass} />
+            className="w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 text-sm focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition"
+            required />
         </div>
 
-        {/* Terrain */}
+        {/* Terrain — first so distance/elevation can be conditional */}
         <div>
           <label className={labelClass}>Tipo de terreno</label>
           <div className="grid grid-cols-4 gap-1.5">
             {TERRAIN_OPTIONS.map(t => (
-              <button key={t.value} type="button" onClick={() => setTerrain(t.value)}
+              <button key={t.value} type="button"
+                onClick={() => { setTerrain(t.value); if (t.value !== 'trail' && t.value !== 'mixed') setElevationGainM(''); }}
                 className={`py-2 rounded-lg text-xs font-semibold border-2 transition-colors ${terrain === t.value ? 'border-lime-400 bg-lime-400/10 text-zinc-100' : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-lime-400/50'}`}>
                 {t.label}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Distance presets */}
+        <div>
+          <label className={labelClass}>Distancia</label>
+          <div className="flex flex-wrap gap-1.5">
+            {DISTANCE_PRESETS.map(p => (
+              <button key={p.value} type="button" onClick={() => setDistancePreset(p.value)}
+                className={`${chipBase} flex flex-col items-center ${distancePreset === p.value ? 'border-lime-400 bg-lime-400/10 text-zinc-100' : 'border-zinc-700 bg-zinc-800 text-zinc-400 hover:border-lime-400/50'}`}>
+                <span>{p.label}</span>
+                {'sub' in p && <span className="text-[10px] text-zinc-500">{(p as any).sub}</span>}
+              </button>
+            ))}
+          </div>
+          {distancePreset === '__custom' && (
+            <div className="flex items-center gap-2 mt-2">
+              <input type="number" min="1" value={distanceCustom} onChange={e => setDistanceCustom(e.target.value)}
+                placeholder="73"
+                className="w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 placeholder-zinc-500 text-sm focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition" />
+              <span className="text-sm font-semibold text-zinc-400 shrink-0">km</span>
+            </div>
+          )}
+        </div>
+
+        {/* Elevation — only for trail/mixed */}
+        {isTrail && (
+          <div>
+            <label className={labelClass}>Desnivel positivo (D+)</label>
+            <div className="flex items-center gap-2">
+              <input type="number" min="0" value={elevationGainM} onChange={e => setElevationGainM(e.target.value)}
+                placeholder="2500"
+                className="w-full p-2.5 border border-zinc-700 rounded-lg bg-zinc-800 text-zinc-100 placeholder-zinc-500 text-sm focus:ring-2 focus:ring-lime-400 focus:border-lime-400 outline-none transition" />
+              <span className="text-sm font-semibold text-zinc-400 shrink-0">metros</span>
+            </div>
+          </div>
+        )}
+
+        {/* Goal time — H : MM : SS */}
+        <div>
+          <label className={labelClass}>Tiempo objetivo <span className="text-zinc-600 font-normal">(opcional)</span></label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 text-center">
+              <input type="number" min="0" max="23" value={goalH}
+                onChange={e => setGoalH(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                placeholder="0" className={timeInput} />
+              <p className="text-[10px] text-zinc-600 mt-1 font-medium uppercase tracking-wide">horas</p>
+            </div>
+            <span className="text-2xl text-zinc-600 font-bold pb-5">:</span>
+            <div className="flex-1 text-center">
+              <input type="number" min="0" max="59" value={goalM}
+                onChange={e => setGoalM(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                placeholder="00" className={timeInput} />
+              <p className="text-[10px] text-zinc-600 mt-1 font-medium uppercase tracking-wide">min</p>
+            </div>
+            <span className="text-2xl text-zinc-600 font-bold pb-5">:</span>
+            <div className="flex-1 text-center">
+              <input type="number" min="0" max="59" value={goalS}
+                onChange={e => setGoalS(e.target.value.replace(/\D/g, '').slice(0, 2))}
+                placeholder="00" className={timeInput} />
+              <p className="text-[10px] text-zinc-600 mt-1 font-medium uppercase tracking-wide">seg</p>
+            </div>
           </div>
         </div>
 

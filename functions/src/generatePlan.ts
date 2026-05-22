@@ -102,7 +102,7 @@ export const generatePlan = onCall(
     const lastRace    = config?.last_race as { distance_km?: number; time?: string } | undefined;
     const targetTimeSec = Number(config?.target_time_seconds) || null;
     const methodology = ((config?.methodology || 'polarized') as string) as 'polarized' | 'norwegian' | 'classic';
-    const distKm      = Number(race.distance) || 0;
+    const distKm      = parseFloat(String(race.distance || '')) || 0;
     const storedZones = config?.stored_zones as { z1_sec_km?: number; z4_sec_km?: number; z5_sec_km?: number } | null;
 
     // ── Extended runner profile ─────────────────────────────────
@@ -118,6 +118,12 @@ export const generatePlan = onCall(
     const raceTerrain        = (config?.race_terrain as string) || 'road';
     const racePriority       = (config?.race_priority as string) || 'A';
     const elevationGainM     = Number(config?.elevation_gain_m) || 0;
+    const mountainDaysOfWeek = Array.isArray(config?.mountain_days_of_week)
+      ? (config!.mountain_days_of_week as unknown[]).filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6)
+      : null;
+    const roadOnlyDaysOfWeek = Array.isArray(config?.road_only_days_of_week)
+      ? (config!.road_only_days_of_week as unknown[]).filter((d): d is number => typeof d === 'number' && d >= 0 && d <= 6)
+      : null;
     interface RaceContext { name: string; date: string; distance?: string | null; priority: string; is_target?: boolean; }
     const racesContext = Array.isArray(config?.races_context) ? config.races_context as RaceContext[] : null;
 
@@ -278,6 +284,10 @@ ${hasRecentInjury ? '• LESIÓN RECIENTE: primera semana sin series ni calidad 
 ${raceTerrain === 'track' ? '• PISTA: mayor énfasis en series de velocidad y trabajo a ritmo de carrera' : ''}
 ${isTrailRace ? buildTrailBlock(elevationGainM, distKm) : ''}
 ${racePriority === 'C' ? '• CARRERA C: no hay taper — última semana igual que las anteriores, sin reducción de carga' : ''}
+${(mountainDaysOfWeek && mountainDaysOfWeek.length > 0) || (roadOnlyDaysOfWeek && roadOnlyDaysOfWeek.length > 0) ? `RESTRICCIÓN DE SUPERFICIE (OBLIGATORIO — incumplir invalida el plan):
+${mountainDaysOfWeek && mountainDaysOfWeek.length > 0 ? `• MONTAÑA/TRAIL (desnivel, terreno técnico, series en monte): ÚNICAMENTE los ${mountainDaysOfWeek.map((d: number) => DAY_NAMES_ES[d]).join(', ')}. Fuera de estos días NO asignes sesiones de montaña ni trail.` : ''}
+${roadOnlyDaysOfWeek && roadOnlyDaysOfWeek.length > 0 ? `• SOLO ASFALTO (rodajes llanos, series en carretera o pista): ÚNICAMENTE los ${roadOnlyDaysOfWeek.map((d: number) => DAY_NAMES_ES[d]).join(', ')}. En estos días el corredor no puede acceder a montaña.` : ''}
+El corredor tiene esta restricción logística real — respétala siempre, también en semanas de calidad y en las semanas de carga máxima.` : ''}
 
 ${zonesBlock}
 
