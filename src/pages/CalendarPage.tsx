@@ -201,7 +201,8 @@ const CalendarPage = () => {
   const [selectedDate, setSelectedDate]               = useState(todayISO);
   const [displayedWeekMonday, setDisplayedWeekMonday] = useState(() => getWeekMonday(todayISO));
   const [mesoExpanded, setMesoExpanded]               = useState(false);
-  const touchStartX = useRef<number | null>(null);
+  const touchStartX   = useRef<number | null>(null);
+  const workoutCardRef = useRef<HTMLDivElement | null>(null);
 
   // Workout card
   const [cardExpanded, setCardExpanded] = useState(false);
@@ -303,6 +304,11 @@ const CalendarPage = () => {
 
     // Auto-expand today; collapse other days
     setCardExpanded(selectedDate === todayISO);
+
+    // Scroll to top of workout card so the user always starts from the beginning
+    requestAnimationFrame(() => {
+      workoutCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
 
     // Load Strava activities for past/today days
     if (selectedDate <= todayISO) {
@@ -658,7 +664,7 @@ const CalendarPage = () => {
                 : [];
 
               return (
-                <div key={selectedDate}>
+                <div key={selectedDate} ref={workoutCardRef}>
                   {/* Date header */}
                   <div className="flex items-center justify-between mb-3">
                     <p className="text-xs font-bold text-zinc-500 uppercase tracking-widest capitalize">

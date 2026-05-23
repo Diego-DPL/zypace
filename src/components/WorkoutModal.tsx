@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { TextWithGlossary } from './GlossaryTerm';
 import { doc, updateDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../lib/firebaseClient';
 import { useAuth } from '../context/AuthContext';
@@ -231,7 +232,10 @@ const WorkoutModal: React.FC<WorkoutModalProps> = ({ open, onClose, workout, onC
 
           {/* Description */}
           <p className={`font-medium ${workout.is_completed ? 'text-zinc-600 line-through' : 'text-zinc-100'}`}>
-            {workout.description}
+            {workout.is_completed
+              ? workout.description
+              : <TextWithGlossary>{workout.description}</TextWithGlossary>
+            }
           </p>
 
           {/* Plan explanation */}
