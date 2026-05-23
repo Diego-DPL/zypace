@@ -25,73 +25,124 @@ const faqs = [
 ];
 
 const FAQ_SCHEMA = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map(item => ({
-    '@type': 'Question',
-    name: item.q,
-    acceptedAnswer: { '@type': 'Answer', text: item.a },
-  })),
+  '@context': 'https://schema.org', '@type': 'FAQPage',
+  mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
 };
-
 const LANDING_SCHEMA = {
-  '@context': 'https://schema.org',
-  '@type': 'SoftwareApplication',
-  name: 'Zypace',
-  applicationCategory: 'SportsApplication',
-  operatingSystem: 'Web',
-  url: 'https://www.zypace.com',
-  description: 'Planes de entrenamiento personalizados con IA para runners. Sincroniza Strava, gestiona carreras objetivo y sigue tu progreso semana a semana.',
+  '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Zypace',
+  applicationCategory: 'SportsApplication', operatingSystem: 'Web', url: 'https://www.zypace.com',
+  description: 'Planes de entrenamiento personalizados con IA para runners.',
   offers: { '@type': 'Offer', price: '9.99', priceCurrency: 'EUR', description: '30 días gratis, luego 9,99 €/mes' },
 };
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
-const GRID_BG: React.CSSProperties = {
-  backgroundImage: `
-    linear-gradient(rgba(163,230,53,0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(163,230,53,0.045) 1px, transparent 1px)
-  `,
+const GRID: React.CSSProperties = {
+  backgroundImage: `linear-gradient(rgba(163,230,53,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(163,230,53,0.035) 1px,transparent 1px)`,
   backgroundSize: '64px 64px',
 };
 
-const GRID_BG_DENSE: React.CSSProperties = {
-  backgroundImage: `
-    linear-gradient(rgba(163,230,53,0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(163,230,53,0.03) 1px, transparent 1px)
-  `,
-  backgroundSize: '32px 32px',
+// Outline text — Barlow Condensed: contraformas más abiertas que Syne ExtraBold,
+// ideal para hollow. Tracking neutral deja que la propia condensación haga el trabajo.
+const OUTLINE: React.CSSProperties = {
+  fontFamily: "'Barlow Condensed', sans-serif",
+  fontWeight: 800,
+  WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+  color: 'transparent',
+  letterSpacing: '0.02em',
+};
+const OUTLINE_SM: React.CSSProperties = {
+  fontFamily: "'Barlow Condensed', sans-serif",
+  fontWeight: 800,
+  WebkitTextStroke: '1.5px rgba(255,255,255,0.6)',
+  color: 'transparent',
+  letterSpacing: '0.02em',
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+// Crosshair registration mark — engineering drawing corner print mark
+function RegMark({ className = '' }: { className?: string }) {
+  return (
+    <div className={`w-6 h-6 relative pointer-events-none select-none ${className}`}>
+      <div className="absolute top-1/2 left-0 right-0 h-px bg-zinc-800 -translate-y-px" />
+      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-zinc-800 -translate-x-px" />
+      <div className="absolute inset-[6px] rounded-full border border-zinc-800" />
+    </div>
+  );
+}
+
+// Engineering title block — like the bottom-right box on a technical drawing
+function TitleBlock() {
+  return (
+    <div className="font-mono text-[10px] leading-none border-t border-l border-zinc-800">
+      <div className="grid grid-cols-[1fr_auto_auto_auto]">
+        {/* Row 1 */}
+        <div className="col-span-4 border-b border-zinc-800 px-4 py-2 flex items-center gap-5">
+          <span className="text-zinc-500 tracking-[0.3em] uppercase">Proyecto</span>
+          <span className="text-zinc-200 font-bold tracking-[0.28em] uppercase">Zypace</span>
+          <span className="ml-auto text-zinc-600">ZYP-LP-001</span>
+        </div>
+        {/* Row 2 */}
+        <div className="border-b border-r border-zinc-800 px-4 py-2">
+          <div className="text-zinc-500 tracking-widest uppercase mb-1">Documento</div>
+          <div className="text-zinc-300">Landing page</div>
+        </div>
+        <div className="border-b border-r border-zinc-800 px-4 py-2">
+          <div className="text-zinc-500 tracking-widest uppercase mb-1">Rev</div>
+          <div className="text-zinc-300">B</div>
+        </div>
+        <div className="border-b border-r border-zinc-800 px-4 py-2">
+          <div className="text-zinc-500 tracking-widest uppercase mb-1">Escala</div>
+          <div className="text-zinc-300">1:1</div>
+        </div>
+        <div className="border-b border-zinc-800 px-4 py-2">
+          <div className="text-zinc-500 tracking-widest uppercase mb-1">Año</div>
+          <div className="text-zinc-300">2025</div>
+        </div>
+        {/* Row 3 */}
+        <div className="col-span-4 px-4 py-1.5">
+          <span className="text-zinc-600 tracking-widest uppercase">Clasificación: pública · Idioma: ES · Autor: Zypace</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Bracket-corner box
 function BracketBox({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`relative ${className}`}>
-      <span className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-lime-400 pointer-events-none" />
-      <span className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-lime-400 pointer-events-none" />
-      <span className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-lime-400 pointer-events-none" />
-      <span className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-lime-400 pointer-events-none" />
+      <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-lime-400 pointer-events-none" />
+      <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-lime-400 pointer-events-none" />
+      <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-lime-400 pointer-events-none" />
+      <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-lime-400 pointer-events-none" />
       {children}
     </div>
   );
 }
 
-function CornerBox({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+// Engineering callout — thin bracket + annotation
+function Callout({ label, value, className = '' }: { label: string; value?: string; className?: string }) {
   return (
-    <div className={`relative ${className}`}>
-      <span className="absolute top-0 left-0 w-6 h-6 border-t border-l border-lime-400/25 pointer-events-none" />
-      <span className="absolute top-0 right-0 w-6 h-6 border-t border-r border-lime-400/25 pointer-events-none" />
-      <span className="absolute bottom-0 left-0 w-6 h-6 border-b border-l border-lime-400/25 pointer-events-none" />
-      <span className="absolute bottom-0 right-0 w-6 h-6 border-b border-r border-lime-400/25 pointer-events-none" />
-      {children}
+    <div className={`flex items-center gap-3 ${className}`}>
+      <div className="flex items-center shrink-0">
+        <div className="w-px h-3 bg-zinc-700" />
+        <div className="w-10 h-px bg-zinc-800" />
+        <div className="w-px h-3 bg-zinc-700" />
+      </div>
+      <span className="font-mono text-[9px] text-zinc-600 tracking-[0.3em] uppercase">
+        {label}{value ? <span className="text-zinc-300 ml-2 tracking-normal normal-case">{value}</span> : null}
+      </span>
     </div>
   );
 }
 
-function Label({ n, children }: { n: string; children: React.ReactNode }) {
+// Section tag line
+function Tag({ n, label }: { n: string; label: string }) {
   return (
-    <div className="flex items-center gap-3 mb-8 md:mb-10">
-      <div className="w-7 h-px bg-lime-400" />
-      <span className="font-mono text-[10px] text-lime-400/60 tracking-[0.35em] uppercase">{n} · {children}</span>
+    <div className="flex items-center gap-3">
+      <div className="w-7 h-px bg-lime-400 shrink-0" />
+      <span className="font-mono text-[9px] text-lime-400 tracking-[0.45em] uppercase">{n} · {label}</span>
     </div>
   );
 }
@@ -102,393 +153,481 @@ const LandingPage = () => {
   const videoRef           = useRef<HTMLVideoElement>(null);
   const overlayRef         = useRef<HTMLDivElement>(null);
 
-  // ── Scroll-driven video (unchanged) ───────────────────────────
   useEffect(() => {
     const video     = videoRef.current;
     const container = scrollContainerRef.current;
     if (!video || !container) return;
-
     video.load();
 
-    const syncToScroll = () => {
-      const rect       = container.getBoundingClientRect();
+    // RAF-throttle: el scroll solo escribe lastP, el RAF ejecuta el seek.
+    // Máximo un seek por frame de pantalla (~60/s) sin lerp que oculte frames.
+    let lastP      = 0;
+    let rafPending = false;
+
+    const commit = () => {
+      if (video.duration && !isNaN(video.duration) && video.readyState >= 1) {
+        video.currentTime = lastP * video.duration;
+      }
+      if (overlayRef.current) {
+        overlayRef.current.style.opacity = String(Math.max(0, 1 - lastP / 0.2));
+      }
+      rafPending = false;
+    };
+
+    const onScroll = () => {
+      const rect         = container.getBoundingClientRect();
       const scrolledInto = -rect.top;
       const scrollable   = container.offsetHeight - window.innerHeight;
       if (scrollable <= 0) return;
-      const progress = Math.max(0, Math.min(1, scrolledInto / scrollable));
-
-      if (video.duration && !isNaN(video.duration) && video.readyState >= 1) {
-        video.currentTime = progress * video.duration;
-      }
-      if (overlayRef.current) {
-        overlayRef.current.style.opacity = String(Math.max(0, 1 - progress / 0.2));
+      lastP = Math.max(0, Math.min(1, scrolledInto / scrollable));
+      if (!rafPending) {
+        rafPending = true;
+        requestAnimationFrame(commit);
       }
     };
 
-    video.addEventListener('loadedmetadata', syncToScroll);
-    window.addEventListener('scroll', syncToScroll, { passive: true });
+    video.addEventListener('loadedmetadata', onScroll);
+    window.addEventListener('scroll', onScroll, { passive: true });
+
     return () => {
-      video.removeEventListener('loadedmetadata', syncToScroll);
-      window.removeEventListener('scroll', syncToScroll);
+      video.removeEventListener('loadedmetadata', onScroll);
+      window.removeEventListener('scroll', onScroll);
     };
   }, []);
 
-  // ── Scroll-triggered reveals ───────────────────────────────────
   useEffect(() => {
-    const observer = new IntersectionObserver(
+    const io = new IntersectionObserver(
       (entries) => entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('is-visible'); }),
-      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.06, rootMargin: '0px 0px -20px 0px' }
     );
-    document.querySelectorAll('[data-reveal]').forEach(el => observer.observe(el));
-    return () => observer.disconnect();
+    document.querySelectorAll('[data-reveal]').forEach(el => io.observe(el));
+    return () => io.disconnect();
   }, []);
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#09090b] text-white overflow-x-hidden">
+    <div className="min-h-screen flex flex-col bg-[#09090b] text-white">
       <SEOHead canonical="/" jsonLd={[LANDING_SCHEMA, FAQ_SCHEMA]} />
       <LandingHeader />
 
-      {/* ═══════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════
           01 · HERO
-      ═══════════════════════════════════════════════════════════ */}
+      ══════════════════════════════════════════════════════════════ */}
       <section className="relative min-h-[100svh] flex flex-col overflow-hidden" aria-label="Presentación de Zypace">
-        {/* Blueprint grid */}
-        <div className="absolute inset-0 pointer-events-none" style={GRID_BG} />
+        <div className="absolute inset-0 pointer-events-none" style={GRID} />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_55%_45%_at_8%_70%,rgba(163,230,53,0.06),transparent)]" />
 
-        {/* Large section number */}
-        <div className="absolute right-0 top-0 bottom-0 pointer-events-none select-none flex items-center overflow-hidden">
-          <span className="font-display font-extrabold leading-none text-white/[0.028]" style={{ fontSize: '32vw' }}>01</span>
+        {/* Print registration marks */}
+        <RegMark className="absolute top-6 left-6 hidden md:block" />
+        <RegMark className="absolute top-6 right-6 hidden md:block" />
+        <RegMark className="absolute bottom-14 left-6 hidden md:block" />
+        <RegMark className="absolute bottom-14 right-6 hidden md:block" />
+
+        {/* Left margin — vertical blueprint annotation */}
+        <div className="absolute left-0 top-0 bottom-14 w-10 hidden md:flex items-center justify-center border-r border-zinc-800/25 pointer-events-none select-none">
+          <span
+            className="font-mono text-[7.5px] text-zinc-800 tracking-[0.45em] uppercase whitespace-nowrap"
+            style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+          >
+            PROYECTO ZYPACE · ZYP-2025-A · CONF: PÚBLICA · IA RUNNING
+          </span>
         </div>
 
-        {/* Radial glow */}
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_60%_50%_at_20%_60%,rgba(163,230,53,0.07),transparent)]" />
-
         {/* Content */}
-        <div className="relative flex-1 flex flex-col justify-center px-6 md:px-16 lg:px-24 xl:px-32 max-w-[1600px] mx-auto w-full py-28 md:py-36">
+        <div className="relative flex-1 flex flex-col justify-center px-6 md:pl-20 md:pr-16 lg:pl-28 lg:pr-24 xl:pl-36 xl:pr-32 max-w-[1700px] mx-auto w-full py-10 md:py-12">
 
-          {/* Label */}
-          <div className="flex items-center gap-3 mb-10 md:mb-14" data-reveal>
-            <div className="w-8 h-px bg-lime-400" />
-            <span className="font-mono text-[10px] md:text-xs text-lime-400 tracking-[0.35em] uppercase">Entrenador IA · Running · App Móvil</span>
+          {/* Section tag */}
+          <div className="flex items-center justify-between mb-8 md:mb-12" data-reveal>
+            <Tag n="01" label="Presentación" />
+            <span className="hidden sm:block font-mono text-[8px] text-zinc-800 tracking-widest">LÁM. 01 / 06</span>
           </div>
 
-          {/* Headline */}
+          {/* ── THE HEADLINE ── */}
           <h1
-            className="font-display font-extrabold uppercase leading-[0.87] tracking-tight"
-            style={{ fontSize: 'clamp(3.6rem, 12.5vw, 14rem)' }}
+            className="font-display font-extrabold uppercase leading-[0.82]"
+            aria-label="Traza tu camino"
             data-reveal
           >
-            <span className="block text-white">Traza</span>
-            <span className="block">
-              <span className="text-white">tu </span>
-              <span className="text-lime-400">camino.</span>
+            {/* TRAZA — solid fill */}
+            <span
+              className="block text-white"
+              style={{ fontSize: 'clamp(3.5rem, 11vw, 13rem)', letterSpacing: '-0.028em' }}
+            >
+              TRAZA
+            </span>
+
+            {/* "tu" — micro interline, like a correction a lápiz */}
+            <span
+              className="block font-mono font-normal text-zinc-600"
+              style={{
+                fontSize: 'clamp(0.75rem, 1.8vw, 2.2rem)',
+                letterSpacing: '0.55em',
+                paddingLeft: '1%',
+                marginTop: '-0.1em',
+                marginBottom: '-0.05em',
+              }}
+            >
+              tu
+            </span>
+
+            {/* CAMINO. — Barlow Condensed hollow: contraformas abiertas,
+                misma altura óptica que TRAZA pero letras completamente distintas */}
+            <span
+              className="block"
+              style={{
+                fontFamily: "'Barlow Condensed', sans-serif",
+                fontWeight: 800,
+                fontSize: 'clamp(3.5rem, 11vw, 13rem)',
+                letterSpacing: '0.02em',
+                WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+                color: 'transparent',
+              }}
+            >
+              CAMINO.
             </span>
           </h1>
 
-          {/* Blueprint route decoration */}
-          <div className="mt-6 md:mt-8 max-w-xs md:max-w-sm" data-reveal>
-            <svg viewBox="0 0 360 50" fill="none" className="w-full">
+          {/* Marathon elevation route SVG */}
+          <div className="mt-6 md:mt-8 w-full max-w-3xl" data-reveal style={{ transitionDelay: '0.08s' }}>
+            <svg viewBox="0 0 700 108" fill="none" className="w-full" aria-hidden="true">
+              {/* Base rule */}
+              <line x1="0" y1="80" x2="700" y2="80" stroke="#27272a" strokeWidth="0.5" />
+              {/* Elevation fill */}
               <path
-                d="M 5 35 C 40 35 55 12 95 12 S 145 38 190 25 S 245 8 290 18 S 335 35 355 28"
-                stroke="#a3e635"
-                strokeWidth="1.2"
-                strokeDasharray="5 4"
-                opacity="0.25"
-                pathLength="1"
-                className="draw-path"
+                d="M 10 80 C 60 80 80 22 140 22 S 210 80 280 46 S 350 12 430 26 S 510 80 580 48 S 640 28 690 34 L 690 80 Z"
+                fill="url(#eg)" opacity="0.05"
               />
-              <line x1="5" y1="29" x2="5" y2="41" stroke="#a3e635" strokeWidth="0.8" opacity="0.2" />
-              <line x1="355" y1="22" x2="355" y2="34" stroke="#a3e635" strokeWidth="0.8" opacity="0.2" />
-              <text x="180" y="48" fill="#a3e635" fontSize="7" fontFamily="monospace" textAnchor="middle" opacity="0.2">DISTANCIA OBJETIVO · KM</text>
+              <defs>
+                <linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor="#a3e635" />
+                  <stop offset="100%" stopColor="#a3e635" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              {/* Route line */}
+              <path
+                d="M 10 60 C 60 60 80 22 140 22 S 210 64 280 46 S 350 12 430 26 S 510 60 580 48 S 640 28 690 34"
+                stroke="#a3e635" strokeWidth="1.4" strokeDasharray="5 4" opacity="0.5"
+                pathLength="1" className="draw-path"
+              />
+              {/* Start */}
+              <circle cx="10" cy="60" r="3" fill="none" stroke="#a3e635" strokeWidth="1" opacity="0.5" />
+              <circle cx="10" cy="60" r="1.2" fill="#a3e635" opacity="0.5" />
+              <line x1="10" y1="80" x2="10" y2="86" stroke="#52525b" strokeWidth="0.7" />
+              <text x="10" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">0 km</text>
+              {/* Mid */}
+              <line x1="280" y1="80" x2="280" y2="86" stroke="#52525b" strokeWidth="0.7" />
+              <text x="280" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">21 km</text>
+              {/* Finish */}
+              <circle cx="690" cy="34" r="3" fill="none" stroke="#a3e635" strokeWidth="1" opacity="0.5" />
+              <line x1="690" y1="80" x2="690" y2="86" stroke="#52525b" strokeWidth="0.7" />
+              <text x="690" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">42 km</text>
+              {/* Dimension line */}
+              <line x1="10" y1="7" x2="690" y2="7" stroke="#3f3f46" strokeWidth="0.5" />
+              <line x1="10" y1="3" x2="10" y2="11" stroke="#3f3f46" strokeWidth="0.7" />
+              <line x1="690" y1="3" x2="690" y2="11" stroke="#3f3f46" strokeWidth="0.7" />
+              <text x="350" y="4" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">DISTANCIA OBJETIVO — 42.195 km</text>
+              {/* D+ callout */}
+              <line x1="430" y1="26" x2="498" y2="5" stroke="#3f3f46" strokeWidth="0.5" strokeDasharray="2 2" />
+              <text x="502" y="7" fill="#52525b" fontSize="6.5" fontFamily="monospace">D+ 850m</text>
             </svg>
           </div>
 
-          {/* Description */}
-          <div className="mt-8 md:mt-10 flex items-start gap-5 max-w-lg" data-reveal>
-            <div className="w-px self-stretch bg-lime-400/25 shrink-0" />
-            <div>
-              <p className="font-mono text-[9px] md:text-[10px] text-lime-400/40 tracking-widest uppercase mb-2">Sistema · Descripción</p>
-              <p className="text-zinc-300 text-base md:text-lg leading-relaxed">
-                La IA que analiza <strong className="text-white font-semibold">cada dato tuyo</strong> para construir el único plan que te llevará a tu meta.
-              </p>
-            </div>
-          </div>
-
-          {/* CTA row */}
-          <div className="mt-12 md:mt-16 flex flex-col sm:flex-row gap-6 items-start" data-reveal>
-            <BracketBox className="px-8 py-4">
-              <Link
-                to="/register"
-                className="font-mono text-xs md:text-sm tracking-widest uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors"
-              >
-                Empezar gratis →
-              </Link>
-            </BracketBox>
-            <div className="flex items-center gap-3 self-center">
-              <div className="w-6 h-px bg-zinc-700" />
-              <Link to="/login" className="font-mono text-[10px] text-zinc-600 tracking-widest uppercase hover:text-zinc-400 transition-colors">
-                Ya tengo cuenta
-              </Link>
-            </div>
-          </div>
-
-          {/* Fine print */}
-          <p className="mt-8 font-mono text-[9px] text-zinc-700 tracking-[0.28em] uppercase">
-            30 días gratis · Luego 9,99 €/mes · Cancela cuando quieras
-          </p>
-        </div>
-
-        {/* Bottom rule */}
-        <div className="relative border-t border-zinc-800/60 flex items-center px-6 md:px-16 xl:px-32 py-3.5">
-          <span className="font-mono text-[9px] text-zinc-700 tracking-[0.3em] uppercase">Zypace · v2025 · Entrenador personal IA</span>
-          <span className="ml-auto font-mono text-[9px] text-zinc-700 tracking-widest animate-pulse">Scroll ↓</span>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          02 · FILOSOFÍA
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative py-24 md:py-40 lg:py-52 border-t border-zinc-800/60 overflow-hidden" aria-label="Filosofía Zypace">
-        {/* Large bg number */}
-        <div className="absolute left-0 bottom-0 pointer-events-none select-none overflow-hidden leading-none">
-          <span className="font-display font-extrabold text-white/[0.022] block translate-y-1/3" style={{ fontSize: '30vw' }}>02</span>
-        </div>
-
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-20 xl:gap-32">
-
-            {/* Left: editorial statement */}
-            <div data-reveal>
-              <Label n="02">Filosofía</Label>
-              <h2
-                className="font-display font-extrabold uppercase leading-[0.88] tracking-tight"
-                style={{ fontSize: 'clamp(2.4rem, 5.5vw, 5.5rem)' }}
-              >
-                <span className="block text-white">Cada corredor</span>
-                <span className="block text-white">lleva un camino</span>
-                <span className="block text-lime-400">que solo es suyo.</span>
-              </h2>
-              <p className="mt-8 text-zinc-400 text-base md:text-lg leading-relaxed max-w-md">
-                Los planes genéricos fallan porque ignoran quién eres.
-                Zypace no asigna un plan. Lo <strong className="text-zinc-100 font-semibold">traza desde cero</strong>,
-                pieza a pieza, con la precisión de un ingeniero y la evidencia
-                de la ciencia del deporte.
-              </p>
-              <div className="mt-10 flex items-center gap-4">
-                <div className="h-px w-10 bg-lime-400/30" />
-                <span className="font-mono text-[10px] text-zinc-600 tracking-widest uppercase">Plan único · Nunca genérico</span>
+          {/* Description + CTA */}
+          <div className="mt-10 md:mt-12 flex flex-col sm:flex-row items-start gap-10 sm:gap-16 lg:gap-24" data-reveal style={{ transitionDelay: '0.15s' }}>
+            {/* Description */}
+            <div className="flex items-start gap-4 max-w-sm">
+              <div className="w-px self-stretch bg-lime-400/15 shrink-0 mt-1" />
+              <div>
+                <p className="font-mono text-[8.5px] text-zinc-500 tracking-[0.45em] uppercase mb-2">Sistema · Descripción funcional</p>
+                <p className="text-zinc-400 text-sm md:text-base leading-relaxed">
+                  La IA que analiza <strong className="text-zinc-100 font-semibold">cada dato tuyo</strong> para construir el único plan que te llevará a tu meta. Trazado con la precisión de un ingeniero.
+                </p>
               </div>
             </div>
 
-            {/* Right: technical spec sheet */}
+            {/* CTA */}
+            <div className="flex flex-col items-start gap-4">
+              <BracketBox className="px-8 py-4">
+                <Link to="/register" className="font-mono text-xs tracking-[0.38em] uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors">
+                  Empezar gratis →
+                </Link>
+              </BracketBox>
+              <Link to="/login" className="font-mono text-[8.5px] text-zinc-400 tracking-[0.3em] uppercase hover:text-zinc-200 transition-colors pl-4">
+                Ya tengo cuenta
+              </Link>
+              <p className="font-mono text-[8px] text-zinc-500 tracking-[0.28em] uppercase pl-4">30 días gratis · Luego 9,99 €/mes</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer bar with engineering title block */}
+        <div className="relative border-t border-zinc-800/40 flex items-stretch min-h-[42px]">
+          <div className="flex items-center gap-4 flex-1 px-6 md:pl-20 xl:pl-36 pr-4">
+            <span className="font-mono text-[8px] text-zinc-500 tracking-[0.3em] uppercase">Zypace · v2025 · Entrenador IA para runners</span>
+            <span className="font-mono text-[8px] text-zinc-400 tracking-widest ml-auto">Scroll ↓</span>
+          </div>
+          <div className="hidden md:block border-l border-zinc-800/40">
+            <TitleBlock />
+          </div>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════════════════════════════════
+          02 · FILOSOFÍA
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative py-24 md:py-44 border-t border-zinc-800/40 overflow-hidden" aria-label="Filosofía Zypace">
+        {/* Decorative "02" — bottom left, clipped */}
+        <div className="absolute left-0 bottom-0 w-[55%] overflow-hidden pointer-events-none select-none">
+          <span className="font-display font-extrabold text-white/[0.018] leading-[0.8] block" style={{ fontSize: '30vw' }}>02</span>
+        </div>
+
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
+          <div className="mb-16 md:mb-22" data-reveal>
+            <Tag n="02" label="Filosofía del sistema" />
+          </div>
+
+          <div className="grid lg:grid-cols-[1fr_1fr] gap-16 lg:gap-28 xl:gap-40 items-start">
+            {/* Left: manifesto quote with outline alternation */}
+            <div data-reveal>
+              <blockquote
+                className="font-display font-extrabold uppercase leading-[0.87] tracking-tight"
+                style={{ fontSize: 'clamp(2rem, 4vw, 5rem)' }}
+              >
+                <span className="block text-white">Cada corredor</span>
+                <span className="block" style={OUTLINE}>lleva un camino</span>
+                <span className="block text-lime-400">que solo es suyo.</span>
+              </blockquote>
+
+              <p className="mt-10 text-zinc-400 text-base md:text-lg leading-relaxed max-w-md border-l border-zinc-800/80 pl-6">
+                Los planes genéricos fallan porque ignoran quién eres.
+                Zypace no asigna un plan. Lo <strong className="text-zinc-100 font-semibold">traza desde cero</strong>,
+                pieza a pieza, con la precisión de un ingeniero y la evidencia de la ciencia del deporte.
+              </p>
+              <div className="mt-10 space-y-3">
+                <Callout label="Plan único" value="Nunca genérico" />
+                <Callout label="Evidencia científica" value="Periodización probada" />
+                <Callout label="Calibración" value="A partir de tu actividad real" />
+              </div>
+            </div>
+
+            {/* Right: input spec sheet */}
             <div data-reveal style={{ transitionDelay: '0.15s' }}>
-              <CornerBox className="h-full">
-                <div className="p-8 lg:p-10">
-                  <div className="font-mono text-[10px] text-lime-400/50 tracking-widest uppercase mb-6 pb-4 border-b border-zinc-800">
-                    Ref: ZYP-INPUT-V2025 · Datos analizados para tu plan
-                  </div>
-                  <ul className="space-y-5">
-                    {([
-                      ['01', 'Carrera objetivo',       'Distancia, fecha y prioridad de la competición'],
-                      ['02', 'Historial de marcas',    'Tu punto de partida real para calibrar el ritmo'],
-                      ['03', 'Disponibilidad semanal', 'Días, sesiones y horas que puedes entrenar'],
-                      ['04', 'Nivel de experiencia',   'Años corriendo y volumen habitual'],
-                      ['05', 'Actividad Strava real',  'Lo que has hecho, no lo que crees que has hecho'],
-                      ['06', 'Tipo de terreno',        'Road, trail, mixto o pista — cada uno exige distinto'],
-                      ['07', 'Lesiones y restricciones','Zonas a respetar y áreas a reforzar'],
-                      ['08', 'Metodología elegida',    'Polarizado, noruego o clásico'],
-                    ] as [string, string, string][]).map(([n, title, desc]) => (
-                      <li key={n} className="flex gap-4 items-start">
-                        <span className="font-mono text-[10px] text-lime-400/30 pt-1 shrink-0 w-6 leading-none">{n}</span>
-                        <div>
-                          <span className="text-sm font-semibold text-zinc-100 block mb-0.5 leading-tight">{title}</span>
-                          <span className="text-xs text-zinc-500 leading-relaxed">{desc}</span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="mt-8 pt-4 border-t border-zinc-800 font-mono text-[9px] text-zinc-700 tracking-widest uppercase">
-                    Estado: análisis automático · Actualización: continua
-                  </div>
+              <div className="relative border border-zinc-800/80">
+                {/* Corner accent marks */}
+                <span className="absolute -top-px left-0 w-10 h-px bg-lime-400/30" />
+                <span className="absolute -top-px right-0 w-10 h-px bg-lime-400/30" />
+                <span className="absolute -bottom-px left-0 w-10 h-px bg-lime-400/30" />
+                <span className="absolute -bottom-px right-0 w-10 h-px bg-lime-400/30" />
+                <span className="absolute top-0 -left-px h-10 w-px bg-lime-400/30" />
+                <span className="absolute bottom-0 -left-px h-10 w-px bg-lime-400/30" />
+                <span className="absolute top-0 -right-px h-10 w-px bg-lime-400/30" />
+                <span className="absolute bottom-0 -right-px h-10 w-px bg-lime-400/30" />
+
+                <div className="flex items-center justify-between px-6 py-3.5 border-b border-zinc-800/80">
+                  <span className="font-mono text-[8.5px] text-zinc-500 tracking-[0.38em] uppercase">Parámetros de entrada · Plan</span>
+                  <span className="font-mono text-[8.5px] text-zinc-500">ZYP-INPUT-V2025</span>
                 </div>
-              </CornerBox>
+
+                <ul className="divide-y divide-zinc-800/50">
+                  {([
+                    ['01', 'Carrera objetivo',         'Distancia, fecha y prioridad de competición'],
+                    ['02', 'Historial de marcas',       'Punto de partida real para calibrar ritmos'],
+                    ['03', 'Disponibilidad semanal',    'Días, sesiones y horas disponibles'],
+                    ['04', 'Nivel de experiencia',      'Años corriendo y volumen habitual'],
+                    ['05', 'Actividad Strava real',     'Lo que has hecho, no lo que imaginas'],
+                    ['06', 'Tipo de terreno',           'Road, trail, mixto o pista'],
+                    ['07', 'Lesiones y restricciones',  'Zonas a respetar y reforzar'],
+                    ['08', 'Metodología elegida',       'Polarizado, noruego o clásico'],
+                  ] as [string, string, string][]).map(([n, title, desc]) => (
+                    <li key={n} className="grid grid-cols-[2.5rem_1fr] items-start px-5 py-3.5">
+                      <span className="font-mono text-[8.5px] text-lime-400/70 pt-px">{n}</span>
+                      <div>
+                        <span className="text-sm font-semibold text-zinc-200 block leading-snug">{title}</span>
+                        <span className="text-xs text-zinc-400 leading-tight">{desc}</span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="px-6 py-3 border-t border-zinc-800/80 flex justify-between">
+                  <span className="font-mono text-[7.5px] text-zinc-500 uppercase tracking-widest">Estado: análisis automático</span>
+                  <span className="font-mono text-[7.5px] text-zinc-500 uppercase tracking-widest">Actualización: continua</span>
+                </div>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
-          VIDEO SCROLL — unchanged
-      ═══════════════════════════════════════════════════════════ */}
+      {/* ══════════════════════════════════════════════════════════════
+          VIDEO SCROLL — lógica intacta
+      ══════════════════════════════════════════════════════════════ */}
       <div ref={scrollContainerRef} className="relative h-[250vh] md:h-[400vh]">
-        <div className="sticky top-0 h-screen w-full overflow-hidden bg-zinc-950">
+        <div className="sticky top-0 h-screen w-full overflow-hidden bg-[#09090b]">
           <video
             ref={videoRef}
             poster={appVideoPoster}
-            muted
-            playsInline
-            preload="auto"
+            muted playsInline preload="auto"
             className="absolute inset-0 w-full h-full object-contain md:object-cover"
           >
             <source src={appVideo} type="video/mp4" />
           </video>
-          <div
-            ref={overlayRef}
-            className="absolute inset-0 flex items-start justify-center pointer-events-none bg-zinc-950/80"
-          >
-            <div className="mt-20 md:mt-24 px-8 md:px-16">
-              <div className="border-l-2 border-lime-400 pl-5 md:pl-7">
-                <p className="font-display font-extrabold leading-none tracking-tight text-white uppercase" style={{ fontSize: 'clamp(2.8rem, 11vw, 6.5rem)' }}>
-                  Nuestra
-                </p>
-                <p className="font-display font-extrabold leading-none tracking-tight text-white uppercase" style={{ fontSize: 'clamp(2.8rem, 11vw, 6.5rem)' }}>
-                  APP
-                </p>
+
+          <div ref={overlayRef} className="absolute inset-0 pointer-events-none bg-[#09090b]/70">
+            <div className="absolute inset-0" style={GRID} />
+            <div className="absolute inset-0 flex flex-col justify-center px-8 md:px-16 lg:px-24">
+              <div className="max-w-[1700px] mx-auto w-full">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="h-px w-14 bg-lime-400/40" />
+                  <span className="font-mono text-[8.5px] text-lime-400/60 tracking-[0.42em] uppercase">Vista de sistema · App Zypace</span>
+                </div>
+                <div className="border-l-2 border-lime-400/50 pl-6 md:pl-10">
+                  <p
+                    className="font-display font-extrabold leading-none tracking-tight text-white uppercase"
+                    style={{ fontSize: 'clamp(2.4rem, 7.5vw, 8rem)', letterSpacing: '-0.02em' }}
+                  >
+                    El plan
+                  </p>
+                  <p
+                    className="font-display font-extrabold leading-none tracking-tight text-lime-400 uppercase"
+                    style={{ fontSize: 'clamp(2.4rem, 7.5vw, 8rem)', letterSpacing: '-0.02em' }}
+                  >
+                    en tu mano.
+                  </p>
+                </div>
+                <div className="mt-8 flex flex-col sm:flex-row gap-5 sm:gap-10">
+                  <Callout label="Plataforma" value="iOS + Android" />
+                  <Callout label="Sincronización" value="Strava · Tiempo real" />
+                  <Callout label="IA" value="Generación + ajuste continuo" />
+                </div>
               </div>
             </div>
           </div>
-          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-zinc-900 to-transparent pointer-events-none" />
+
+          <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-[#09090b] to-transparent pointer-events-none z-10" />
+          <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-[#09090b] to-transparent pointer-events-none z-10" />
         </div>
       </div>
 
-      {/* ═══════════════════════════════════════════════════════════
-          03 · MÓDULOS DEL SISTEMA
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 bg-[#0d0d0f] border-t border-zinc-800 overflow-hidden" aria-label="Funcionalidades principales">
-        {/* Dense grid on this section */}
-        <div className="absolute inset-0 pointer-events-none" style={GRID_BG_DENSE} />
+      {/* ══════════════════════════════════════════════════════════════
+          03 · DESPIECE
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40 overflow-hidden" aria-label="Funcionalidades Zypace">
+        <div className="absolute inset-0 pointer-events-none" style={GRID} />
 
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32">
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
 
-          {/* Section header */}
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 md:mb-16 pb-8 border-b border-zinc-800 gap-6" data-reveal>
+          <div className="flex flex-col md:flex-row md:items-end justify-between pb-10 border-b border-zinc-800/70 mb-0 gap-4" data-reveal>
             <div>
-              <Label n="03">Especificaciones del sistema</Label>
+              <div className="mb-5">
+                <Tag n="03" label="Despiece del sistema" />
+              </div>
               <h2
-                className="font-display font-extrabold uppercase text-white leading-[0.9]"
-                style={{ fontSize: 'clamp(2.2rem, 5vw, 4.8rem)' }}
+                className="font-display font-extrabold uppercase leading-[0.85]"
+                style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}
               >
-                Módulos<br />del sistema.
+                <span className="block text-white">Cada pieza,</span>
+                <span className="block" style={OUTLINE}>en su lugar.</span>
               </h2>
             </div>
-            <div className="font-mono text-[10px] text-zinc-700 md:text-right space-y-1.5 shrink-0">
-              <div>REF: ZYP-SYS-V2025</div>
-              <div>MÓDULOS: <span className="text-zinc-400">04</span></div>
-              <div>ESTADO: <span className="text-lime-400">ACTIVO</span></div>
+            <div className="font-mono text-[7.5px] text-zinc-500 md:text-right space-y-1.5 pb-1">
+              <div className="tracking-widest uppercase">Ref: ZYP-SYS-V2025</div>
+              <div className="tracking-widest">Piezas: <span className="text-zinc-300">04</span></div>
+              <div className="tracking-widest">Estado: <span className="text-lime-400">Activo</span></div>
             </div>
           </div>
 
-          {/* 4-col hairline-border grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-px bg-zinc-800">
+          {/* Parts list */}
+          <div className="divide-y divide-zinc-800/50">
             {([
               {
-                id: 'MOD_001',
-                title: 'Calendario Inteligente',
-                desc: 'Centraliza carreras, entrenamientos planificados y actividades reales de Strava en una sola vista.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <rect x="3" y="4" width="18" height="18" rx="2" /><path d="M16 2v4M8 2v4M3 10h18" />
-                    <path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01" />
+                id: 'PIEZA 001',
+                title: 'Calendario inteligente',
+                spec: 'Vista semana/mes · Integración Strava · Progreso visual',
+                desc: 'Centraliza en una sola vista tus carreras objetivo, las sesiones planificadas y las actividades reales importadas desde Strava. Plan vs. realidad, día a día.',
+                svg: (
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                    <rect x="4" y="8" width="40" height="36" rx="1" />
+                    <path d="M32 4v8M16 4v8M4 20h40" />
+                    <rect x="10" y="26" width="7" height="5" rx="0.5" opacity="0.35" />
+                    <rect x="21" y="26" width="7" height="5" rx="0.5" />
+                    <rect x="32" y="26" width="7" height="5" rx="0.5" opacity="0.18" />
+                    <rect x="10" y="35" width="7" height="4" rx="0.5" opacity="0.18" />
+                    <rect x="21" y="35" width="7" height="4" rx="0.5" opacity="0.6" />
                   </svg>
                 ),
               },
               {
-                id: 'MOD_002',
-                title: 'Planes con IA',
-                desc: 'Genera planes personalizados adaptados a tu objetivo y fecha de carrera, con ajustes por metodología.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <circle cx="12" cy="8" r="3" /><path d="M6 20c0-4 2-6 6-6s6 2 6 6" />
-                    <path d="M2 12h2M20 12h2M12 2v2M12 20v2" />
+                id: 'PIEZA 002',
+                title: 'Planificación con IA',
+                spec: 'Metodología: polarizado / noruego / clásico · Periodización automática',
+                desc: 'La IA construye tu plan desde cero: semanas de carga, recuperación, series, rodajes y taper. Ajustado a tu carrera objetivo, tu disponibilidad y tu nivel real.',
+                svg: (
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                    <path d="M8 40 L8 30 L16 30 L16 22 L24 22 L24 14 L32 14 L32 22 L40 22 L40 40Z" opacity="0.15" />
+                    <path d="M8 40 L8 30 L16 30 L16 22 L24 22 L24 14 L32 14 L32 22 L40 22 L40 40" />
+                    <line x1="4" y1="40" x2="44" y2="40" />
+                    <circle cx="24" cy="14" r="2.5" />
+                    <line x1="24" y1="8" x2="24" y2="11.5" />
                   </svg>
                 ),
               },
               {
-                id: 'MOD_003',
-                title: 'Sincroniza Strava',
-                desc: 'Importa automáticamente tus actividades y marca entrenos como completados sin esfuerzo.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                id: 'PIEZA 003',
+                title: 'Sincronización Strava',
+                spec: 'OAuth2 · Importación automática · Marcado de sesiones completadas',
+                desc: 'Conecta Strava una vez. Cada actividad que registres se importa automáticamente, se coteja con el plan y marca la sesión como completada. Sin trabajo manual.',
+                svg: (
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                    <path d="M24 8L6 30h16l-2 12 20-24H24L24 8z" />
+                    <circle cx="36" cy="14" r="7" strokeDasharray="3 2" opacity="0.3" />
+                    <path d="M33 14h6M36 11v6" opacity="0.5" />
                   </svg>
                 ),
               },
               {
-                id: 'MOD_004',
-                title: 'Progreso Claro',
-                desc: 'Visualiza qué has hecho, qué falta y cómo avanza tu preparación semana a semana.',
-                icon: (
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" className="w-8 h-8">
-                    <path d="M3 17l4-4 4 2 4-5 4 3" /><path d="M3 21h18M3 3v18" />
+                id: 'PIEZA 004',
+                title: 'Análisis de progreso',
+                spec: 'Cumplimiento semanal · Informe por email · Zonas de ritmo calibradas',
+                desc: 'Compara lo planificado vs. lo ejecutado. Visualiza el cumplimiento semana a semana, recibe informes automáticos y calibra tus zonas de ritmo a partir de tu actividad real.',
+                svg: (
+                  <svg viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round" className="w-10 h-10">
+                    <line x1="4" y1="44" x2="44" y2="44" />
+                    <line x1="4" y1="44" x2="4" y2="4" />
+                    <path d="M4 34 L12 26 L22 30 L30 18 L44 22" strokeWidth="1.3" />
+                    <path d="M4 34 L12 26 L22 30 L30 18 L44 22 L44 44 L4 44Z" opacity="0.06" fill="currentColor" stroke="none" />
+                    <circle cx="12" cy="26" r="1.5" fill="currentColor" opacity="0.4" />
+                    <circle cx="22" cy="30" r="1.5" fill="currentColor" opacity="0.4" />
+                    <circle cx="30" cy="18" r="1.5" fill="currentColor" opacity="0.4" />
                   </svg>
                 ),
               },
-            ]).map((mod, i) => (
+            ]).map((p, i) => (
               <div
-                key={mod.id}
-                className="relative p-6 lg:p-8 bg-[#0d0d0f] group hover:bg-zinc-900/60 transition-colors"
+                key={p.id}
+                className="grid md:grid-cols-[8rem_1fr_2fr] gap-6 md:gap-12 py-10 md:py-12"
                 data-reveal
-                style={{ transitionDelay: `${i * 0.08}s` }}
+                style={{ transitionDelay: `${i * 0.07}s` }}
               >
-                <div className="font-mono text-[10px] text-lime-400/30 tracking-widest uppercase mb-6">{mod.id}</div>
-                <div className="text-zinc-700 group-hover:text-lime-400 transition-colors duration-300 mb-5">{mod.icon}</div>
-                <h3 className="font-display font-bold text-white uppercase text-lg leading-tight mb-3 group-hover:text-lime-400 transition-colors duration-300">{mod.title}</h3>
-                <p className="text-xs text-zinc-500 leading-relaxed">{mod.desc}</p>
-                <div className="mt-6 pt-4 border-t border-zinc-800/80 flex justify-between items-center">
-                  <span className="font-mono text-[9px] text-zinc-700 uppercase tracking-widest">Estado: activo</span>
-                  <span className="w-1.5 h-1.5 rounded-full bg-lime-400/50 group-hover:bg-lime-400 transition-colors" />
-                </div>
-                {/* Bottom accent line */}
-                <div className="absolute bottom-0 left-0 right-0 h-px bg-lime-400/0 group-hover:bg-lime-400/20 transition-colors duration-300" />
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          04 · EL PROCESO
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 border-t border-zinc-800 overflow-hidden" aria-label="Cómo funciona Zypace">
-        {/* Large bg number */}
-        <div className="absolute right-0 top-0 pointer-events-none select-none overflow-hidden leading-none">
-          <span className="font-display font-extrabold text-white/[0.025]" style={{ fontSize: '28vw' }}>04</span>
-        </div>
-
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32">
-          <Label n="04" data-reveal>El proceso</Label>
-          <h2
-            className="font-display font-extrabold uppercase text-white leading-[0.9] mb-16 md:mb-24"
-            style={{ fontSize: 'clamp(2.2rem, 5vw, 4.8rem)' }}
-            data-reveal
-          >
-            Del punto A<br />a la línea de meta.
-          </h2>
-
-          <div className="grid md:grid-cols-4 gap-12 md:gap-0 relative">
-            {/* Dashed connecting line */}
-            <div className="hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-px border-t border-dashed border-zinc-800 z-0" />
-
-            {([
-              { title: 'Crea tu cuenta',    text: 'Regístrate en segundos y configura tu primera carrera objetivo con todos sus detalles.' },
-              { title: 'Conecta Strava',    text: 'Otorga acceso seguro para sincronizar tus actividades y ritmos reales automáticamente.' },
-              { title: 'Genera tu plan',    text: 'La IA traza tu preparación pieza a pieza: sesiones, zonas, progresión y metodología.' },
-              { title: 'Entrena y progresa', text: 'Cada actividad importada actualiza tu plan y refleja dónde estás respecto a tu meta.' },
-            ] as { title: string; text: string }[]).map((s, i) => (
-              <div
-                key={s.title}
-                className="relative z-10"
-                data-reveal
-                style={{ transitionDelay: `${i * 0.1}s` }}
-              >
-                <div className="md:pr-10">
-                  {/* Step box */}
-                  <div className="w-16 h-16 flex items-center justify-center border border-zinc-800 bg-[#09090b] font-display font-extrabold text-2xl text-zinc-700 mb-6 group-hover:border-lime-400/30">
-                    {String(i + 1).padStart(2, '0')}
+                {/* Part ID + icon */}
+                <div className="flex md:flex-col items-center md:items-start gap-5 md:gap-4">
+                  <span className="font-mono text-[8.5px] text-lime-400/75 tracking-[0.32em] uppercase whitespace-nowrap">{p.id}</span>
+                  <div className="text-zinc-700 hover:text-zinc-300 transition-colors duration-500">
+                    {p.svg}
                   </div>
-                  <div className="font-mono text-[10px] text-lime-400/50 tracking-widest uppercase mb-2">Fase {String(i + 1).padStart(2, '0')}</div>
-                  <h3 className="font-semibold text-zinc-100 mb-3 text-sm md:text-base">{s.title}</h3>
-                  <p className="text-xs text-zinc-500 leading-relaxed">{s.text}</p>
+                </div>
+                {/* Title + spec */}
+                <div className="md:border-l md:border-zinc-800/60 md:pl-10">
+                  <h3
+                    className="font-display font-bold text-white uppercase leading-[0.9]"
+                    style={{ fontSize: 'clamp(1.6rem, 2.6vw, 2.8rem)' }}
+                  >
+                    {p.title}
+                  </h3>
+                  <div className="mt-3 font-mono text-[8.5px] text-zinc-400 leading-relaxed tracking-wide">{p.spec}</div>
+                </div>
+                {/* Description */}
+                <div className="md:border-l md:border-zinc-800/60 md:pl-10">
+                  <p className="text-zinc-400 text-sm md:text-base leading-relaxed">{p.desc}</p>
                 </div>
               </div>
             ))}
@@ -496,171 +635,215 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
-          05 · PRECIO
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 bg-[#0d0d0f] border-t border-zinc-800 overflow-hidden" aria-label="Precio de Zypace">
-        <div className="absolute inset-0 pointer-events-none" style={GRID_BG} />
+      {/* ══════════════════════════════════════════════════════════════
+          04 · EL PROCESO
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 md:py-40 bg-[#0c0c0e] border-t border-zinc-800/40 overflow-hidden" aria-label="Cómo funciona Zypace">
+        <div className="absolute right-0 top-0 bottom-0 w-1/2 overflow-hidden pointer-events-none select-none flex items-center justify-end">
+          <span className="font-display font-extrabold text-white/[0.018] leading-none" style={{ fontSize: '24vw' }}>04</span>
+        </div>
 
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32">
-          <div className="grid lg:grid-cols-2 gap-16 lg:gap-24 items-center">
-
-            {/* Left: statement */}
-            <div data-reveal>
-              <Label n="05">Precio</Label>
-              <h2
-                className="font-display font-extrabold uppercase text-white leading-[0.88]"
-                style={{ fontSize: 'clamp(2.6rem, 6vw, 5.8rem)' }}
-              >
-                Un precio.<br />
-                <span className="text-lime-400">Sin letra pequeña.</span>
-              </h2>
-              <p className="mt-8 text-zinc-400 text-base md:text-lg leading-relaxed max-w-sm">
-                30 días para comprobarlo. Si no es para ti, cancelas antes del día 31 y <strong className="text-zinc-100 font-semibold">no pagas nada</strong>. Así de simple.
-              </p>
-              <div className="mt-10 flex items-center gap-4">
-                <div className="h-px w-10 bg-lime-400/30" />
-                <span className="font-mono text-[10px] text-zinc-600 tracking-widest uppercase">Pago seguro con Stripe</span>
-              </div>
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
+          <div data-reveal>
+            <div className="mb-6">
+              <Tag n="04" label="El proceso" />
             </div>
+            <h2
+              className="font-display font-extrabold uppercase leading-[0.85] mb-14 md:mb-20"
+              style={{ fontSize: 'clamp(1.8rem, 3.5vw, 4.2rem)' }}
+            >
+              <span className="block text-white">Del punto A</span>
+              <span className="block" style={OUTLINE_SM}>a la meta.</span>
+            </h2>
+          </div>
 
-            {/* Right: pricing card */}
-            <div data-reveal style={{ transitionDelay: '0.12s' }}>
-              <CornerBox>
-                <div className="p-8 lg:p-10 border border-zinc-800/80 bg-zinc-950/80">
-                  {/* Price header */}
-                  <div className="flex justify-between items-start mb-8">
-                    <div>
-                      <div className="font-mono text-[10px] text-lime-400 tracking-widest uppercase mb-3">Tarifa única · Zypace Pro</div>
-                      <div
-                        className="font-display font-extrabold text-white leading-none"
-                        style={{ fontSize: 'clamp(3.5rem, 8vw, 5.5rem)' }}
-                      >
-                        9,99€
-                      </div>
-                      <div className="font-mono text-xs text-zinc-500 mt-1.5 tracking-wide">/mes · tras 30 días gratis</div>
-                    </div>
-                    <span className="px-3 py-1.5 bg-lime-400 text-black font-mono text-[10px] font-bold tracking-widest uppercase whitespace-nowrap">
-                      30d gratis
+          <div className="relative">
+            <div className="hidden md:block absolute top-7 left-7 right-7 h-px bg-zinc-800/80">
+              <div className="absolute inset-0 bg-gradient-to-r from-lime-400/15 via-lime-400/6 to-transparent" />
+            </div>
+            <div className="grid md:grid-cols-4 gap-10 md:gap-8">
+              {([
+                { title: 'Crea tu cuenta',     text: 'Regístrate y configura tu primera carrera objetivo con todos sus parámetros técnicos.' },
+                { title: 'Conecta Strava',     text: 'Otorga acceso seguro para sincronizar actividades, ritmos y zonas reales automáticamente.' },
+                { title: 'Genera tu plan',     text: 'La IA traza tu preparación pieza a pieza: sesiones, zonas, progresión y metodología.' },
+                { title: 'Entrena y progresa', text: 'Cada actividad importada actualiza tu estado y refleja el avance respecto a tu meta.' },
+              ] as { title: string; text: string }[]).map((s, i) => (
+                <div key={s.title} className="relative z-10" data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
+                  <div className="w-14 h-14 flex items-center justify-center border border-zinc-800/80 bg-[#0c0c0e] mb-5">
+                    <span className="font-display font-extrabold text-xl text-zinc-500 tracking-tight">
+                      {String(i + 1).padStart(2, '0')}
                     </span>
                   </div>
+                  <span className="font-mono text-[8.5px] text-lime-400/75 tracking-[0.38em] uppercase mb-2 block">Fase {String(i + 1).padStart(2, '0')}</span>
+                  <h3 className="font-semibold text-zinc-200 mb-2.5 text-sm leading-tight">{s.title}</h3>
+                  <p className="text-xs text-zinc-400 leading-relaxed">{s.text}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
-                  {/* Feature list */}
-                  <ul className="space-y-3 border-t border-zinc-800 pt-6 mb-8">
-                    {PRICE_FEATURES.map(f => (
-                      <li key={f} className="flex items-start gap-3 text-sm text-zinc-300">
-                        <span className="text-lime-400 font-mono text-xs mt-0.5 shrink-0">+</span>
-                        {f}
-                      </li>
-                    ))}
-                  </ul>
+      {/* ══════════════════════════════════════════════════════════════
+          05 · PRECIO
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40 overflow-hidden" aria-label="Precio de Zypace">
+        <div className="absolute inset-0 pointer-events-none" style={GRID} />
 
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
+          <div className="mb-8 md:mb-12" data-reveal>
+            <Tag n="05" label="Precio" />
+          </div>
+
+          {/* Price — headline scale */}
+          <div className="mb-12 md:mb-16" data-reveal>
+            <span
+              className="font-display font-extrabold text-white block"
+              style={{ fontSize: 'clamp(3rem, 7.5vw, 9rem)', letterSpacing: '-0.03em', lineHeight: 1 }}
+            >
+              9,99€
+            </span>
+            <p className="font-mono text-[10px] text-zinc-500 tracking-[0.45em] uppercase mt-3">
+              al mes · sin letra pequeña
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
+            <div data-reveal>
+              <p className="text-zinc-400 text-base md:text-lg leading-relaxed max-w-md border-l border-zinc-800/80 pl-6">
+                30 días para comprobarlo. Si no es para ti, cancelas antes del día 31 y{' '}
+                <strong className="text-zinc-100 font-semibold">no pagas nada</strong>.
+              </p>
+              <div className="mt-8 space-y-3">
+                <Callout label="Pago seguro" value="Stripe" />
+                <Callout label="Prueba gratuita" value="30 días completos" />
+                <Callout label="Cancelación" value="En cualquier momento" />
+              </div>
+            </div>
+
+            <div data-reveal style={{ transitionDelay: '0.1s' }}>
+              <div className="relative border border-zinc-700/50">
+                <span className="absolute top-0 left-0 w-7 h-7 border-t border-l border-lime-400/30" />
+                <span className="absolute top-0 right-0 w-7 h-7 border-t border-r border-lime-400/30" />
+                <span className="absolute bottom-0 left-0 w-7 h-7 border-b border-l border-lime-400/30" />
+                <span className="absolute bottom-0 right-0 w-7 h-7 border-b border-r border-lime-400/30" />
+
+                <div className="px-6 py-4 border-b border-zinc-800/80 flex justify-between items-center">
+                  <span className="font-mono text-[8.5px] text-lime-400 tracking-[0.38em] uppercase">Zypace Pro · Incluye</span>
+                  <span className="px-2.5 py-1.5 bg-lime-400 text-black font-mono text-[7.5px] font-bold tracking-[0.28em] uppercase">30d gratis</span>
+                </div>
+                <ul className="divide-y divide-zinc-800/40">
+                  {PRICE_FEATURES.map(f => (
+                    <li key={f} className="flex items-center gap-3 px-6 py-3.5 text-sm text-zinc-300">
+                      <span className="text-lime-400 font-mono text-xs shrink-0">+</span>{f}
+                    </li>
+                  ))}
+                </ul>
+                <div className="px-6 py-5 border-t border-zinc-800/80">
                   <Link
                     to="/register"
-                    className="block w-full text-center py-4 bg-lime-400 hover:bg-lime-300 text-black font-mono text-xs font-bold tracking-widest uppercase transition-colors"
+                    className="block w-full text-center py-4 bg-lime-400 hover:bg-lime-300 text-black font-mono text-xs font-bold tracking-[0.38em] uppercase transition-colors"
                   >
                     Empezar prueba gratuita →
                   </Link>
-                  <p className="text-center font-mono text-[9px] text-zinc-700 mt-3 tracking-widest uppercase">
-                    Introduces tu tarjeta · Sin cargos hasta el día 31
-                  </p>
+                  <p className="text-center font-mono text-[7.5px] text-zinc-500 mt-3 tracking-[0.28em] uppercase">Sin cargos hasta el día 31</p>
                 </div>
-              </CornerBox>
+              </div>
             </div>
-
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════
           06 · FAQ
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-36 border-t border-zinc-800" aria-label="Preguntas frecuentes sobre Zypace">
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32">
-          <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40" aria-label="Preguntas frecuentes">
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
 
-            {/* Left: title */}
-            <div data-reveal>
-              <Label n="06">FAQ</Label>
+          {/* Header row — full width, no column conflict */}
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-zinc-800/60 mb-0" data-reveal>
+            <div>
+              <div className="mb-5">
+                <Tag n="06" label="FAQ" />
+              </div>
               <h2
-                className="font-display font-extrabold uppercase text-white leading-[0.9]"
-                style={{ fontSize: 'clamp(2rem, 4.5vw, 4.2rem)' }}
+                className="font-display font-extrabold uppercase leading-[0.86]"
+                style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}
               >
-                Preguntas<br />frecuentes.
+                <span className="block text-white">Preguntas</span>
+                <span className="block" style={OUTLINE_SM}>frecuentes.</span>
               </h2>
             </div>
+            <span className="font-mono text-[8px] text-zinc-500 tracking-widest uppercase pb-1">ZYP-FAQ-001 · Rev B</span>
+          </div>
 
-            {/* Right: accordion */}
-            <div className="lg:col-span-2" data-reveal style={{ transitionDelay: '0.1s' }}>
-              <div className="divide-y divide-zinc-800">
-                {faqs.map((item, i) => (
-                  <details key={item.q} className="group py-5 md:py-6 cursor-pointer [&_summary::-webkit-details-marker]:hidden">
-                    <summary className="flex items-start justify-between gap-4 list-none">
-                      <div className="flex gap-4 items-start">
-                        <span className="font-mono text-[10px] text-zinc-700 pt-1 shrink-0 w-5">{String(i + 1).padStart(2, '0')}</span>
-                        <span className="font-semibold text-zinc-200 group-open:text-lime-400 transition-colors text-sm md:text-base leading-snug">{item.q}</span>
-                      </div>
-                      <span className="text-lime-400 group-open:rotate-45 transition-transform duration-200 text-xl leading-none shrink-0 mt-0.5">+</span>
-                    </summary>
-                    <p className="mt-4 text-sm text-zinc-500 leading-relaxed pl-9">{item.a}</p>
-                  </details>
-                ))}
-              </div>
-            </div>
-
+          {/* Questions — 2 columns on desktop */}
+          <div className="grid md:grid-cols-2 gap-x-16 lg:gap-x-24" data-reveal style={{ transitionDelay: '0.1s' }}>
+            {faqs.map((item, i) => (
+              <details key={item.q} className="group py-5 md:py-6 border-b border-zinc-800/60 cursor-pointer [&_summary::-webkit-details-marker]:hidden">
+                <summary className="flex items-start justify-between gap-4 list-none">
+                  <div className="flex gap-4 items-start">
+                    <span className="font-mono text-[8px] text-zinc-500 pt-1 shrink-0 w-5 tracking-widest">{String(i + 1).padStart(2, '0')}</span>
+                    <span className="font-semibold text-zinc-200 group-open:text-lime-400 transition-colors text-sm md:text-base leading-snug">{item.q}</span>
+                  </div>
+                  <span className="text-lime-400 group-open:rotate-45 transition-transform duration-200 text-xl leading-none shrink-0 mt-0.5">+</span>
+                </summary>
+                <p className="mt-4 text-sm text-zinc-400 leading-relaxed pl-9">{item.a}</p>
+              </details>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
+      {/* ══════════════════════════════════════════════════════════════
           CTA FINAL
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="relative min-h-[75vh] md:min-h-screen flex items-center border-t border-zinc-800 overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none" style={GRID_BG} />
-        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_70%_55%_at_30%_65%,rgba(163,230,53,0.08),transparent)]" />
+      ══════════════════════════════════════════════════════════════ */}
+      <section className="relative border-t border-zinc-800/40 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={GRID} />
+        <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_65%_50%_at_15%_65%,rgba(163,230,53,0.07),transparent)]" />
 
-        {/* Large bg number */}
-        <div className="absolute right-0 top-0 bottom-0 pointer-events-none select-none flex items-center overflow-hidden">
-          <span className="font-display font-extrabold leading-none text-white/[0.022]" style={{ fontSize: '30vw' }}>ZY</span>
+        {/* Decorative "ZY" — clipped right */}
+        <div className="absolute right-0 top-0 bottom-0 w-[55%] overflow-hidden pointer-events-none select-none flex items-center justify-end">
+          <span className="font-display font-extrabold leading-none text-white/[0.018]" style={{ fontSize: '28vw' }}>ZY</span>
         </div>
 
-        <div className="relative max-w-[1600px] mx-auto px-6 md:px-16 lg:px-24 xl:px-32 w-full py-24 md:py-36">
-          <div className="max-w-4xl">
-            <div className="font-mono text-[10px] text-zinc-700 tracking-widest uppercase mb-8 flex items-center gap-3" data-reveal>
-              <div className="w-6 h-px bg-zinc-700" /> Empieza ahora
+        {/* Corner reg marks */}
+        <RegMark className="absolute top-8 left-8 hidden md:block" />
+        <RegMark className="absolute top-8 right-8 hidden md:block" />
+
+        <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36 w-full pt-20 pb-28 md:pt-24 md:pb-32">
+          <div data-reveal>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="w-6 h-px bg-zinc-800" />
+              <span className="font-mono text-[8.5px] text-zinc-500 tracking-[0.42em] uppercase">Empieza ahora</span>
             </div>
             <h2
-              className="font-display font-extrabold uppercase leading-[0.87] tracking-tight text-white"
-              style={{ fontSize: 'clamp(4rem, 13vw, 13rem)' }}
-              data-reveal
+              className="font-display font-extrabold uppercase leading-[0.82] tracking-tight"
+              style={{ fontSize: 'clamp(3rem, 9.5vw, 11rem)' }}
             >
-              <span className="block">Tu plan</span>
+              <span className="block text-white">Tu plan</span>
               <span className="block text-lime-400">te espera.</span>
             </h2>
+          </div>
 
-            <div className="mt-12 md:mt-16 flex flex-col sm:flex-row items-start gap-6" data-reveal>
-              <BracketBox className="px-8 py-5">
-                <Link
-                  to="/register"
-                  className="font-mono text-xs md:text-sm tracking-widest uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors"
-                >
-                  Empezar 30 días gratis →
-                </Link>
-              </BracketBox>
-              <div className="flex items-center gap-3 self-center">
-                <div className="w-6 h-px bg-zinc-800" />
-                <span className="font-mono text-[10px] text-zinc-700 tracking-widest uppercase">Sin compromiso · Cancela cuando quieras</span>
-              </div>
-            </div>
+          <div className="mt-14 md:mt-18 flex flex-col sm:flex-row items-start gap-5" data-reveal style={{ transitionDelay: '0.15s' }}>
+            <BracketBox className="px-8 py-5">
+              <Link to="/register" className="font-mono text-xs md:text-sm tracking-[0.38em] uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors">
+                Empezar 30 días gratis →
+              </Link>
+            </BracketBox>
+            <p className="self-center font-mono text-[8.5px] text-zinc-400 tracking-[0.3em] uppercase">
+              Sin compromiso · Cancela cuando quieras
+            </p>
           </div>
         </div>
 
-        {/* Bottom rule */}
-        <div className="absolute bottom-0 inset-x-0 border-t border-zinc-800/60 flex items-center px-6 md:px-16 xl:px-32 py-3.5">
-          <span className="font-mono text-[9px] text-zinc-700 tracking-[0.3em] uppercase">© 2025 Zypace · Todos los derechos reservados</span>
+        {/* Footer */}
+        <div className="border-t border-zinc-800/40 flex items-center px-6 md:px-16 xl:px-36 py-4">
+          <span className="font-mono text-[8px] text-zinc-500 tracking-[0.3em] uppercase">© 2025 Zypace · Todos los derechos reservados</span>
           <div className="ml-auto flex items-center gap-6">
-            <Link to="/privacy" className="font-mono text-[9px] text-zinc-700 hover:text-zinc-400 transition-colors tracking-widest uppercase">Privacidad</Link>
-            <Link to="/terms" className="font-mono text-[9px] text-zinc-700 hover:text-zinc-400 transition-colors tracking-widest uppercase">Términos</Link>
+            <Link to="/privacy" className="font-mono text-[8px] text-zinc-500 hover:text-zinc-300 transition-colors tracking-widest uppercase">Privacidad</Link>
+            <Link to="/terms" className="font-mono text-[8px] text-zinc-500 hover:text-zinc-300 transition-colors tracking-widest uppercase">Términos</Link>
           </div>
         </div>
       </section>

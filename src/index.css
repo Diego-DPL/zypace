@@ -2,6 +2,7 @@
 
 @theme {
   --font-display: 'Syne', sans-serif;
+  --font-condensed: 'Barlow Condensed', sans-serif;
   --font-mono: 'Space Mono', 'Courier New', monospace;
 }
 
