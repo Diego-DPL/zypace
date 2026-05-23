@@ -35,3 +35,14 @@
   from { transform: translateY(-100%); }
   to   { transform: translateY(400%); }
 }
+
+/* ── Reveal: direction variants ──────────────────────────────── */
+[data-reveal="left"]  { transform: translateX(-40px); }
+[data-reveal="right"] { transform: translateX(40px); }
+[data-reveal="fade"]  { transform: none; }
+
+/* ── Bracket glow pulse ──────────────────────────────────────── */
+@keyframes bracketGlow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.85; }
+}

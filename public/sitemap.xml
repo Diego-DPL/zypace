@@ -5,7 +5,7 @@
   <!-- Landing page — highest priority -->
   <url>
     <loc>https://www.zypace.com/</loc>
-    <lastmod>2026-05-07</lastmod>
+    <lastmod>2026-05-23</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://www.zypace.com/" />
@@ -36,13 +36,13 @@
   <!-- Legal / trust pages -->
   <url>
     <loc>https://www.zypace.com/privacy</loc>
-    <lastmod>2026-05-07</lastmod>
+    <lastmod>2026-05-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
     <loc>https://www.zypace.com/terms</loc>
-    <lastmod>2026-05-07</lastmod>
+    <lastmod>2026-05-23</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

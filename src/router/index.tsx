@@ -23,6 +23,7 @@ const PrivacyPage        = lazy(() => import('../pages/PrivacyPage'));
 const TermsPage          = lazy(() => import('../pages/TermsPage'));
 const SecurityPage       = lazy(() => import('../pages/SecurityPage'));
 const CookiesPage        = lazy(() => import('../pages/CookiesPage'));
+const NotFoundPage       = lazy(() => import('../pages/NotFoundPage'));
 
 const PageLoader = () => (
   <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
@@ -89,7 +90,7 @@ const AppRouter = () => {
             <Route path="/support"        element={<SupportPage />} />
             <Route path="/admin"          element={role === 'admin' ? <AdminPage /> : <Navigate to="/app" />} />
             <Route path="/strava-callback" element={<StravaCallbackPage />} />
-            <Route path="*"              element={<Navigate to={user ? "/app" : "/"} />} />
+            <Route path="*"              element={<NotFoundPage />} />
           </Routes>
         </Suspense>
       </Layout>

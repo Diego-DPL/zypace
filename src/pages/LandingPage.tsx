@@ -28,12 +28,6 @@ const FAQ_SCHEMA = {
   '@context': 'https://schema.org', '@type': 'FAQPage',
   mainEntity: faqs.map(item => ({ '@type': 'Question', name: item.q, acceptedAnswer: { '@type': 'Answer', text: item.a } })),
 };
-const LANDING_SCHEMA = {
-  '@context': 'https://schema.org', '@type': 'SoftwareApplication', name: 'Zypace',
-  applicationCategory: 'SportsApplication', operatingSystem: 'Web', url: 'https://www.zypace.com',
-  description: 'Planes de entrenamiento personalizados con IA para runners.',
-  offers: { '@type': 'Offer', price: '9.99', priceCurrency: 'EUR', description: '30 días gratis, luego 9,99 €/mes' },
-};
 
 // ── Design tokens ──────────────────────────────────────────────────────────────
 const GRID: React.CSSProperties = {
@@ -41,12 +35,12 @@ const GRID: React.CSSProperties = {
   backgroundSize: '64px 64px',
 };
 
-// Outline text — Barlow Condensed: contraformas más abiertas que Syne ExtraBold,
-// ideal para hollow. Tracking neutral deja que la propia condensación haga el trabajo.
+// Outline text — Barlow Condensed: contraformas más abiertas que Syne ExtraBold.
+// Stroke a 2.5px para compensar la menor masa visual de la condensada vs Syne.
 const OUTLINE: React.CSSProperties = {
   fontFamily: "'Barlow Condensed', sans-serif",
   fontWeight: 800,
-  WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+  WebkitTextStroke: '2.5px rgba(255,255,255,0.7)',
   color: 'transparent',
   letterSpacing: '0.02em',
 };
@@ -58,9 +52,11 @@ const OUTLINE_SM: React.CSSProperties = {
   letterSpacing: '0.02em',
 };
 
+// Dashed route pattern — the leitmotif
+const DASH_LINE = 'repeating-linear-gradient(90deg, rgba(63,63,70,0.45) 0, rgba(63,63,70,0.45) 4px, transparent 4px, transparent 14px)';
+
 // ── Sub-components ─────────────────────────────────────────────────────────────
 
-// Crosshair registration mark — engineering drawing corner print mark
 function RegMark({ className = '' }: { className?: string }) {
   return (
     <div className={`w-6 h-6 relative pointer-events-none select-none ${className}`}>
@@ -71,25 +67,22 @@ function RegMark({ className = '' }: { className?: string }) {
   );
 }
 
-// Engineering title block — like the bottom-right box on a technical drawing
 function TitleBlock() {
   return (
     <div className="font-mono text-[10px] leading-none border-t border-l border-zinc-800">
       <div className="grid grid-cols-[1fr_auto_auto_auto]">
-        {/* Row 1 */}
         <div className="col-span-4 border-b border-zinc-800 px-4 py-2 flex items-center gap-5">
           <span className="text-zinc-500 tracking-[0.3em] uppercase">Proyecto</span>
           <span className="text-zinc-200 font-bold tracking-[0.28em] uppercase">Zypace</span>
           <span className="ml-auto text-zinc-600">ZYP-LP-001</span>
         </div>
-        {/* Row 2 */}
         <div className="border-b border-r border-zinc-800 px-4 py-2">
           <div className="text-zinc-500 tracking-widest uppercase mb-1">Documento</div>
           <div className="text-zinc-300">Landing page</div>
         </div>
         <div className="border-b border-r border-zinc-800 px-4 py-2">
           <div className="text-zinc-500 tracking-widest uppercase mb-1">Rev</div>
-          <div className="text-zinc-300">B</div>
+          <div className="text-zinc-300">C</div>
         </div>
         <div className="border-b border-r border-zinc-800 px-4 py-2">
           <div className="text-zinc-500 tracking-widest uppercase mb-1">Escala</div>
@@ -99,7 +92,6 @@ function TitleBlock() {
           <div className="text-zinc-500 tracking-widest uppercase mb-1">Año</div>
           <div className="text-zinc-300">2025</div>
         </div>
-        {/* Row 3 */}
         <div className="col-span-4 px-4 py-1.5">
           <span className="text-zinc-600 tracking-widest uppercase">Clasificación: pública · Idioma: ES · Autor: Zypace</span>
         </div>
@@ -108,20 +100,19 @@ function TitleBlock() {
   );
 }
 
-// Bracket-corner box
+// Bracket-corner box — CTA container with animated glow
 function BracketBox({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
     <div className={`relative ${className}`}>
-      <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-lime-400 pointer-events-none" />
-      <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-lime-400 pointer-events-none" />
-      <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-lime-400 pointer-events-none" />
-      <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-lime-400 pointer-events-none" />
+      <span className="absolute top-0 left-0 w-4 h-4 border-t border-l border-lime-400 pointer-events-none" style={{ animation: 'bracketGlow 3s ease-in-out infinite' }} />
+      <span className="absolute top-0 right-0 w-4 h-4 border-t border-r border-lime-400 pointer-events-none" style={{ animation: 'bracketGlow 3s ease-in-out infinite 0.75s' }} />
+      <span className="absolute bottom-0 left-0 w-4 h-4 border-b border-l border-lime-400 pointer-events-none" style={{ animation: 'bracketGlow 3s ease-in-out infinite 1.5s' }} />
+      <span className="absolute bottom-0 right-0 w-4 h-4 border-b border-r border-lime-400 pointer-events-none" style={{ animation: 'bracketGlow 3s ease-in-out infinite 2.25s' }} />
       {children}
     </div>
   );
 }
 
-// Engineering callout — thin bracket + annotation
 function Callout({ label, value, className = '' }: { label: string; value?: string; className?: string }) {
   return (
     <div className={`flex items-center gap-3 ${className}`}>
@@ -137,12 +128,29 @@ function Callout({ label, value, className = '' }: { label: string; value?: stri
   );
 }
 
-// Section tag line
 function Tag({ n, label }: { n: string; label: string }) {
   return (
     <div className="flex items-center gap-3">
       <div className="w-7 h-px bg-lime-400 shrink-0" />
       <span className="font-mono text-[9px] text-lime-400 tracking-[0.45em] uppercase">{n} · {label}</span>
+    </div>
+  );
+}
+
+// ── Leitmotif: Route Waypoint ─────────────────────────────────────────────────
+// Dashed route line with a waypoint marker — connecting sections like
+// waypoints on an architect's route map. This is the recurring visual thread.
+function RouteWaypoint() {
+  return (
+    <div className="flex items-center py-6 md:py-8 px-6 md:px-16 lg:px-24 xl:px-36 max-w-[1700px] mx-auto w-full" data-reveal="fade">
+      <div className="flex-1 h-px" style={{ backgroundImage: DASH_LINE }} />
+      <div className="px-4 shrink-0">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+          <circle cx="5" cy="5" r="3.5" fill="none" stroke="rgba(163,230,53,0.2)" strokeWidth="0.8" />
+          <circle cx="5" cy="5" r="1.2" fill="rgba(163,230,53,0.35)" />
+        </svg>
+      </div>
+      <div className="flex-1 h-px" style={{ backgroundImage: DASH_LINE }} />
     </div>
   );
 }
@@ -159,8 +167,6 @@ const LandingPage = () => {
     if (!video || !container) return;
     video.load();
 
-    // RAF-throttle: el scroll solo escribe lastP, el RAF ejecuta el seek.
-    // Máximo un seek por frame de pantalla (~60/s) sin lerp que oculte frames.
     let lastP      = 0;
     let rafPending = false;
 
@@ -206,7 +212,7 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#09090b] text-white">
-      <SEOHead canonical="/" jsonLd={[LANDING_SCHEMA, FAQ_SCHEMA]} />
+      <SEOHead canonical="/" jsonLd={[FAQ_SCHEMA]} />
       <LandingHeader />
 
       {/* ══════════════════════════════════════════════════════════════
@@ -216,13 +222,11 @@ const LandingPage = () => {
         <div className="absolute inset-0 pointer-events-none" style={GRID} />
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_55%_45%_at_8%_70%,rgba(163,230,53,0.06),transparent)]" />
 
-        {/* Print registration marks */}
         <RegMark className="absolute top-6 left-6 hidden md:block" />
         <RegMark className="absolute top-6 right-6 hidden md:block" />
         <RegMark className="absolute bottom-14 left-6 hidden md:block" />
         <RegMark className="absolute bottom-14 right-6 hidden md:block" />
 
-        {/* Left margin — vertical blueprint annotation */}
         <div className="absolute left-0 top-0 bottom-14 w-10 hidden md:flex items-center justify-center border-r border-zinc-800/25 pointer-events-none select-none">
           <span
             className="font-mono text-[7.5px] text-zinc-800 tracking-[0.45em] uppercase whitespace-nowrap"
@@ -232,54 +236,55 @@ const LandingPage = () => {
           </span>
         </div>
 
-        {/* Content */}
         <div className="relative flex-1 flex flex-col justify-center px-6 md:pl-20 md:pr-16 lg:pl-28 lg:pr-24 xl:pl-36 xl:pr-32 max-w-[1700px] mx-auto w-full py-10 md:py-12">
 
-          {/* Section tag */}
           <div className="flex items-center justify-between mb-8 md:mb-12" data-reveal>
             <Tag n="01" label="Presentación" />
             <span className="hidden sm:block font-mono text-[8px] text-zinc-800 tracking-widest">LÁM. 01 / 06</span>
           </div>
 
-          {/* ── THE HEADLINE ── */}
+          {/* ── HEADLINE — staggered reveal per line ── */}
           <h1
             className="font-display font-extrabold uppercase leading-[0.82]"
             aria-label="Traza tu camino"
-            data-reveal
           >
-            {/* TRAZA — solid fill */}
+            {/* TRAZA — Syne filled */}
             <span
               className="block text-white"
+              data-reveal
               style={{ fontSize: 'clamp(3.5rem, 11vw, 13rem)', letterSpacing: '-0.028em' }}
             >
               TRAZA
             </span>
 
-            {/* "tu" — micro interline, like a correction a lápiz */}
+            {/* "tu" — annotation interline */}
             <span
               className="block font-mono font-normal text-zinc-600"
+              data-reveal
               style={{
                 fontSize: 'clamp(0.75rem, 1.8vw, 2.2rem)',
                 letterSpacing: '0.55em',
                 paddingLeft: '1%',
                 marginTop: '-0.1em',
                 marginBottom: '-0.05em',
+                transitionDelay: '0.12s',
               }}
             >
               tu
             </span>
 
-            {/* CAMINO. — Barlow Condensed hollow: contraformas abiertas,
-                misma altura óptica que TRAZA pero letras completamente distintas */}
+            {/* CAMINO. — Barlow Condensed outline, +15% size for optical parity with Syne */}
             <span
               className="block"
+              data-reveal
               style={{
                 fontFamily: "'Barlow Condensed', sans-serif",
                 fontWeight: 800,
-                fontSize: 'clamp(3.5rem, 11vw, 13rem)',
+                fontSize: 'clamp(4rem, 12.5vw, 15rem)',
                 letterSpacing: '0.02em',
-                WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+                WebkitTextStroke: '2.5px rgba(255,255,255,0.7)',
                 color: 'transparent',
+                transitionDelay: '0.24s',
               }}
             >
               CAMINO.
@@ -287,11 +292,9 @@ const LandingPage = () => {
           </h1>
 
           {/* Marathon elevation route SVG */}
-          <div className="mt-6 md:mt-8 w-full max-w-3xl" data-reveal style={{ transitionDelay: '0.08s' }}>
+          <div className="mt-6 md:mt-8 w-full max-w-3xl" data-reveal style={{ transitionDelay: '0.32s' }}>
             <svg viewBox="0 0 700 108" fill="none" className="w-full" aria-hidden="true">
-              {/* Base rule */}
               <line x1="0" y1="80" x2="700" y2="80" stroke="#27272a" strokeWidth="0.5" />
-              {/* Elevation fill */}
               <path
                 d="M 10 80 C 60 80 80 22 140 22 S 210 80 280 46 S 350 12 430 26 S 510 80 580 48 S 640 28 690 34 L 690 80 Z"
                 fill="url(#eg)" opacity="0.05"
@@ -302,39 +305,32 @@ const LandingPage = () => {
                   <stop offset="100%" stopColor="#a3e635" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              {/* Route line */}
               <path
                 d="M 10 60 C 60 60 80 22 140 22 S 210 64 280 46 S 350 12 430 26 S 510 60 580 48 S 640 28 690 34"
                 stroke="#a3e635" strokeWidth="1.4" strokeDasharray="5 4" opacity="0.5"
                 pathLength="1" className="draw-path"
               />
-              {/* Start */}
               <circle cx="10" cy="60" r="3" fill="none" stroke="#a3e635" strokeWidth="1" opacity="0.5" />
               <circle cx="10" cy="60" r="1.2" fill="#a3e635" opacity="0.5" />
               <line x1="10" y1="80" x2="10" y2="86" stroke="#52525b" strokeWidth="0.7" />
               <text x="10" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">0 km</text>
-              {/* Mid */}
               <line x1="280" y1="80" x2="280" y2="86" stroke="#52525b" strokeWidth="0.7" />
               <text x="280" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">21 km</text>
-              {/* Finish */}
               <circle cx="690" cy="34" r="3" fill="none" stroke="#a3e635" strokeWidth="1" opacity="0.5" />
               <line x1="690" y1="80" x2="690" y2="86" stroke="#52525b" strokeWidth="0.7" />
               <text x="690" y="96" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">42 km</text>
-              {/* Dimension line */}
               <line x1="10" y1="7" x2="690" y2="7" stroke="#3f3f46" strokeWidth="0.5" />
               <line x1="10" y1="3" x2="10" y2="11" stroke="#3f3f46" strokeWidth="0.7" />
               <line x1="690" y1="3" x2="690" y2="11" stroke="#3f3f46" strokeWidth="0.7" />
               <text x="350" y="4" fill="#52525b" fontSize="7" fontFamily="monospace" textAnchor="middle">DISTANCIA OBJETIVO — 42.195 km</text>
-              {/* D+ callout */}
               <line x1="430" y1="26" x2="498" y2="5" stroke="#3f3f46" strokeWidth="0.5" strokeDasharray="2 2" />
               <text x="502" y="7" fill="#52525b" fontSize="6.5" fontFamily="monospace">D+ 850m</text>
             </svg>
           </div>
 
-          {/* Description + CTA */}
-          <div className="mt-10 md:mt-12 flex flex-col sm:flex-row items-start gap-10 sm:gap-16 lg:gap-24" data-reveal style={{ transitionDelay: '0.15s' }}>
-            {/* Description */}
-            <div className="flex items-start gap-4 max-w-sm">
+          {/* Description + CTA — staggered entry */}
+          <div className="mt-10 md:mt-12 flex flex-col sm:flex-row items-start gap-10 sm:gap-16 lg:gap-24">
+            <div className="flex items-start gap-4 max-w-sm" data-reveal style={{ transitionDelay: '0.4s' }}>
               <div className="w-px self-stretch bg-lime-400/15 shrink-0 mt-1" />
               <div>
                 <p className="font-mono text-[8.5px] text-zinc-500 tracking-[0.45em] uppercase mb-2">Sistema · Descripción funcional</p>
@@ -344,8 +340,7 @@ const LandingPage = () => {
               </div>
             </div>
 
-            {/* CTA */}
-            <div className="flex flex-col items-start gap-4">
+            <div className="flex flex-col items-start gap-4" data-reveal style={{ transitionDelay: '0.5s' }}>
               <BracketBox className="px-8 py-4">
                 <Link to="/register" className="font-mono text-xs tracking-[0.38em] uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors">
                   Empezar gratis →
@@ -371,11 +366,13 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── Route waypoint ── */}
+      <RouteWaypoint />
+
       {/* ══════════════════════════════════════════════════════════════
           02 · FILOSOFÍA
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative py-24 md:py-44 border-t border-zinc-800/40 overflow-hidden" aria-label="Filosofía Zypace">
-        {/* Decorative "02" — bottom left, clipped */}
+      <section className="relative py-24 md:py-44 overflow-hidden" aria-label="Filosofía Zypace">
         <div className="absolute left-0 bottom-0 w-[55%] overflow-hidden pointer-events-none select-none">
           <span className="font-display font-extrabold text-white/[0.018] leading-[0.8] block" style={{ fontSize: '30vw' }}>02</span>
         </div>
@@ -386,33 +383,38 @@ const LandingPage = () => {
           </div>
 
           <div className="grid lg:grid-cols-[1fr_1fr] gap-16 lg:gap-28 xl:gap-40 items-start">
-            {/* Left: manifesto quote with outline alternation */}
-            <div data-reveal>
-              <blockquote
-                className="font-display font-extrabold uppercase leading-[0.87] tracking-tight"
-                style={{ fontSize: 'clamp(2rem, 4vw, 5rem)' }}
-              >
-                <span className="block text-white">Cada corredor</span>
-                <span className="block" style={OUTLINE}>lleva un camino</span>
-                <span className="block text-lime-400">que solo es suyo.</span>
+            {/* Left: manifesto — staggered quote lines */}
+            <div>
+              <blockquote className="font-display font-extrabold uppercase leading-[0.87] tracking-tight">
+                <span className="block text-white" data-reveal
+                  style={{ fontSize: 'clamp(2rem, 4vw, 5rem)' }}>
+                  Cada corredor
+                </span>
+                <span className="block" data-reveal
+                  style={{ ...OUTLINE, fontSize: 'clamp(2.3rem, 4.6vw, 5.8rem)', transitionDelay: '0.1s' }}>
+                  lleva un camino
+                </span>
+                <span className="block text-lime-400" data-reveal
+                  style={{ fontSize: 'clamp(2rem, 4vw, 5rem)', transitionDelay: '0.2s' }}>
+                  que solo es suyo.
+                </span>
               </blockquote>
 
-              <p className="mt-10 text-zinc-400 text-base md:text-lg leading-relaxed max-w-md border-l border-zinc-800/80 pl-6">
+              <p className="mt-10 text-zinc-400 text-base md:text-lg leading-relaxed max-w-md border-l border-zinc-800/80 pl-6" data-reveal style={{ transitionDelay: '0.3s' }}>
                 Los planes genéricos fallan porque ignoran quién eres.
                 Zypace no asigna un plan. Lo <strong className="text-zinc-100 font-semibold">traza desde cero</strong>,
                 pieza a pieza, con la precisión de un ingeniero y la evidencia de la ciencia del deporte.
               </p>
-              <div className="mt-10 space-y-3">
+              <div className="mt-10 space-y-3" data-reveal style={{ transitionDelay: '0.4s' }}>
                 <Callout label="Plan único" value="Nunca genérico" />
                 <Callout label="Evidencia científica" value="Periodización probada" />
                 <Callout label="Calibración" value="A partir de tu actividad real" />
               </div>
             </div>
 
-            {/* Right: input spec sheet */}
-            <div data-reveal style={{ transitionDelay: '0.15s' }}>
+            {/* Right: input spec sheet — slides from right */}
+            <div data-reveal="right" style={{ transitionDelay: '0.15s' }}>
               <div className="relative border border-zinc-800/80">
-                {/* Corner accent marks */}
                 <span className="absolute -top-px left-0 w-10 h-px bg-lime-400/30" />
                 <span className="absolute -top-px right-0 w-10 h-px bg-lime-400/30" />
                 <span className="absolute -bottom-px left-0 w-10 h-px bg-lime-400/30" />
@@ -459,7 +461,7 @@ const LandingPage = () => {
       </section>
 
       {/* ══════════════════════════════════════════════════════════════
-          VIDEO SCROLL — lógica intacta
+          VIDEO SCROLL
       ══════════════════════════════════════════════════════════════ */}
       <div ref={scrollContainerRef} className="relative h-[250vh] md:h-[400vh]">
         <div className="sticky top-0 h-screen w-full overflow-hidden bg-[#09090b]">
@@ -508,10 +510,13 @@ const LandingPage = () => {
         </div>
       </div>
 
+      {/* ── Route waypoint ── */}
+      <RouteWaypoint />
+
       {/* ══════════════════════════════════════════════════════════════
           03 · DESPIECE
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40 overflow-hidden" aria-label="Funcionalidades Zypace">
+      <section className="relative z-10 py-24 md:py-40 overflow-hidden" aria-label="Funcionalidades Zypace">
         <div className="absolute inset-0 pointer-events-none" style={GRID} />
 
         <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
@@ -521,12 +526,9 @@ const LandingPage = () => {
               <div className="mb-5">
                 <Tag n="03" label="Despiece del sistema" />
               </div>
-              <h2
-                className="font-display font-extrabold uppercase leading-[0.85]"
-                style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}
-              >
-                <span className="block text-white">Cada pieza,</span>
-                <span className="block" style={OUTLINE}>en su lugar.</span>
+              <h2 className="font-display font-extrabold uppercase leading-[0.85]">
+                <span className="block text-white" style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}>Cada pieza,</span>
+                <span className="block" style={{ ...OUTLINE, fontSize: 'clamp(2.3rem, 4.6vw, 5.5rem)' }}>en su lugar.</span>
               </h2>
             </div>
             <div className="font-mono text-[7.5px] text-zinc-500 md:text-right space-y-1.5 pb-1">
@@ -536,7 +538,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          {/* Parts list */}
+          {/* Parts list — hover glow on items */}
           <div className="divide-y divide-zinc-800/50">
             {([
               {
@@ -604,18 +606,16 @@ const LandingPage = () => {
             ]).map((p, i) => (
               <div
                 key={p.id}
-                className="grid md:grid-cols-[8rem_1fr_2fr] gap-6 md:gap-12 py-10 md:py-12"
+                className="grid md:grid-cols-[8rem_1fr_2fr] gap-6 md:gap-12 py-10 md:py-12 hover:bg-lime-400/[0.015] transition-colors duration-500"
                 data-reveal
-                style={{ transitionDelay: `${i * 0.07}s` }}
+                style={{ transitionDelay: `${i * 0.08}s` }}
               >
-                {/* Part ID + icon */}
                 <div className="flex md:flex-col items-center md:items-start gap-5 md:gap-4">
                   <span className="font-mono text-[8.5px] text-lime-400/75 tracking-[0.32em] uppercase whitespace-nowrap">{p.id}</span>
                   <div className="text-zinc-700 hover:text-zinc-300 transition-colors duration-500">
                     {p.svg}
                   </div>
                 </div>
-                {/* Title + spec */}
                 <div className="md:border-l md:border-zinc-800/60 md:pl-10">
                   <h3
                     className="font-display font-bold text-white uppercase leading-[0.9]"
@@ -625,7 +625,6 @@ const LandingPage = () => {
                   </h3>
                   <div className="mt-3 font-mono text-[8.5px] text-zinc-400 leading-relaxed tracking-wide">{p.spec}</div>
                 </div>
-                {/* Description */}
                 <div className="md:border-l md:border-zinc-800/60 md:pl-10">
                   <p className="text-zinc-400 text-sm md:text-base leading-relaxed">{p.desc}</p>
                 </div>
@@ -635,30 +634,37 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── Route waypoint ── */}
+      <RouteWaypoint />
+
       {/* ══════════════════════════════════════════════════════════════
           04 · EL PROCESO
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-40 bg-[#0c0c0e] border-t border-zinc-800/40 overflow-hidden" aria-label="Cómo funciona Zypace">
+      <section className="relative z-10 py-24 md:py-40 bg-[#0c0c0e] overflow-hidden" aria-label="Cómo funciona Zypace">
         <div className="absolute right-0 top-0 bottom-0 w-1/2 overflow-hidden pointer-events-none select-none flex items-center justify-end">
           <span className="font-display font-extrabold text-white/[0.018] leading-none" style={{ fontSize: '24vw' }}>04</span>
         </div>
 
         <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
-          <div data-reveal>
-            <div className="mb-6">
+          <div>
+            <div className="mb-6" data-reveal>
               <Tag n="04" label="El proceso" />
             </div>
-            <h2
-              className="font-display font-extrabold uppercase leading-[0.85] mb-14 md:mb-20"
-              style={{ fontSize: 'clamp(1.8rem, 3.5vw, 4.2rem)' }}
-            >
-              <span className="block text-white">Del punto A</span>
-              <span className="block" style={OUTLINE_SM}>a la meta.</span>
+            <h2 className="font-display font-extrabold uppercase leading-[0.85] mb-14 md:mb-20">
+              <span className="block text-white" data-reveal
+                style={{ fontSize: 'clamp(1.8rem, 3.5vw, 4.2rem)' }}>
+                Del punto A
+              </span>
+              <span className="block" data-reveal
+                style={{ ...OUTLINE_SM, fontSize: 'clamp(2rem, 4vw, 4.8rem)', transitionDelay: '0.1s' }}>
+                a la meta.
+              </span>
             </h2>
           </div>
 
           <div className="relative">
-            <div className="hidden md:block absolute top-7 left-7 right-7 h-px bg-zinc-800/80">
+            {/* Dashed connecting line — leitmotif continuation */}
+            <div className="hidden md:block absolute top-7 left-7 right-7 h-px" style={{ backgroundImage: DASH_LINE }}>
               <div className="absolute inset-0 bg-gradient-to-r from-lime-400/15 via-lime-400/6 to-transparent" />
             </div>
             <div className="grid md:grid-cols-4 gap-10 md:gap-8">
@@ -669,7 +675,9 @@ const LandingPage = () => {
                 { title: 'Entrena y progresa', text: 'Cada actividad importada actualiza tu estado y refleja el avance respecto a tu meta.' },
               ] as { title: string; text: string }[]).map((s, i) => (
                 <div key={s.title} className="relative z-10" data-reveal style={{ transitionDelay: `${i * 0.1}s` }}>
-                  <div className="w-14 h-14 flex items-center justify-center border border-zinc-800/80 bg-[#0c0c0e] mb-5">
+                  {/* Step box — dashed border echoes the route leitmotif */}
+                  <div className="w-14 h-14 flex items-center justify-center bg-[#0c0c0e] mb-5"
+                    style={{ border: '1px dashed rgba(63,63,70,0.6)' }}>
                     <span className="font-display font-extrabold text-xl text-zinc-500 tracking-tight">
                       {String(i + 1).padStart(2, '0')}
                     </span>
@@ -684,10 +692,13 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── Route waypoint ── */}
+      <RouteWaypoint />
+
       {/* ══════════════════════════════════════════════════════════════
           05 · PRECIO
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40 overflow-hidden" aria-label="Precio de Zypace">
+      <section className="relative z-10 py-24 md:py-40 overflow-hidden" aria-label="Precio de Zypace">
         <div className="absolute inset-0 pointer-events-none" style={GRID} />
 
         <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
@@ -695,8 +706,7 @@ const LandingPage = () => {
             <Tag n="05" label="Precio" />
           </div>
 
-          {/* Price — headline scale */}
-          <div className="mb-12 md:mb-16" data-reveal>
+          <div className="mb-12 md:mb-16" data-reveal style={{ transitionDelay: '0.1s' }}>
             <span
               className="font-display font-extrabold text-white block"
               style={{ fontSize: 'clamp(3rem, 7.5vw, 9rem)', letterSpacing: '-0.03em', lineHeight: 1 }}
@@ -709,7 +719,7 @@ const LandingPage = () => {
           </div>
 
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-24 items-start">
-            <div data-reveal>
+            <div data-reveal style={{ transitionDelay: '0.2s' }}>
               <p className="text-zinc-400 text-base md:text-lg leading-relaxed max-w-md border-l border-zinc-800/80 pl-6">
                 30 días para comprobarlo. Si no es para ti, cancelas antes del día 31 y{' '}
                 <strong className="text-zinc-100 font-semibold">no pagas nada</strong>.
@@ -721,7 +731,7 @@ const LandingPage = () => {
               </div>
             </div>
 
-            <div data-reveal style={{ transitionDelay: '0.1s' }}>
+            <div data-reveal="right" style={{ transitionDelay: '0.25s' }}>
               <div className="relative border border-zinc-700/50">
                 <span className="absolute top-0 left-0 w-7 h-7 border-t border-l border-lime-400/30" />
                 <span className="absolute top-0 right-0 w-7 h-7 border-t border-r border-lime-400/30" />
@@ -754,30 +764,28 @@ const LandingPage = () => {
         </div>
       </section>
 
+      {/* ── Route waypoint ── */}
+      <RouteWaypoint />
+
       {/* ══════════════════════════════════════════════════════════════
           06 · FAQ
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative z-10 py-24 md:py-40 border-t border-zinc-800/40" aria-label="Preguntas frecuentes">
+      <section className="relative z-10 py-24 md:py-40" aria-label="Preguntas frecuentes">
         <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36">
 
-          {/* Header row — full width, no column conflict */}
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 pb-10 border-b border-zinc-800/60 mb-0" data-reveal>
             <div>
               <div className="mb-5">
                 <Tag n="06" label="FAQ" />
               </div>
-              <h2
-                className="font-display font-extrabold uppercase leading-[0.86]"
-                style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}
-              >
-                <span className="block text-white">Preguntas</span>
-                <span className="block" style={OUTLINE_SM}>frecuentes.</span>
+              <h2 className="font-display font-extrabold uppercase leading-[0.86]">
+                <span className="block text-white" style={{ fontSize: 'clamp(2rem, 4vw, 4.8rem)' }}>Preguntas</span>
+                <span className="block" style={{ ...OUTLINE_SM, fontSize: 'clamp(2.3rem, 4.6vw, 5.5rem)' }}>frecuentes.</span>
               </h2>
             </div>
             <span className="font-mono text-[8px] text-zinc-500 tracking-widest uppercase pb-1">ZYP-FAQ-001 · Rev B</span>
           </div>
 
-          {/* Questions — 2 columns on desktop */}
           <div className="grid md:grid-cols-2 gap-x-16 lg:gap-x-24" data-reveal style={{ transitionDelay: '0.1s' }}>
             {faqs.map((item, i) => (
               <details key={item.q} className="group py-5 md:py-6 border-b border-zinc-800/60 cursor-pointer [&_summary::-webkit-details-marker]:hidden">
@@ -798,35 +806,39 @@ const LandingPage = () => {
       {/* ══════════════════════════════════════════════════════════════
           CTA FINAL
       ══════════════════════════════════════════════════════════════ */}
-      <section className="relative border-t border-zinc-800/40 overflow-hidden">
+      <section className="relative overflow-hidden">
+        {/* Dashed top border — leitmotif as section separator */}
+        <div className="h-px" style={{ backgroundImage: DASH_LINE }} />
+
         <div className="absolute inset-0 pointer-events-none" style={GRID} />
         <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(ellipse_65%_50%_at_15%_65%,rgba(163,230,53,0.07),transparent)]" />
 
-        {/* Decorative "ZY" — clipped right */}
         <div className="absolute right-0 top-0 bottom-0 w-[55%] overflow-hidden pointer-events-none select-none flex items-center justify-end">
           <span className="font-display font-extrabold leading-none text-white/[0.018]" style={{ fontSize: '28vw' }}>ZY</span>
         </div>
 
-        {/* Corner reg marks */}
         <RegMark className="absolute top-8 left-8 hidden md:block" />
         <RegMark className="absolute top-8 right-8 hidden md:block" />
 
         <div className="relative max-w-[1700px] mx-auto px-6 md:px-16 lg:px-24 xl:px-36 w-full pt-20 pb-28 md:pt-24 md:pb-32">
-          <div data-reveal>
-            <div className="flex items-center gap-3 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-8" data-reveal>
               <div className="w-6 h-px bg-zinc-800" />
               <span className="font-mono text-[8.5px] text-zinc-500 tracking-[0.42em] uppercase">Empieza ahora</span>
             </div>
-            <h2
-              className="font-display font-extrabold uppercase leading-[0.82] tracking-tight"
-              style={{ fontSize: 'clamp(3rem, 9.5vw, 11rem)' }}
-            >
-              <span className="block text-white">Tu plan</span>
-              <span className="block text-lime-400">te espera.</span>
+            <h2 className="font-display font-extrabold uppercase leading-[0.82] tracking-tight">
+              <span className="block text-white" data-reveal
+                style={{ fontSize: 'clamp(3rem, 9.5vw, 11rem)' }}>
+                Tu plan
+              </span>
+              <span className="block text-lime-400" data-reveal
+                style={{ fontSize: 'clamp(3rem, 9.5vw, 11rem)', transitionDelay: '0.12s' }}>
+                te espera.
+              </span>
             </h2>
           </div>
 
-          <div className="mt-14 md:mt-18 flex flex-col sm:flex-row items-start gap-5" data-reveal style={{ transitionDelay: '0.15s' }}>
+          <div className="mt-14 md:mt-18 flex flex-col sm:flex-row items-start gap-5" data-reveal style={{ transitionDelay: '0.24s' }}>
             <BracketBox className="px-8 py-5">
               <Link to="/register" className="font-mono text-xs md:text-sm tracking-[0.38em] uppercase font-bold text-lime-400 whitespace-nowrap hover:text-white transition-colors">
                 Empezar 30 días gratis →
