@@ -133,11 +133,15 @@ Google Fonts link:
 
 | Elemento | Tamano | Font |
 |----------|--------|------|
-| Hero headline | `clamp(3.5rem, 11vw, 13rem)` | Syne 800 (filled) / Barlow Condensed 800 (outline) |
-| Hero annotation | `clamp(0.75rem, 1.8vw, 2.2rem)` | Space Mono 400 |
-| Section title | `clamp(2rem, 5.5vw, 6.5rem)` | Syne 800 / Barlow Condensed 800 |
+| Hero filled (TRAZA) | `clamp(3.5rem, 11vw, 13rem)` | Syne 800 |
+| Hero outline (CAMINO.) | `clamp(4rem, 12.5vw, 15rem)` | Barlow Condensed 800 (+15%) |
+| Hero annotation (tu) | `clamp(0.75rem, 1.8vw, 2.2rem)` | Space Mono 400 |
+| Section title filled | `clamp(2rem, 4vw, 4.8rem)` | Syne 800 |
+| Section title outline | `clamp(2.3rem, 4.6vw, 5.5rem)` | Barlow Condensed 800 (+15%) |
 | Price | `clamp(3rem, 7.5vw, 9rem)` | Syne 800 |
 | Body landing | `clamp(0.85rem, 1.6vw, 1.6rem)` | System sans |
+
+**Regla de compensacion optica:** Barlow Condensed tiene menos masa visual que Syne al mismo font-size (letras mas estrechas). Para igualar el peso optico, el texto outline siempre se escala un **+15%** respecto al texto filled adyacente.
 
 ### Tecnica outline/hollow (solo landing)
 
@@ -146,7 +150,7 @@ Google Fonts link:
 const OUTLINE: React.CSSProperties = {
   fontFamily: "'Barlow Condensed', sans-serif",
   fontWeight: 800,
-  WebkitTextStroke: '2px rgba(255,255,255,0.7)',
+  WebkitTextStroke: '2.5px rgba(255,255,255,0.7)',
   color: 'transparent',
   letterSpacing: '0.02em',
 };
@@ -436,6 +440,28 @@ grid md:grid-cols-4 gap-10                              — Footer
 
 Activado por `IntersectionObserver` que anade clase `.is-visible`.
 
+### Variantes de direccion
+
+```css
+[data-reveal="left"]  { transform: translateX(-40px); }  /* Slide desde la izquierda */
+[data-reveal="right"] { transform: translateX(40px); }   /* Slide desde la derecha */
+[data-reveal="fade"]  { transform: none; }                /* Solo opacidad */
+```
+
+Uso: elementos a la izquierda del layout usan `data-reveal` (default up) o `"left"`, elementos a la derecha usan `"right"`, decoraciones sutiles usan `"fade"`.
+
+### Stagger (escalonado)
+
+Los headlines con multiples lineas usan `transitionDelay` incremental en cada linea para crear una cascada:
+
+```tsx
+<span data-reveal>TRAZA</span>                              // delay: 0
+<span data-reveal style={{ transitionDelay: '0.12s' }}>tu</span>
+<span data-reveal style={{ transitionDelay: '0.24s' }}>CAMINO.</span>
+```
+
+Patron: incrementos de `0.08s`–`0.12s` entre elementos consecutivos.
+
 ### SVG path draw (landing)
 
 ```css
@@ -445,6 +471,17 @@ Activado por `IntersectionObserver` que anade clase `.is-visible`.
   animation: drawPath 2.4s cubic-bezier(0.16, 1, 0.3, 1) 0.4s forwards;
 }
 ```
+
+### Bracket glow (landing CTA)
+
+```css
+@keyframes bracketGlow {
+  0%, 100% { opacity: 0.35; }
+  50%      { opacity: 0.85; }
+}
+```
+
+Cada esquina del BracketBox pulsa con un delay distinto (0s, 0.75s, 1.5s, 2.25s), como un instrumento de precision midiendo.
 
 ### Transiciones comunes
 
@@ -502,6 +539,25 @@ Tabla inferior derecha del hero tipo cajetin de plano tecnico:
 font-mono text-[10px], border-zinc-800, grid de celdas con Proyecto/Rev/Escala/Ano
 ```
 
+### Leitmotif: La linea de ruta (RouteWaypoint)
+
+El hilo visual que conecta toda la landing. Una linea discontinua horizontal con un waypoint lime en el centro, colocada entre cada seccion como puntos en un mapa de ruta.
+
+```tsx
+const DASH_LINE = 'repeating-linear-gradient(90deg, rgba(63,63,70,0.45) 0, rgba(63,63,70,0.45) 4px, transparent 4px, transparent 14px)';
+```
+
+El patron discontinuo se reutiliza en:
+- **Separadores de seccion**: `RouteWaypoint` entre cada seccion (reemplaza `border-t`)
+- **Linea conectora del proceso**: seccion 04, conectando los 4 pasos
+- **CTA final**: borde superior como cierre del recorrido
+- **Step boxes del proceso**: `border: 1px dashed` en los recuadros numerados
+
+El waypoint central es un SVG con doble circulo (borde + punto interior) en lime sutil:
+```
+circle r=3.5 stroke lime-400/20 + circle r=1.2 fill lime-400/35
+```
+
 ### Radial glows
 
 ```
@@ -509,6 +565,13 @@ bg-[radial-gradient(ellipse_55%_45%_at_8%_70%,rgba(163,230,53,0.06),transparent)
 ```
 
 Posicionados como `absolute inset-0 pointer-events-none` para ambientacion sutil.
+
+### Hover en features (landing)
+
+Los items del Despiece (PIEZA 001–004) tienen un glow casi imperceptible al hover:
+```
+hover:bg-lime-400/[0.015] transition-colors duration-500
+```
 
 ### Video scroll
 
@@ -620,7 +683,8 @@ Texto 3:     zinc-500
 Display:     Syne 700-800
 Condensed:   Barlow Condensed 700-800
 Mono:        Space Mono 400-700
-Outline:     Barlow Condensed 800 + WebkitTextStroke
+Outline:     Barlow Condensed 800 + WebkitTextStroke 2.5px (+15% size)
+Leitmotif:   Linea discontinua de ruta (DASH_LINE) + waypoint lime
 Focus:       ring-2 ring-lime-400
 Transicion:  transition-colors (default 150ms)
 Tema:        dark-only
