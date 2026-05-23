@@ -30,6 +30,13 @@ const PageLoader = () => (
   </div>
 );
 
+/** Scrolls to the top of the page on every route change. */
+function ScrollToTop() {
+  const location = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [location.pathname]);
+  return null;
+}
+
 /** Fires a GA4 page_view on every route change. Must be rendered inside <Router>. */
 function PageTracker() {
   const location = useLocation();
@@ -58,6 +65,7 @@ const AppRouter = () => {
 
   return (
     <Router>
+      <ScrollToTop />
       <PageTracker />
       <Layout>
         <Suspense fallback={<PageLoader />}>

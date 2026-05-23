@@ -21,7 +21,7 @@ const TermsPage = () => (
     </p>
 
     <h2>2. Descripción del servicio</h2>
-    <p>Zypace es una plataforma de entrenamiento personal para corredores que combina análisis de actividad con inteligencia artificial para generar planes de entrenamiento personalizados, gestionar un calendario de carreras y hacer seguimiento del progreso.</p>
+    <p>Zypace es una plataforma de entrenamiento personal para corredores que combina análisis de actividad con inteligencia artificial para generar planes de entrenamiento personalizados, gestionar un calendario de carreras y hacer seguimiento del progreso. El servicio está disponible como aplicación web en <strong>www.zypace.com</strong> y como aplicación móvil nativa para <strong>iOS</strong> (App Store) y <strong>Android</strong> (Google Play).</p>
 
     <h2>3. Suscripción y precios</h2>
     <ul>
@@ -29,7 +29,7 @@ const TermsPage = () => (
       <li><strong>Precio:</strong> 9,99 € / mes (IVA incluido) tras el periodo de prueba.</li>
       <li><strong>Renovación automática:</strong> la suscripción se renueva automáticamente cada mes. Puedes cancelarla en cualquier momento desde Ajustes → Suscripción.</li>
       <li><strong>Cancelación:</strong> si cancelas antes de que finalice el periodo actual, conservas el acceso hasta el último día pagado. No se realizan reembolsos parciales por los días no utilizados.</li>
-      <li><strong>Pago:</strong> se procesa a través de Stripe. Aceptamos las principales tarjetas de crédito y débito.</li>
+      <li><strong>Pago:</strong> se procesa a través de Stripe en <strong>www.zypace.com</strong>. Aceptamos las principales tarjetas de crédito y débito. La suscripción <strong>no se gestiona a través de Apple App Store ni de Google Play</strong>; Apple y Google no intervienen en el proceso de pago ni en los reembolsos.</li>
       <li><strong>Cambios de precio:</strong> cualquier cambio en el precio se comunicará con al menos 30 días de antelación por email.</li>
     </ul>
 
@@ -72,7 +72,7 @@ const TermsPage = () => (
     <h2>14. Contacto</h2>
     <p>Para cualquier consulta: <a href="mailto:support.zypace@gmail.com">support.zypace@gmail.com</a></p>
 
-    <p className="text-xs text-gray-500">Versión: v2 · Última actualización: 10/05/2026</p>
+    <p className="text-xs text-gray-500">Versión: v3 · Última actualización: 20/05/2026</p>
   </main>
   </>
 );
