@@ -420,10 +420,14 @@ const CalendarPage = () => {
                     Mes {plan.mesocycle_number}/{plan.total_mesocycles}
                   </span>
                 )}
-                {daysUntilMesoEnd != null && daysUntilMesoEnd > 0 && daysUntilMesoEnd <= 14 && (
-                  <span className="text-[11px] font-bold bg-lime-400/10 text-lime-400 border border-lime-400/20 px-2 py-0.5 rounded-full">
-                    {daysUntilMesoEnd}d restantes
-                  </span>
+                {daysUntilMesoEnd != null && (
+                  daysUntilMesoEnd <= 0
+                    ? <span className="text-[11px] font-bold bg-zinc-800 text-zinc-400 border border-zinc-700 px-2 py-0.5 rounded-full">Terminado</span>
+                    : daysUntilMesoEnd <= 14 && (
+                      <span className="text-[11px] font-bold bg-lime-400/10 text-lime-400 border border-lime-400/20 px-2 py-0.5 rounded-full">
+                        {daysUntilMesoEnd}d restantes
+                      </span>
+                    )
                 )}
                 <span className="text-xs text-zinc-600 truncate max-w-[180px] sm:max-w-xs">{plan.goal}</span>
               </div>

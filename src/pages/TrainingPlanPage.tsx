@@ -680,10 +680,14 @@ const TrainingPlanPage = () => {
                       </span>
                     )}
                   </div>
-                  {daysUntilMesoEnd !== null && daysUntilMesoEnd > 0 && daysUntilMesoEnd <= 21 && (
-                    <span className={`text-xs px-2 py-1 rounded-full font-medium border ${daysUntilMesoEnd <= 7 ? 'bg-lime-400/10 border-lime-400/30 text-lime-400' : 'bg-indigo-900/40 border-indigo-800 text-indigo-400'}`}>
-                      {daysUntilMesoEnd <= 0 ? 'Terminado' : `Faltan ${daysUntilMesoEnd} días`}
-                    </span>
+                  {daysUntilMesoEnd !== null && (
+                    daysUntilMesoEnd <= 0
+                      ? <span className="text-xs px-2 py-1 rounded-full font-medium border bg-zinc-800 border-zinc-700 text-zinc-400">Terminado</span>
+                      : daysUntilMesoEnd <= 21 && (
+                        <span className={`text-xs px-2 py-1 rounded-full font-medium border ${daysUntilMesoEnd <= 7 ? 'bg-lime-400/10 border-lime-400/30 text-lime-400' : 'bg-indigo-900/40 border-indigo-800 text-indigo-400'}`}>
+                          Faltan {daysUntilMesoEnd} días
+                        </span>
+                      )
                   )}
                 </div>
 
@@ -728,6 +732,13 @@ const TrainingPlanPage = () => {
                   <p className="text-xs text-indigo-400">
                     El botón para generar el siguiente mesociclo aparecerá 2 semanas antes del final del actual.
                   </p>
+                )}
+                {daysUntilMesoEnd !== null && daysUntilMesoEnd <= 0 &&
+                  (plan.total_mesocycles ?? 1) <= (plan.mesocycle_number ?? 1) && (
+                  <div className="mt-2 p-3 bg-zinc-800/60 border border-zinc-700 rounded-lg">
+                    <p className="text-sm font-semibold text-zinc-200 mb-0.5">¡Plan completado!</p>
+                    <p className="text-xs text-zinc-500">Has terminado todos los mesociclos. Pulsa <strong className="text-zinc-300">Regenerar plan</strong> para crear un nuevo ciclo para esta carrera.</p>
+                  </div>
                 )}
               </div>
             )}
