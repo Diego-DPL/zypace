@@ -726,7 +726,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     : null;
   const canGenerateNextMeso = plan &&
     (plan.total_mesocycles ?? 1) > (plan.mesocycle_number ?? 1) &&
-    daysUntilMesoEnd !== null && daysUntilMesoEnd <= 14;
+    (daysUntilMesoEnd === null || daysUntilMesoEnd <= 14);
 
   const ProgressPortal = ({ message }: { message: string }) => {
     const content = (
@@ -859,7 +859,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
                   {(plan.total_mesocycles ?? 1) > (plan.mesocycle_number ?? 1) && !canGenerateNextMeso && daysUntilMesoEnd !== null && daysUntilMesoEnd > 14 && (
                     <p className="text-xs text-indigo-400">El botón para generar el siguiente mesociclo aparecerá 2 semanas antes del final del actual.</p>
                   )}
-                  {daysUntilMesoEnd !== null && daysUntilMesoEnd <= 0 &&
+                  {(daysUntilMesoEnd === null || daysUntilMesoEnd <= 0) &&
                     (plan.total_mesocycles ?? 1) <= (plan.mesocycle_number ?? 1) && (
                     <div className="mt-2 p-3 bg-zinc-900/60 border border-zinc-700 rounded-lg">
                       <p className="text-xs font-semibold text-zinc-200 mb-0.5">¡Plan completado!</p>
