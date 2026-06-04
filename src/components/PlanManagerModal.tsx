@@ -622,11 +622,11 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
       const todayISO    = new Date().toISOString().substring(0, 10);
       const tomorrowISO = new Date(Date.now() + 86400000).toISOString().substring(0, 10);
+
+      // Delete future workouts (scope-aware)
       const futureSnap  = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', plan.id), where('workout_date', '>=', tomorrowISO))
       );
-
-      // Delete only workouts that fall within the chosen scope
       for (const w of futureSnap.docs) {
         const d = w.data();
         const isStr = isStrengthWorkout(d.explanation_json, d.description);
@@ -635,6 +635,15 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           (regenScope === 'running'  && !isStr) ||
           (regenScope === 'strength' && isStr);
         if (inScope) await deleteDoc(w.ref);
+      }
+
+      // Delete old mesocycle workouts that predate the new plan's start
+      const newMesoStart = meta.mesocycle_start_date;
+      if (newMesoStart) {
+        const oldSnap = await getDocs(
+          query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', plan.id), where('workout_date', '<', newMesoStart))
+        );
+        for (const w of oldSnap.docs) await deleteDoc(w.ref);
       }
 
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
