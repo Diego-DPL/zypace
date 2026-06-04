@@ -475,6 +475,60 @@ const CalendarPage = () => {
         )}
       </div>
 
+      {/* ══════════ MESOCYCLE ENDING / ENDED BANNER ══════════ */}
+      {!loadingPlan && plan && (daysUntilMesoEnd === null || daysUntilMesoEnd <= 7) && (
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 mb-3">
+          {(daysUntilMesoEnd === null || daysUntilMesoEnd <= 0) ? (
+            (plan.total_mesocycles ?? 1) > (plan.mesocycle_number ?? 1) ? (
+              /* More mesocycles available → generate next */
+              <button onClick={() => setShowPlanModal(true)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-950/60 transition-colors text-left">
+                <div className="w-9 h-9 rounded-lg bg-indigo-500/15 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4.5 h-4.5 text-indigo-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M12 5v14M5 12h14"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-indigo-300">Tu mesociclo ha terminado</p>
+                  <p className="text-xs text-indigo-400/70">Genera el mesociclo {(plan.mesocycle_number || 1) + 1} para seguir progresando</p>
+                </div>
+                <svg className="w-4 h-4 text-indigo-500 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            ) : (
+              /* Last/only mesocycle done → regenerate plan */
+              <button onClick={() => setShowPlanModal(true)}
+                className="w-full flex items-center gap-3 px-4 py-3.5 rounded-xl border border-lime-400/20 bg-lime-950/30 hover:bg-lime-950/50 transition-colors text-left">
+                <div className="w-9 h-9 rounded-lg bg-lime-400/10 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-4.5 h-4.5 text-lime-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/>
+                  </svg>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-lime-300">¡Plan completado!</p>
+                  <p className="text-xs text-lime-400/60">Regenera el plan o crea uno nuevo para tu próxima carrera</p>
+                </div>
+                <svg className="w-4 h-4 text-lime-500/60 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+              </button>
+            )
+          ) : (
+            /* Ending soon (1-7 days) */
+            <button onClick={() => setShowPlanModal(true)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border border-amber-500/20 bg-amber-950/20 hover:bg-amber-950/35 transition-colors text-left">
+              <div className="w-9 h-9 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+                <svg className="w-4.5 h-4.5 text-amber-400" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+                </svg>
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-amber-300">Tu mesociclo termina en {daysUntilMesoEnd} día{daysUntilMesoEnd !== 1 ? 's' : ''}</p>
+                <p className="text-xs text-amber-400/60">Prepara el siguiente mesociclo desde ajustes del plan</p>
+              </div>
+              <svg className="w-4 h-4 text-amber-500/60 flex-shrink-0 ml-auto" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+            </button>
+          )}
+        </div>
+      )}
+
       {loadingPlan && (
         <div className="max-w-2xl mx-auto px-4 py-16 flex items-center justify-center gap-3">
           <div className="w-5 h-5 border-2 border-lime-400 border-t-transparent rounded-full animate-spin" />

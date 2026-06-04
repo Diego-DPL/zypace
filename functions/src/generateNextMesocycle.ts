@@ -214,6 +214,10 @@ export const generateNextMesocycle = onCall(
       : 'sin datos';
 
     // ── 6c. Save previous mesocycle history snapshot ─────────────
+    let prevMesoTotalKm = 0;
+    let prevMesoAvgWeeklyKm = 0;
+    let prevMesoLongestRun = 0;
+
     if (prevMesoNumber >= 1 && plan.mesocycle_start_date) {
       try {
         const mesoWorkoutsSnap = await db
@@ -231,6 +235,15 @@ export const generateNextMesocycle = onCall(
         const mesoKm = mesoWorkouts
           .filter((w: any) => w.is_completed)
           .reduce((s: number, w: any) => s + (w.distance_km || 0), 0);
+
+        prevMesoTotalKm = Math.round(mesoKm * 10) / 10;
+        prevMesoAvgWeeklyKm = mesoLenWeeks > 0 ? Math.round(prevMesoTotalKm / mesoLenWeeks) : 0;
+        prevMesoLongestRun = Math.round(
+          mesoWorkouts
+            .filter((w: any) => w.is_completed && (w.distance_km || 0) > 0)
+            .reduce((max: number, w: any) => Math.max(max, w.distance_km || 0), 0) * 10
+        ) / 10;
+
         await db.collection('users').doc(uid).collection('mesocycle_history').add({
           plan_id:             planId,
           race_id:             primaryRaceId,
@@ -254,6 +267,13 @@ export const generateNextMesocycle = onCall(
       : adherence >= 0.90
       ? `Excelente adherencia (${Math.round(adherence * 100)}%) — se puede mantener o aumentar levemente la carga.`
       : `Adherencia normal (${Math.round(adherence * 100)}%) — mantener carga planificada.`;
+
+    const volumeNote = prevMesoTotalKm > 0
+      ? `VOLUMEN MESOCICLO ANTERIOR (real completado):
+  • Km totales: ${prevMesoTotalKm} km en ${mesoLenWeeks} semanas (~${prevMesoAvgWeeklyKm} km/semana)
+  • Rodaje largo más largo completado: ${prevMesoLongestRun} km
+  → PROGRESIÓN OBLIGATORIA: el nuevo mesociclo debe aumentar el volumen semanal un 5-10% respecto al anterior (~${Math.round(prevMesoAvgWeeklyKm * 1.07)} km/semana aprox), salvo que la fatiga o las lesiones lo impidan. El rodaje largo debe progresar igualmente.`
+      : '';
 
     // ── 7. OpenAI call ──────────────────────────────────────────
     const apiKey = openAiApiKey.value();
@@ -360,7 +380,13 @@ TRAIL — cuando type==="subida": pon elevation_gain_m con los metros de desnive
 
 FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
 {"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
-REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
+REGLAS FUERZA:
+- exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión.
+- "reps" puede ser "10", "10-12", "30s" o "1 min".
+- NUNCA agrupes ejercicios en bloques como un solo elemento. Cada ejercicio va en su propio objeto.
+- INCORRECTO: {"name":"BLOQUE A: Sentadilla + Hip thrust","sets":3,"reps":"10"}
+- CORRECTO: {"name":"Sentadilla búlgara","sets":3,"reps":"10"}, {"name":"Hip thrust","sets":3,"reps":"12"}
+- Si la sesión tiene bloques (A, B, C), indica el bloque en el campo "notes" del ejercicio, no en "name".
 
 PLAN: ${race.name} · ${distKm || '?'}km · ${race.date} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: ${nextMesoNumber} de ${totalMesocycles} — SOLO desde ${nextStartISO} hasta ${nextEndISO} (semanas ${mesoStartWeek}-${mesoStartWeek + mesoLenWeeks - 1} del plan completo)
@@ -381,6 +407,7 @@ FASES DEL PLAN COMPLETO:
 ${phasesBlock}
 
 RENDIMIENTO MESOCICLO ANTERIOR: ${performanceNote}
+${volumeNote}
 
 METODOLOGÍA: ${ methodology === 'norwegian' ? 'Noruego (doble umbral)' : methodology === 'classic' ? 'Clásica' : 'Polarizado (Seiler)' }
 ${isTrailRace ? buildTrailBlock(rp_elevationGainM, distKm) : ''}${strengthBlock ? `\n${strengthBlock}\n` : ''}${scheduleHint ? `

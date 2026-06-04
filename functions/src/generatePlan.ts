@@ -264,7 +264,13 @@ TRAIL — cuando type==="subida": pon elevation_gain_m con los metros de desnive
 
 FORMATO (fuerza — usa SIEMPRE este cuando type==="fuerza"):
 {"plan":[{"date":"YYYY-MM-DD","description":"descripción breve","explanation":{"type":"fuerza","purpose":"objetivo fisiológico","exercises":[{"sets":3,"reps":"10","name":"Nombre ejercicio","notes":"ritmo excéntrico, descanso u obs. breve — opcional"}],"details":"instrucciones generales de la sesión (calentamiento, orden, descansos entre series)","intensity":null,"elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
-REGLA: el campo exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión de fuerza. "reps" puede ser "10", "10-12", "30s" o "1 min".
+REGLAS FUERZA:
+- exercises debe listar TODOS los ejercicios, uno por objeto. Mínimo 4 ejercicios por sesión.
+- "reps" puede ser "10", "10-12", "30s" o "1 min".
+- NUNCA agrupes ejercicios en bloques como un solo elemento. Cada ejercicio va en su propio objeto.
+- INCORRECTO: {"name":"BLOQUE A: Sentadilla + Hip thrust","sets":3,"reps":"10"}
+- CORRECTO: {"name":"Sentadilla búlgara","sets":3,"reps":"10"}, {"name":"Hip thrust","sets":3,"reps":"12"}
+- Si la sesión tiene bloques (A, B, C), indica el bloque en el campo "notes" del ejercicio, no en "name".
 
 PLAN COMPLETO (contexto): ${race.name} · ${distKm || '?'}km · ${raceISO} · ${totalWeeks} semanas totales
 MESOCICLO A GENERAR: 1 de ${totalMesocycles} — SOLO desde ${startISO} hasta ${mesoEndISO} (${mesoLenWeeks} semanas)
