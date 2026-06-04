@@ -479,7 +479,7 @@ const TrainingPlanPage = () => {
       const todayISO    = new Date().toISOString().substring(0, 10);
       const tomorrowISO = new Date(Date.now() + 86400000).toISOString().substring(0, 10);
 
-      // Delete future workouts
+      // Delete only from tomorrow onwards — keep today's workout and past history
       const futureSnap = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'),
           where('plan_id', '==', plan.id),
@@ -487,18 +487,6 @@ const TrainingPlanPage = () => {
         )
       );
       for (const w of futureSnap.docs) { await deleteDoc(w.ref); }
-
-      // Delete old mesocycle workouts that predate the new plan's start
-      const newMesoStart = meta.mesocycle_start_date;
-      if (newMesoStart) {
-        const oldSnap = await getDocs(
-          query(collection(db, 'users', user.uid, 'workouts'),
-            where('plan_id', '==', plan.id),
-            where('workout_date', '<', newMesoStart),
-          )
-        );
-        for (const w of oldSnap.docs) { await deleteDoc(w.ref); }
-      }
 
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
       const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
