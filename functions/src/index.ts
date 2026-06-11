@@ -21,3 +21,4 @@ export { deleteAccount }             from './deleteAccount';
 export { rescheduleMissedWorkout }   from './rescheduleMissedWorkout';
 export { exportCalendarICS }         from './exportCalendarICS';
 export { generateTravelWeek }        from './generateTravelWeek';
+export { revenuecatWebhookHandler }  from './revenuecatWebhook';
