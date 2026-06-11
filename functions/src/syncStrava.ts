@@ -12,7 +12,8 @@ interface StravaActivity {
   name: string;
   distance: number;           // metres
   moving_time: number;
-  start_date: string;         // ISO
+  start_date: string;         // ISO UTC
+  start_date_local?: string;  // ISO local time — use this for date matching
   sport_type?: string;
   average_heartrate?: number;
   max_heartrate?: number;
@@ -23,6 +24,9 @@ interface StravaActivity {
   average_watts?: number;
   perceived_exertion?: number;
 }
+
+const RUNNING_SPORT_TYPES = new Set(['Run', 'TrailRun', 'VirtualRun', 'Treadmill']);
+const STRENGTH_SPORT_TYPES = new Set(['WeightTraining', 'Workout', 'Crossfit', 'RockClimbing']);
 
 function extractDistanceKm(description: string | null | undefined): number | undefined {
   if (!description) return undefined;
@@ -170,12 +174,14 @@ export const syncStrava = onCall(
       for (const a of fetched) {
         if (existingIds.has(a.id)) continue;
         const docRef = actsCollection.doc(String(a.id));
+        // E5: use start_date_local to avoid UTC-offset day mismatches (e.g. midnight runs)
+        const localDate = (a.start_date_local || a.start_date).substring(0, 10);
         batch.set(docRef, {
           activity_id:           a.id,
           name:                  a.name,
           distance_m:            a.distance,
           moving_time:           a.moving_time,
-          start_date:            a.start_date.substring(0, 10),
+          start_date:            localDate,
           sport_type:            a.sport_type ?? null,
           average_heartrate:     a.average_heartrate ?? null,
           max_heartrate:         a.max_heartrate ?? null,
@@ -209,15 +215,25 @@ export const syncStrava = onCall(
       .where('start_date', '>=', pastISO)
       .get();
 
-    // Group activities by date
-    const actsByDate: Record<string, { distance_m: number; elevation_gain_m: number | null }[]> = {};
+    // Group activities by date, split by type: running vs strength
+    // E5: only auto-complete running workouts with running activities, and strength with strength
+    const runActsByDate:  Record<string, { distance_m: number; elevation_gain_m: number | null; sport_type: string | null }[]> = {};
+    const strActsByDate:  Record<string, { sport_type: string | null }[]> = {};
+
     for (const d of actsSnap.docs) {
       const a = d.data();
-      const date = a.start_date as string;
-      (actsByDate[date] ||= []).push({
-        distance_m: a.distance_m || 0,
-        elevation_gain_m: a.total_elevation_gain ?? null,
-      });
+      const date      = a.start_date as string;
+      const sportType = (a.sport_type as string | null) ?? null;
+      if (sportType && STRENGTH_SPORT_TYPES.has(sportType)) {
+        (strActsByDate[date] ||= []).push({ sport_type: sportType });
+      } else if (!sportType || RUNNING_SPORT_TYPES.has(sportType)) {
+        // null sport_type → assume running for backwards compat with old synced activities
+        (runActsByDate[date] ||= []).push({
+          distance_m: a.distance_m || 0,
+          elevation_gain_m: a.total_elevation_gain ?? null,
+          sport_type: sportType,
+        });
+      }
     }
 
     // Match workouts
@@ -228,19 +244,32 @@ export const syncStrava = onCall(
       const w = wDoc.data();
       if (w.is_completed) continue;
 
-      const dayActs = actsByDate[w.workout_date as string];
-      if (!dayActs?.length) continue;
-
-      const isRest = /\b(rest|descanso)\b/i.test(w.description || '');
+      const isRest     = /\b(rest|descanso)\b/i.test(w.description || '');
       if (isRest) continue;
+
+      const isStrength = w.explanation_json?.type === 'fuerza' || /\bfuerza\b/i.test(w.description || '');
+
+      // E5: strength workouts only auto-complete when there is a real strength activity that day
+      if (isStrength) {
+        const dayStrActs = strActsByDate[w.workout_date as string];
+        if (dayStrActs?.length) {
+          updateBatch.update(wDoc.ref, { is_completed: true });
+          matchedWorkouts++;
+        }
+        continue;
+      }
+
+      // Running workout matching — only against running activities
+      const dayActs = runActsByDate[w.workout_date as string];
+      if (!dayActs?.length) continue;
 
       const inferredKm = extractDistanceKm(w.description);
       const targetM = inferredKm ? inferredKm * 1000 : undefined;
-      const timeMatch = (w.description as string)?.match(/(\d{1,3})\s?(?:min|mins|m)\b/i);
+      const timeMatch = (w.description as string)?.match(/(\d{1,3})\s?(?:min|mins)\b/i);
       const targetSecs = timeMatch ? parseInt(timeMatch[1], 10) * 60 : undefined;
 
       let matched = false;
-      let matchedAct: { distance_m: number; elevation_gain_m: number | null } | null = null;
+      let matchedAct: { distance_m: number; elevation_gain_m: number | null; sport_type: string | null } | null = null;
       for (const act of dayActs) {
         if (targetM) {
           if (Math.abs(act.distance_m - targetM) / targetM <= 0.25) { matched = true; matchedAct = act; break; }

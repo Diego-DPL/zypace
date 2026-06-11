@@ -65,6 +65,9 @@ export const onPlanCreated = onDocumentCreated(
     const plan = event.data?.data();
     if (!plan) return;
 
+    // Only send for the first mesocycle — not for regenerations or mesocycle 2+
+    if ((plan.mesocycle_number ?? 1) > 1) return;
+
     const uid = event.params.uid;
     const db  = getFirestore();
 
@@ -74,11 +77,12 @@ export const onPlanCreated = onDocumentCreated(
       const user    = userDoc.data();
       if (!user?.email) return;
 
-      // Get race info if available
+      // Get race info if available — E8: use primary_race_id with fallback to race_id
       let raceName = '';
       let raceDate = '';
-      if (plan.race_id) {
-        const raceDoc = await db.collection('users').doc(uid).collection('races').doc(plan.race_id).get();
+      const raceId = plan.primary_race_id || plan.race_id;
+      if (raceId) {
+        const raceDoc = await db.collection('users').doc(uid).collection('races').doc(raceId).get();
         if (raceDoc.exists) {
           raceName = raceDoc.data()?.name  || '';
           raceDate = raceDoc.data()?.date  || '';

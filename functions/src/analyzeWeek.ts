@@ -57,6 +57,14 @@ export const analyzeWeek = onCall(
     if (!uid) throw new HttpsError('unauthenticated', 'No autenticado');
 
     const db = getFirestore();
+
+    // E3: verify active subscription server-side
+    const callerDoc = await db.collection('users').doc(uid).get();
+    const callerData = callerDoc.exists ? callerDoc.data()! : {};
+    if (!callerData.is_exempt && callerData.subscription_status !== 'active') {
+      throw new HttpsError('permission-denied', 'Necesitas una suscripción activa para analizar semanas.');
+    }
+
     const { plan_id: planId } = (request.data ?? {}) as { plan_id?: string };
 
     const today = new Date();
@@ -85,10 +93,12 @@ export const analyzeWeek = onCall(
 
       for (const pDoc of plansSnap.docs) {
         const p = pDoc.data();
-        if (!p.race_id) continue;
+        // E8: use primary_race_id with fallback to race_id
+        const planRaceId = p.primary_race_id || p.race_id;
+        if (!planRaceId) continue;
         const raceDoc = await db
           .collection('users').doc(uid)
-          .collection('races').doc(p.race_id)
+          .collection('races').doc(planRaceId)
           .get();
         if (raceDoc.exists && (raceDoc.data()!.date as string) >= todayISO) {
           activePlan = { id: pDoc.id, ...p, raceDate: raceDoc.data()!.date, raceDistanceKm: Number(raceDoc.data()!.distance) || 0 };

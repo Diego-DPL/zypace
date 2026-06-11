@@ -12,6 +12,7 @@ interface Race         { id: string; name: string; date: string; }
 interface Activity     { activity_id: string; start_date: string; name: string; distance_m?: number | null; sport_type?: string; }
 interface IntensityWeek{ label: string; kmZ1: number; kmZ4: number; kmZ5: number; total: number; }
 interface FitnessData  { ctl: number; atl: number; tsb: number; acwr: number; injuryRisk: 'low' | 'moderate' | 'high'; history: { ctl: number; atl: number }[]; }
+interface TodayWorkout { id: string; description: string; workout_type: string; distance_km?: number; duration_min?: number; is_completed: boolean; }
 
 function FitnessChart({ data }: { data: { ctl: number; atl: number }[] }) {
   if (data.length < 2) return null;
@@ -51,6 +52,8 @@ const HomePage = () => {
   const [intensityWeeks, setIntensityWeeks] = useState<IntensityWeek[]>([]);
   const [fitnessData, setFitnessData]       = useState<FitnessData | null>(null);
   const [hasZones, setHasZones]             = useState(false);
+  const [todayWorkout, setTodayWorkout]     = useState<TodayWorkout | null>(null);
+  const [streakWeeks, setStreakWeeks]       = useState(0);
 
   const iso = (d: Date) => d.toISOString().substring(0, 10);
   const weekStartISO = () => {
@@ -100,6 +103,25 @@ const HomePage = () => {
           where('workout_date', '>=', wStart), where('workout_date', '<=', wEnd), orderBy('workout_date', 'asc'))
       );
       const workoutsWeek = wwSnap.docs.map(d => d.data());
+
+      // ── Today's workout ────────────────────────────────────────
+      const todaySnap = await getDocs(
+        query(collection(db, 'users', uid, 'workouts'), where('workout_date', '==', todayISO), limit(1))
+      );
+      if (!todaySnap.empty) {
+        const d = todaySnap.docs[0];
+        const w = d.data();
+        setTodayWorkout({
+          id: d.id,
+          description:  w.description || '',
+          workout_type: w.explanation_json?.type || w.workout_type || '',
+          distance_km:  w.distance_km,
+          duration_min: w.duration_min,
+          is_completed: !!w.is_completed,
+        });
+      } else {
+        setTodayWorkout(null);
+      }
 
       // ── Recent activities (last 7 days, max 5) ─────────────────
       const act7Snap = await getDocs(
@@ -199,6 +221,19 @@ const HomePage = () => {
           history: fitnessHistory,
         });
       }
+
+      // ── Streak (consecutive weeks ≥50% completion) ────────────
+      let streak = 0;
+      for (let wi = 1; wi <= 16; wi++) {
+        const wStart = iso(new Date(Date.now() - (wi * 7 + (new Date().getDay() || 7) - 1) * 86400000));
+        const wEnd   = iso(new Date(new Date(wStart).getTime() + 6 * 86400000));
+        const weekW  = workouts90.filter((w: any) => w.workout_date >= wStart && w.workout_date <= wEnd);
+        if (weekW.length === 0) break;
+        const comp = weekW.filter((w: any) => w.is_completed).length;
+        if (comp / weekW.length < 0.5) break;
+        streak++;
+      }
+      setStreakWeeks(streak);
 
       // ── Plan progress ──────────────────────────────────────────
       if (planId) {
@@ -301,6 +336,61 @@ const HomePage = () => {
         </div>
 
         <OnboardingChecklist />
+
+        {/* ── Today's workout hero card ── */}
+        {!loading && todayWorkout && (
+          <div className={`mb-8 relative rounded-2xl p-[1px] shadow-lg ${todayWorkout.is_completed ? 'bg-gradient-to-br from-emerald-500 to-teal-600' : 'bg-gradient-to-br from-lime-400 via-yellow-400 to-orange-400'}`}>
+            <div className="rounded-2xl bg-zinc-900/95 backdrop-blur-sm p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-[11px] uppercase tracking-wide font-bold text-zinc-500">Entrenamiento de hoy</span>
+                  {todayWorkout.is_completed && (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-900/40 border border-emerald-800 px-2 py-0.5 rounded-full">
+                      Completado
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-zinc-200 leading-relaxed line-clamp-3">{todayWorkout.description || 'Sin descripción'}</p>
+                <div className="flex flex-wrap gap-3 mt-2">
+                  {todayWorkout.workout_type && (
+                    <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-full capitalize">
+                      {todayWorkout.workout_type}
+                    </span>
+                  )}
+                  {todayWorkout.distance_km != null && todayWorkout.distance_km > 0 && (
+                    <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-full">
+                      {todayWorkout.distance_km} km
+                    </span>
+                  )}
+                  {todayWorkout.duration_min != null && todayWorkout.duration_min > 0 && (
+                    <span className="text-[11px] font-semibold text-zinc-400 bg-zinc-800 border border-zinc-700 px-2.5 py-1 rounded-full">
+                      {todayWorkout.duration_min} min
+                    </span>
+                  )}
+                </div>
+              </div>
+              <a
+                href="/training-plan"
+                className={`shrink-0 px-5 py-2.5 text-sm font-bold rounded-xl transition-all ${todayWorkout.is_completed ? 'bg-emerald-600/20 border border-emerald-700 text-emerald-300 hover:bg-emerald-600/30' : 'bg-lime-400 hover:bg-lime-500 text-black shadow-md shadow-lime-400/20'}`}
+              >
+                {todayWorkout.is_completed ? 'Ver detalles' : 'Ver plan →'}
+              </a>
+            </div>
+          </div>
+        )}
+
+        {/* ── Streak badge ── */}
+        {!loading && streakWeeks > 0 && (
+          <div className="mb-8 flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-900 border border-zinc-800">
+            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shrink-0 shadow">
+              <span className="text-base">🔥</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-zinc-100">{streakWeeks} semana{streakWeeks > 1 ? 's' : ''} seguida{streakWeeks > 1 ? 's' : ''}</p>
+              <p className="text-[11px] text-zinc-500">completando al menos el 50% del entrenamiento planificado</p>
+            </div>
+          </div>
+        )}
 
         {/* ── Loading skeletons ── */}
         {loading ? (

@@ -9,6 +9,7 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WeeklyAnalysis from './WeeklyAnalysis';
+import { usePlanGeneration } from '../hooks/usePlanGeneration';
 
 interface Workout {
   id: string;
@@ -183,9 +184,16 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   const [racePriorities, setRacePriorities]   = useState<Record<string, 'A' | 'B' | 'C'>>({});
   const [profileZones, setProfileZones] = useState<{ z1_sec_km: number; z4_sec_km: number; z5_sec_km: number } | null>(null);
 
-  // ── Action loading state ──────────────────────────────────────
-  const [loading, setLoading]               = useState(false);
-  const [loadingNextMeso, setLoadingNextMeso] = useState(false);
+  // ── Plan generation hook ──────────────────────────────────────
+  const {
+    loading, setLoading,
+    loadingNextMeso, setLoadingNextMeso,
+    progressModal, setProgressModal,
+    progressMessages, progressMessageIndex,
+    resultModal, setResultModal,
+    startProgress, stopProgress,
+    saveRunnerProfile,
+  } = usePlanGeneration();
 
   // ── Profile collapse state ────────────────────────────────────
   const [profileExists, setProfileExists]   = useState(false);
@@ -194,26 +202,6 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
   // ── UI state ──────────────────────────────────────────────────
   const [showRegenModal, setShowRegenModal] = useState(false);
   const [regenScope, setRegenScope]         = useState<'both' | 'running' | 'strength'>('both');
-  const [progressModal, setProgressModal]   = useState(false);
-  const [progressMessageIndex, setProgressMessageIndex] = useState(0);
-  const [resultModal, setResultModal]       = useState<{ success: boolean; message: string } | null>(null);
-
-  const progressMessages = [
-    'Analizando tu carrera y objetivo…',
-    'Calculando distribución semanal óptima…',
-    'Ajustando cargas y descansos…',
-    'Seleccionando intensidades adecuadas…',
-    'Generando explicaciones de cada sesión…',
-    'Casi listo, preparando tu mesociclo…',
-  ];
-
-  useEffect(() => {
-    if (!progressModal) return;
-    const id = setInterval(() => {
-      setProgressMessageIndex(i => (i + 1) % progressMessages.length);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [progressModal]);
 
   // Lock body scroll while modal is open
   useEffect(() => {
@@ -430,69 +418,74 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
             priority: racePriorities[r.id] || (r.id === raceId ? 'A' : 'B'),
             is_target: r.id === raceId,
           })),
+          persist_server_side: true,
+          plan_id: 'default',
         },
       });
 
       const functionResponse = res.data as any;
       if (!functionResponse?.plan) throw new Error('Respuesta inválida de la IA');
 
+      const meta = functionResponse.meta || {};
+
       // Save priorities back to race documents
       await Promise.all(Object.entries(racePriorities).map(([rId, pri]) =>
         setDoc(doc(db, 'users', user.uid, 'races', rId), { priority: pri }, { merge: true }).catch(() => {})
       ));
 
-      // Delete old workouts from the existing default plan
-      const oldWorkoutsSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', 'default'))
-      );
-      for (const w of oldWorkoutsSnap.docs) { await deleteDoc(w.ref); }
+      if (!meta.server_persisted) {
+        // Fallback: server didn't persist (old deploy) — write client-side
+        const oldWorkoutsSnap = await getDocs(
+          query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', 'default'))
+        );
+        for (const w of oldWorkoutsSnap.docs) { await deleteDoc(w.ref); }
 
-      const meta = functionResponse.meta || {};
-      const planRef = doc(db, 'users', user.uid, 'training_plans', 'default');
-      // Delete old plan doc first so the setDoc below is always a create (not an update)
-      await deleteDoc(planRef);
-      await setDoc(planRef, {
-        primary_race_id:            raceId,
-        goal,
-        model:                      meta.model || null,
-        used_fallback:              meta.fallback ?? null,
-        openai_error:               meta.openAiError || null,
-        run_days_per_week:          runDays,
-        run_days_of_week:           runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
-        include_strength:           includeStrength,
-        strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
-        strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
-        mountain_days_of_week:      (raceTerrain === 'trail' || raceTerrain === 'mixed') && mountainDaysOfWeek.length > 0 ? mountainDaysOfWeek : null,
-        road_only_days_of_week:     (raceTerrain === 'trail' || raceTerrain === 'mixed') && roadOnlyDaysOfWeek.length > 0 ? roadOnlyDaysOfWeek : null,
-        last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
-        last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
-        target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
-        methodology,
-        race_terrain:               raceTerrain,
-        elevation_gain_m:           race.elevation_gain_m || null,
-        total_weeks:                meta.total_weeks || null,
-        total_mesocycles:           meta.total_mesocycles || null,
-        mesocycle_number:           meta.mesocycle_number || 1,
-        mesocycle_length_weeks:     meta.mesocycle_length_weeks || 5,
-        mesocycle_start_date:       meta.mesocycle_start_date || null,
-        mesocycle_end_date:         meta.mesocycle_end_date || null,
-        created_at:                 serverTimestamp(),
-      });
-
-      const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
-      const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
-      for (const w of functionResponse.plan) {
-        const desc: string = w.description || '';
-        const dMatch = desc.match(distRegex);
-        const tMatch = desc.match(durRegex);
-        await addDoc(collection(db, 'users', user.uid, 'workouts'), {
-          plan_id: 'default', workout_date: w.date, description: desc,
-          type: w.explanation?.type ?? null,
-          distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
-          duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
-          elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
-          explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
+        const planRef = doc(db, 'users', user.uid, 'training_plans', 'default');
+        await deleteDoc(planRef);
+        await setDoc(planRef, {
+          primary_race_id:            raceId,
+          goal,
+          model:                      meta.model || null,
+          used_fallback:              meta.fallback ?? null,
+          openai_error:               meta.openAiError || null,
+          run_days_per_week:          runDays,
+          run_days_of_week:           runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+          include_strength:           includeStrength,
+          strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+          strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
+          mountain_days_of_week:      (raceTerrain === 'trail' || raceTerrain === 'mixed') && mountainDaysOfWeek.length > 0 ? mountainDaysOfWeek : null,
+          road_only_days_of_week:     (raceTerrain === 'trail' || raceTerrain === 'mixed') && roadOnlyDaysOfWeek.length > 0 ? roadOnlyDaysOfWeek : null,
+          last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
+          last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
+          target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
+          methodology,
+          race_terrain:               raceTerrain,
+          elevation_gain_m:           race.elevation_gain_m || null,
+          total_weeks:                meta.total_weeks || null,
+          total_mesocycles:           meta.total_mesocycles || null,
+          mesocycle_number:           meta.mesocycle_number || 1,
+          mesocycle_length_weeks:     meta.mesocycle_length_weeks || 5,
+          plan_start_date:            meta.plan_start_date || meta.mesocycle_start_date || null,
+          mesocycle_start_date:       meta.mesocycle_start_date || null,
+          mesocycle_end_date:         meta.mesocycle_end_date || null,
+          created_at:                 serverTimestamp(),
         });
+
+        const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
+        const durRegex  = /(\d{1,3})\s?(?:min|mins)\b/i;
+        await Promise.all(functionResponse.plan.map((w: any) => {
+          const desc: string = w.description || '';
+          const dMatch = desc.match(distRegex);
+          const tMatch = desc.match(durRegex);
+          return addDoc(collection(db, 'users', user.uid, 'workouts'), {
+            plan_id: 'default', workout_date: w.date, description: desc,
+            type: w.explanation?.type ?? null,
+            distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+            duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+            elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
+            explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
+          });
+        }));
       }
 
       await addDoc(collection(db, 'users', user.uid, 'training_plan_versions'), {
@@ -501,15 +494,11 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         plan_json: { workouts: functionResponse.plan }, generated_at: serverTimestamp(),
       });
 
-      await setDoc(doc(db, 'users', user.uid), {
-        runner_experience_level: experienceLevel, runner_age_range: ageRange,
-        runner_current_weekly_km: currentWeeklyKm, runner_longest_recent_run_km: longestRecentRunKm,
-        runner_max_session_minutes: maxSessionMinutes, runner_preferred_training_time: preferredTrainingTime,
-        runner_has_recent_injury: hasRecentInjury,
-        runner_recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
-        runner_injury_areas: injuryAreas.length > 0 ? injuryAreas : [],
-        runner_profile_updated_at: serverTimestamp(),
-      }, { merge: true });
+      await saveRunnerProfile(user.uid, {
+        experienceLevel, ageRange, currentWeeklyKm, longestRecentRunKm,
+        maxSessionMinutes, preferredTrainingTime, hasRecentInjury,
+        recentInjuryDetail, injuryAreas,
+      });
 
       await fetchPlan();
       setPlanMeta(functionResponse.meta || null);
@@ -528,16 +517,14 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
           : 'No se pudo generar el plan. Por favor, inténtalo de nuevo.',
       });
     } finally {
-      setLoading(false);
-      setProgressModal(false);
+      stopProgress();
     }
   };
 
   const handleGenerateNextMesocycle = async () => {
     if (!user || !plan) return;
     setLoadingNextMeso(true);
-    setProgressModal(true);
-    setProgressMessageIndex(0);
+    startProgress();
     try {
       const generateNextMesocycleFn = httpsCallable(functions, 'generateNextMesocycle');
       const res = await generateNextMesocycleFn({ plan_id: plan.id });
@@ -553,15 +540,13 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       setResultModal({ success: false, message: `Error generando mesociclo: ${err.message || err}` });
     } finally {
       setLoadingNextMeso(false);
-      setProgressModal(false);
+      stopProgress();
     }
   };
 
   const handleRegenerateFromToday = async () => {
     if (!user || !plan || !race) return;
-    setLoading(true);
-    setProgressModal(true);
-    setProgressMessageIndex(0);
+    startProgress();
 
     // Helper: is this workout a strength session?
     const isStrengthWorkout = (explanation: any, description: string) =>
@@ -617,6 +602,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
         model: meta.model || null, used_fallback: meta.fallback ?? null, openai_error: meta.openAiError || null,
         total_weeks: meta.total_weeks || null, total_mesocycles: meta.total_mesocycles || null,
         mesocycle_number: meta.mesocycle_number || 1, mesocycle_length_weeks: meta.mesocycle_length_weeks || 5,
+        plan_start_date: meta.plan_start_date || meta.mesocycle_start_date || null,
         mesocycle_start_date: meta.mesocycle_start_date || null, mesocycle_end_date: meta.mesocycle_end_date || null,
       });
 
@@ -627,46 +613,49 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
       const futureSnap  = await getDocs(
         query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', plan.id), where('workout_date', '>=', tomorrowISO))
       );
-      for (const w of futureSnap.docs) {
-        const d = w.data();
-        const isStr = isStrengthWorkout(d.explanation_json, d.description);
-        const inScope =
-          regenScope === 'both' ||
-          (regenScope === 'running'  && !isStr) ||
-          (regenScope === 'strength' && isStr);
-        if (inScope) await deleteDoc(w.ref);
-      }
+      await Promise.all(
+        futureSnap.docs
+          .filter(w => {
+            const d = w.data();
+            const isStr = isStrengthWorkout(d.explanation_json, d.description);
+            return regenScope === 'both' ||
+              (regenScope === 'running'  && !isStr) ||
+              (regenScope === 'strength' && isStr);
+          })
+          .map(w => deleteDoc(w.ref))
+      );
 
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
-      const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
-      for (const w of functionResponse.plan) {
-        if (w.date <= todayISO) continue;
-        const isStr = isStrengthWorkout(w.explanation, w.description);
-        const inScope =
-          regenScope === 'both' ||
-          (regenScope === 'running'  && !isStr) ||
-          (regenScope === 'strength' && isStr);
-        if (!inScope) continue;
-        const desc: string = w.description || '';
-        const dMatch = desc.match(distRegex);
-        const tMatch = desc.match(durRegex);
-        await addDoc(collection(db, 'users', user.uid, 'workouts'), {
-          plan_id: plan.id, workout_date: w.date, description: desc,
-          type: w.explanation?.type ?? null,
-          distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
-          duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
-          elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
-          explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
-        });
-      }
+      const durRegex  = /(\d{1,3})\s?(?:min|mins)\b/i;
+      await Promise.all(
+        (functionResponse.plan as any[])
+          .filter(w => {
+            if (w.date <= todayISO) return false;
+            const isStr = isStrengthWorkout(w.explanation, w.description);
+            return regenScope === 'both' ||
+              (regenScope === 'running'  && !isStr) ||
+              (regenScope === 'strength' && isStr);
+          })
+          .map(w => {
+            const desc: string = w.description || '';
+            const dMatch = desc.match(distRegex);
+            const tMatch = desc.match(durRegex);
+            return addDoc(collection(db, 'users', user.uid, 'workouts'), {
+              plan_id: plan.id, workout_date: w.date, description: desc,
+              type: w.explanation?.type ?? null,
+              distance_km: dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+              duration_min: tMatch ? parseInt(tMatch[1], 10) : null,
+              elevation_gain_m: (w.explanation?.elevation_gain_m ?? null),
+              explanation_json: w.explanation || null, is_completed: false, created_at: serverTimestamp(),
+            });
+          })
+      );
 
-      await setDoc(doc(db, 'users', user.uid), {
-        runner_experience_level: experienceLevel, runner_age_range: ageRange,
-        runner_current_weekly_km: currentWeeklyKm, runner_longest_recent_run_km: longestRecentRunKm,
-        runner_max_session_minutes: maxSessionMinutes, runner_preferred_training_time: preferredTrainingTime,
-        runner_has_recent_injury: hasRecentInjury, runner_recent_injury_detail: hasRecentInjury ? recentInjuryDetail : null,
-        runner_injury_areas: injuryAreas.length > 0 ? injuryAreas : [], runner_profile_updated_at: serverTimestamp(),
-      }, { merge: true });
+      await saveRunnerProfile(user.uid, {
+        experienceLevel, ageRange, currentWeeklyKm, longestRecentRunKm,
+        maxSessionMinutes, preferredTrainingTime, hasRecentInjury,
+        recentInjuryDetail, injuryAreas,
+      });
 
       await fetchPlan();
       setPlanMeta(functionResponse.meta || null);
@@ -677,8 +666,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
     } catch (err: any) {
       setResultModal({ success: false, message: `Error regenerando: ${err.message || err}` });
     } finally {
-      setLoading(false);
-      setProgressModal(false);
+      stopProgress();
     }
   };
 
@@ -704,9 +692,7 @@ const PlanManagerModal = ({ open, onClose, raceId, race, onPlanChanged }: Props)
 
   const startGeneration = () => {
     if (!user || !race || loading) return;
-    setProgressMessageIndex(0);
-    setProgressModal(true);
-    setLoading(true);
+    startProgress();
     void handleGeneratePlan();
   };
 

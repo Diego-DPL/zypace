@@ -426,6 +426,86 @@ function inviteHtml(existingUser = false): string {
   return layout('Tu invitación a Zypace', body);
 }
 
+// ── Next mesocycle ready email ─────────────────────────────────────────
+function nextMesocycleReadyHtml(firstName: string, mesoNumber: number, startDate: string, endDate: string, raceName: string): string {
+  const name     = firstName || 'corredor';
+  const fmtStart = new Date(startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  const fmtEnd   = new Date(endDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
+  const body = `
+    <div style="text-align:center;margin-bottom:24px;">
+      <div style="display:inline-block;background:${LIME};border-radius:12px;padding:8px 24px;">
+        <span style="font-size:28px;font-weight:800;color:#000;line-height:1;">Meso ${mesoNumber}</span>
+      </div>
+    </div>
+    ${h1(`¡Tu mesociclo ${mesoNumber} está listo, ${name}!`)}
+    ${p(`Hemos generado automáticamente el siguiente bloque de entrenamiento para <strong style="color:#18181b;">${raceName || 'tu carrera'}</strong>.`)}
+
+    <div style="margin:20px 0;padding:16px 20px;background:#f9fafb;border-radius:8px;border-left:3px solid ${LIME};">
+      <p style="margin:0 0 6px;font-size:12px;font-weight:700;color:#a1a1aa;text-transform:uppercase;">Periodo</p>
+      <p style="margin:0;font-size:15px;font-weight:600;color:#18181b;">${fmtStart} → ${fmtEnd}</p>
+    </div>
+
+    ${p('El plan mantiene la progresión, la metodología y los días de entreno que configuraste. Entra para ver los detalles y ajustes de carga.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/training-plan`, 'Ver mi mesociclo')}
+    </div>
+  `;
+  return layout(`¡Mesociclo ${mesoNumber} listo!`, body);
+}
+
+// ── Daily workout email ────────────────────────────────────────────────
+function dailyWorkoutHtml(firstName: string, workoutDescription: string, workoutType: string, workoutDate: string): string {
+  const name    = firstName || 'corredor';
+  const fmtDate = new Date(workoutDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  const typeEmoji: Record<string, string> = {
+    suave: '🟢', largo: '🟦', umbral: '🟡', tempo: '🟡', series: '🔴', fuerza: '💪', subida: '⛰️', descanso: '🛌',
+  };
+  const emoji = typeEmoji[workoutType] || '🏃';
+  const typeLabel: Record<string, string> = {
+    suave: 'Rodaje suave', largo: 'Rodaje largo', umbral: 'Umbral', tempo: 'Tempo',
+    series: 'Series', fuerza: 'Fuerza', subida: 'Subida/Trail', descanso: 'Descanso activo',
+  };
+  const label = typeLabel[workoutType] || 'Entrenamiento';
+  const body = `
+    ${h1(`Buenos días, ${name} ${emoji}`)}
+    ${p(`Tu entrenamiento de hoy, <strong style="color:#18181b;">${fmtDate}</strong>:`)}
+
+    <div style="margin:20px 0;padding:20px 24px;background:#f9fafb;border-radius:12px;border-left:4px solid ${LIME};">
+      <p style="margin:0 0 8px;font-size:11px;font-weight:700;color:#a1a1aa;text-transform:uppercase;letter-spacing:0.05em;">${label}</p>
+      <p style="margin:0;font-size:15px;color:#18181b;line-height:1.6;">${workoutDescription}</p>
+    </div>
+
+    ${p('¡Buena sesión!', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/training-plan`, 'Ver mi plan completo')}
+    </div>
+  `;
+  return layout(`Tu entrenamiento de hoy · ${fmtDate}`, body);
+}
+
+// ── Sunday check-in email ──────────────────────────────────────────────
+function sundayCheckinHtml(firstName: string, completedWorkouts: number, totalWorkouts: number, weekLabel: string): string {
+  const name = firstName || 'corredor';
+  const rate = totalWorkouts > 0 ? Math.round((completedWorkouts / totalWorkouts) * 100) : 0;
+  const body = `
+    ${h1(`¿Cómo fue tu semana, ${name}?`)}
+    ${p(`Semana del <strong style="color:#18181b;">${weekLabel}</strong>. Has completado <strong style="color:#18181b;">${completedWorkouts} de ${totalWorkouts}</strong> entrenamientos (${rate}%).`)}
+
+    ${p('Cuéntanos cómo te has sentido esta semana para que podamos ajustar la carga del próximo bloque de entrenamiento.', true)}
+
+    <div style="text-align:center;">
+      ${ctaButton(`${APP_URL}/training-plan#weekly-analysis`, 'Rellenar check-in semanal')}
+    </div>
+
+    <div style="margin-top:20px;padding:16px 20px;background:#f9fafb;border-radius:8px;">
+      <p style="margin:0;font-size:12px;color:#a1a1aa;text-align:center;">El check-in semanal tarda menos de 1 minuto y ayuda a la IA a adaptar tu plan a tu estado real.</p>
+    </div>
+  `;
+  return layout('Check-in semanal · Zypace', body);
+}
+
 // ── Public send functions ─────────────────────────────────────────────
 export async function sendWelcomeEmail(to: string, firstName: string): Promise<void> {
   const resend = new Resend(resendApiKey.value());
@@ -559,6 +639,56 @@ export async function sendInviteEmail(to: string, existingUser = false): Promise
     to:      [to],
     subject: existingUser ? 'Tu acceso gratuito a Zypace está activado' : 'Te han invitado a Zypace',
     html:    inviteHtml(existingUser),
+  });
+}
+
+export async function sendNextMesocycleReadyEmail(
+  to: string,
+  firstName: string,
+  mesoNumber: number,
+  startDate: string,
+  endDate: string,
+  raceName: string,
+): Promise<void> {
+  const resend = new Resend(resendApiKey.value());
+  await resend.emails.send({
+    from:    FROM,
+    to:      [to],
+    subject: `¡Mesociclo ${mesoNumber} generado! Empieza el ${new Date(startDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`,
+    html:    nextMesocycleReadyHtml(firstName, mesoNumber, startDate, endDate, raceName),
+  });
+}
+
+export async function sendDailyWorkoutEmail(
+  to: string,
+  firstName: string,
+  workoutDescription: string,
+  workoutType: string,
+  workoutDate: string,
+): Promise<void> {
+  const resend = new Resend(resendApiKey.value());
+  const fmtDate = new Date(workoutDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' });
+  await resend.emails.send({
+    from:    FROM,
+    to:      [to],
+    subject: `Tu entrenamiento de hoy · ${fmtDate}`,
+    html:    dailyWorkoutHtml(firstName, workoutDescription, workoutType, workoutDate),
+  });
+}
+
+export async function sendSundayCheckinEmail(
+  to: string,
+  firstName: string,
+  completedWorkouts: number,
+  totalWorkouts: number,
+  weekLabel: string,
+): Promise<void> {
+  const resend = new Resend(resendApiKey.value());
+  await resend.emails.send({
+    from:    FROM,
+    to:      [to],
+    subject: `¿Cómo fue tu semana? · Check-in Zypace`,
+    html:    sundayCheckinHtml(firstName, completedWorkouts, totalWorkouts, weekLabel),
   });
 }
 

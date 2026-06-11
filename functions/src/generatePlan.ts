@@ -3,7 +3,9 @@
 
 import { onCall, HttpsError } from 'firebase-functions/v2/https';
 import { defineSecret } from 'firebase-functions/params';
-import { getFirestore } from 'firebase-admin/firestore';
+import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+
+const PROMPT_VERSION = '2025-06-11-v3';
 import {
   TrainingZones, PlanDay,
   secToMinStr, estimateZones,
@@ -40,13 +42,23 @@ export const generatePlan = onCall(
     if (!race || !goal) throw new HttpsError('invalid-argument', 'Faltan detalles de la carrera o el objetivo.');
     if (!race.date)     throw new HttpsError('invalid-argument', 'La carrera no tiene fecha.');
 
-    // ── Rate limiting: max 5 plan generations per user per 24h ──────────
     const db = getFirestore();
+
+    // E3: verify active subscription server-side before any expensive work
+    const callerDoc = await db.collection('users').doc(uid).get();
+    const callerData = callerDoc.exists ? callerDoc.data()! : {};
+    if (!callerData.is_exempt && callerData.subscription_status !== 'active') {
+      throw new HttpsError('permission-denied', 'Necesitas una suscripción activa para generar un plan.');
+    }
+
+    // ── Rate limiting: max 5 plan generations per user per 24h ──────────
+    // E4: use generation_log (server-only write) so clients cannot bypass the counter.
     const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
     const recentPlans = await db
       .collection('users').doc(uid)
-      .collection('training_plan_versions')
-      .where('generated_at', '>=', since)
+      .collection('generation_log')
+      .where('kind', '==', 'plan')
+      .where('created_at', '>=', since)
       .count()
       .get();
     if (recentPlans.data().count >= 5) {
@@ -256,7 +268,7 @@ ${racesContext.map(r => {
 Planifica la carga, las semanas de descarga y los tapers de acuerdo con estas prioridades. Las carreras B y C NO interrumpen el bloque de carga salvo el taper indicado.`
       : '';
 
-    const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después.
+    const developerInstructions = `Eres un entrenador de running científico y especializado. Devuelve SOLO JSON válido, sin texto antes o después. [v:${PROMPT_VERSION}]
 
 FORMATO (running/descanso):
 {"plan":[{"date":"YYYY-MM-DD","description":"descripción ejecutable","explanation":{"type":"series|umbral|tempo|largo|suave|subida|descanso","purpose":"objetivo fisiológico","details":"instrucciones paso a paso","intensity":"zona/ritmo/RPE o null","elevation_gain_m":null,"phase":"base|desarrollo|especifico|taper"}}]}
@@ -322,18 +334,20 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
     const userPrompt = `Genera el mesociclo 1 (${startISO} → ${mesoEndISO}) del plan para ${race.name}.`;
 
     // ── OpenAI call ─────────────────────────────────────────────
-    async function callResponsesAPI(activeModel: string): Promise<string> {
+    async function callResponsesAPI(activeModel: string): Promise<{ text: string; inputTokens: number; outputTokens: number }> {
       const res = await fetch('https://api.openai.com/v1/responses', {
         method: 'POST',
         headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: activeModel,
+          model:             activeModel,
+          max_output_tokens: 16384,
+          text:              { format: { type: 'json_object' } },
           input: [
             { role: 'developer', content: developerInstructions },
             { role: 'user',      content: userPrompt },
           ],
         }),
-        signal: AbortSignal.timeout(90_000),
+        signal: AbortSignal.timeout(120_000),
       });
       const raw = await res.text();
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -353,7 +367,11 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
       }
       const combined = outputs.join('\n').trim();
       if (!combined) throw new Error('Respuesta OpenAI vacía');
-      return combined;
+      return {
+        text: combined,
+        inputTokens:  data?.usage?.input_tokens  || 0,
+        outputTokens: data?.usage?.output_tokens || 0,
+      };
     }
 
     // Type classifier for fallback
@@ -372,12 +390,16 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
     let rawContent: string | null = null;
     let openAiError: string | null = null;
     let usedModel: string | null = null;
+    let inputTokens = 0, outputTokens = 0;
     const candidateModels = [model, 'gpt-4o-mini'];
 
     for (const m of candidateModels) {
       try {
-        rawContent = await callResponsesAPI(m);
-        usedModel  = m;
+        const r   = await callResponsesAPI(m);
+        rawContent    = r.text;
+        inputTokens   = r.inputTokens;
+        outputTokens  = r.outputTokens;
+        usedModel     = m;
         break;
       } catch (err) {
         openAiError = (err as Error).message;
@@ -435,6 +457,127 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
       }
     });
 
+    // Log successful generation (rate limiting + analytics)
+    try {
+      await db.collection('users').doc(uid).collection('generation_log').add({
+        kind:           'plan',
+        model:          usedModel,
+        prompt_version: PROMPT_VERSION,
+        input_tokens:   inputTokens,
+        output_tokens:  outputTokens,
+        created_at:     new Date(),
+      });
+    } catch { /* non-critical */ }
+
+    // ── Sprint 2: optional server-side persistence ─────────────
+    // When config.persist_server_side is true, the server writes plan doc + workouts
+    // to Firestore so the client only needs to do the version snapshot.
+    const persistServerSide = !!config?.persist_server_side;
+    const persistPlanId     = (config?.plan_id as string | undefined) || null;
+
+    if (persistServerSide) {
+      const planDocId  = persistPlanId || db.collection('users').doc(uid).collection('training_plans').doc().id;
+      const planRef    = db.collection('users').doc(uid).collection('training_plans').doc(planDocId);
+
+      // Delete existing workouts for this plan (idempotency)
+      if (persistPlanId) {
+        const oldWorkoutsSnap = await db.collection('users').doc(uid).collection('workouts')
+          .where('plan_id', '==', persistPlanId).get();
+        if (!oldWorkoutsSnap.empty) {
+          const delBatch = db.batch();
+          oldWorkoutsSnap.docs.forEach(d => delBatch.delete(d.ref));
+          await delBatch.commit();
+        }
+      }
+
+      // Write plan document
+      const raceId = (race as any).id as string | undefined;
+      await planRef.set({
+        primary_race_id:        raceId || null,
+        race_id:                raceId || null,
+        goal,
+        model:                  usedModel || null,
+        used_fallback:          !rawContent || (usedModel?.startsWith('fallback') ?? false),
+        openai_error:           openAiError || null,
+        run_days_per_week:      runDays,
+        run_days_of_week:       runDaysOfWeek && runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+        include_strength:       includeStrength,
+        strength_days_of_week:  includeStrength && strengthDaysOfWeek && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+        strength_days_per_week: includeStrength ? strengthDaysCount : null,
+        mountain_days_of_week:  mountainDaysOfWeek && mountainDaysOfWeek.length > 0 ? mountainDaysOfWeek : null,
+        road_only_days_of_week: roadOnlyDaysOfWeek && roadOnlyDaysOfWeek.length > 0 ? roadOnlyDaysOfWeek : null,
+        last_race_distance_km:  (config?.last_race as any)?.distance_km || null,
+        last_race_time_sec:     (config?.last_race as any)?.time_seconds || null,
+        target_race_time_sec:   targetTimeSec,
+        methodology,
+        race_terrain:           raceTerrain,
+        elevation_gain_m:       Number(config?.elevation_gain_m) || null,
+        experience_level:       experienceLevel,
+        age_range:              ageRange,
+        current_weekly_km:      currentWeeklyKm,
+        longest_recent_run_km:  longestRecentRunKm,
+        max_session_minutes:    maxSessionMinutes,
+        preferred_training_time: preferredTime,
+        has_recent_injury:      hasRecentInjury,
+        recent_injury_detail:   recentInjuryDetail || null,
+        injury_areas:           injuryAreas,
+        total_weeks:            totalWeeks,
+        total_mesocycles:       totalMesocycles,
+        mesocycle_number:       1,
+        mesocycle_length_weeks: mesoLenWeeks,
+        plan_start_date:        startISO,
+        mesocycle_start_date:   startISO,
+        mesocycle_end_date:     mesoEndISO,
+        created_at:             FieldValue.serverTimestamp(),
+      });
+
+      // Batch write workouts
+      const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
+      const durRegex  = /(\d{1,3})\s?(?:min|mins)\b/i;
+      const wBatch = db.batch();
+      for (const w of parsedPlan.plan) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(w.date)) continue;
+        const desc   = w.description || '';
+        const dMatch = desc.match(distRegex);
+        const tMatch = desc.match(durRegex);
+        const wRef   = db.collection('users').doc(uid).collection('workouts').doc();
+        wBatch.set(wRef, {
+          plan_id:          planDocId,
+          workout_date:     w.date,
+          description:      desc,
+          type:             (w.explanation as any)?.type ?? null,
+          distance_km:      dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+          duration_min:     tMatch ? parseInt(tMatch[1], 10) : null,
+          elevation_gain_m: (w.explanation as any)?.elevation_gain_m ?? null,
+          explanation_json: w.explanation || null,
+          is_completed:     false,
+          created_at:       FieldValue.serverTimestamp(),
+        });
+      }
+      await wBatch.commit();
+
+      return {
+        ...parsedPlan,
+        meta: {
+          fallback:               !rawContent || usedModel?.startsWith('fallback'),
+          openAiError,
+          model:                  usedModel,
+          methodology,
+          zones,
+          phases:                 phases.map(p => ({ name: p.name, startWeek: p.startWeek, endWeek: p.endWeek })),
+          total_weeks:            totalWeeks,
+          mesocycle_number:       1,
+          mesocycle_length_weeks: mesoLenWeeks,
+          plan_start_date:        startISO,
+          mesocycle_start_date:   startISO,
+          mesocycle_end_date:     mesoEndISO,
+          total_mesocycles:       totalMesocycles,
+          server_persisted:       true,
+          plan_id:                planDocId,
+        },
+      };
+    }
+
     return {
       ...parsedPlan,
       meta: {
@@ -444,13 +587,14 @@ Genera EXACTAMENTE las fechas de ${startISO} a ${mesoEndISO}. Nada más.`;
         methodology,
         zones,
         phases:                 phases.map(p => ({ name: p.name, startWeek: p.startWeek, endWeek: p.endWeek })),
-        // Mesocycle metadata
         total_weeks:            totalWeeks,
         mesocycle_number:       1,
         mesocycle_length_weeks: mesoLenWeeks,
+        plan_start_date:        startISO,   // E1: immutable, never overwritten
         mesocycle_start_date:   startISO,
         mesocycle_end_date:     mesoEndISO,
         total_mesocycles:       totalMesocycles,
+        server_persisted:       false,
       },
     };
   }

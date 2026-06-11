@@ -71,6 +71,13 @@ service cloud.firestore {
         // Versions are immutable — no update or delete from client
       }
 
+      // ── Generation log (server-side rate limiting) ─────────────────
+      // E4: Written only by Cloud Functions; clients may read to show remaining quota.
+      match /generation_log/{logId} {
+        allow read: if request.auth != null && request.auth.uid == userId;
+        allow write: if false;
+      }
+
       // ── Strava tokens (write only via Cloud Function) ──────────────
       match /strava_tokens/{tokenId} {
         allow read: if request.auth != null && request.auth.uid == userId;

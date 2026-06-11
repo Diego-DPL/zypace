@@ -44,6 +44,13 @@ export const calibrateZones = onCall(
 
     const db = getFirestore();
 
+    // E3: verify active subscription server-side
+    const callerDoc = await db.collection('users').doc(uid).get();
+    const callerData = callerDoc.exists ? callerDoc.data()! : {};
+    if (!callerData.is_exempt && callerData.subscription_status !== 'active') {
+      throw new HttpsError('permission-denied', 'Necesitas una suscripción activa para calibrar zonas.');
+    }
+
     const { manual_race_km, manual_race_sec } = (request.data ?? {}) as {
       manual_race_km?: number;
       manual_race_sec?: number;

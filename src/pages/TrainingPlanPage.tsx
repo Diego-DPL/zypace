@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
-import { Link, useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
   collection, getDocs, doc, getDoc, query, where, orderBy,
@@ -10,7 +10,9 @@ import { httpsCallable } from 'firebase/functions';
 import { db, functions } from '../lib/firebaseClient';
 import { Race } from '../types';
 import WeeklyAnalysis from '../components/WeeklyAnalysis';
+import MesocycleShareCard from '../components/MesocycleShareCard';
 import AddGoalModal from '../components/AddGoalModal';
+import { usePlanGeneration } from '../hooks/usePlanGeneration';
 
 interface Workout {
   id: string;
@@ -44,6 +46,8 @@ const DAY_LABELS = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const TrainingPlanPage = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  const weeklyAnalysisRef = useRef<HTMLDivElement>(null);
   const [races, setRaces] = useState<Race[]>([]);
   const [selectedRace, setSelectedRace] = useState('');
   const [goal, setGoal] = useState('');
@@ -57,9 +61,17 @@ const TrainingPlanPage = () => {
   const [lastRaceDistance, setLastRaceDistance] = useState<string>('');
   const [lastRaceTime, setLastRaceTime] = useState<string>('');
   const [targetRaceTime, setTargetRaceTime] = useState<string>('');
-  const [loading, setLoading] = useState(false);
+  const {
+    loading, setLoading,
+    loadingNextMeso, setLoadingNextMeso,
+    progressModal,
+    progressMessages, progressMessageIndex,
+    resultModal, setResultModal,
+    startProgress, stopProgress,
+    saveRunnerProfile,
+  } = usePlanGeneration();
+
   const [loadingPlan, setLoadingPlan] = useState(false);
-  const [loadingNextMeso, setLoadingNextMeso] = useState(false);
   const [plan, setPlan] = useState<TrainingPlan | null>(null);
   const [planMeta, setPlanMeta] = useState<any | null>(null);
   const [profileZones, setProfileZones] = useState<{ z1_sec_km: number; z4_sec_km: number; z5_sec_km: number } | null>(null);
@@ -79,35 +91,21 @@ const TrainingPlanPage = () => {
   const [injuryAreas, setInjuryAreas] = useState<string[]>([]);
   const [raceTerrain, setRaceTerrain] = useState<'road' | 'trail' | 'mixed' | 'track'>('road');
   const [racePriority, setRacePriority] = useState<'A' | 'B' | 'C'>('A');
-  const [progressModal, setProgressModal] = useState(false);
   const [showRegenModal, setShowRegenModal] = useState(false);
+  const [showTravelModal, setShowTravelModal] = useState(false);
+  const [travelLoading, setTravelLoading] = useState(false);
+  const [showShareCard, setShowShareCard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(0);
   const [showAddGoal, setShowAddGoal] = useState(false);
-  const [progressMessageIndex, setProgressMessageIndex] = useState(0);
-  const progressMessages = [
-    'Analizando tu carrera y objetivo…',
-    'Calculando distribución semanal óptima…',
-    'Ajustando cargas y descansos…',
-    'Seleccionando intensidades adecuadas…',
-    'Generando explicaciones de cada sesión…',
-    'Casi listo, preparando tu mesociclo…',
-  ];
-  const [resultModal, setResultModal] = useState<{ success: boolean; message: string } | null>(null);
 
+  // Scroll to weekly analysis section when arriving via #weekly-analysis deep link
   useEffect(() => {
-    if (!progressModal) return;
-    const id = setInterval(() => {
-      setProgressMessageIndex(i => (i + 1) % progressMessages.length);
-    }, 2500);
-    return () => clearInterval(id);
-  }, [progressModal]);
-
-  useEffect(() => {
-    if (progressModal) {
-      const prev = document.body.style.overflow;
-      document.body.style.overflow = 'hidden';
-      return () => { document.body.style.overflow = prev; };
+    if (location.hash === '#weekly-analysis' && plan && weeklyAnalysisRef.current) {
+      setTimeout(() => {
+        weeklyAnalysisRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 300);
     }
-  }, [progressModal]);
+  }, [location.hash, plan]);
 
   const ProgressPortal = ({ message }: { message: string }) => {
     const content = (
@@ -244,7 +242,7 @@ const TrainingPlanPage = () => {
   }, [user]);
 
   useEffect(() => {
-    if (selectedRace) { fetchPlanForRace(selectedRace); }
+    if (selectedRace) { fetchPlanForRace(selectedRace); setWizardStep(0); }
     else { setPlan(null); }
   }, [selectedRace, fetchPlanForRace]);
 
@@ -284,71 +282,77 @@ const TrainingPlanPage = () => {
           injury_areas: injuryAreas.length > 0 ? injuryAreas : null,
           race_terrain: raceTerrain,
           race_priority: racePriority,
+          persist_server_side: true,
         },
       });
 
       const functionResponse = res.data as any;
       if (!functionResponse?.plan) throw new Error('Respuesta inválida de la IA');
 
-      // Delete existing plan for this race
-      const oldPlanSnap = await getDocs(
-        query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', selectedRace))
-      );
-      for (const oldPlan of oldPlanSnap.docs) {
-        const oldWorkoutsSnap = await getDocs(
-          query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', oldPlan.id))
-        );
-        for (const w of oldWorkoutsSnap.docs) { await deleteDoc(w.ref); }
-        await deleteDoc(oldPlan.ref);
-      }
-
       const meta = functionResponse.meta || {};
 
-      const planRef = await addDoc(collection(db, 'users', user.uid, 'training_plans'), {
-        race_id:                    selectedRace,
-        goal,
-        model:                      meta.model || null,
-        used_fallback:              meta.fallback ?? null,
-        openai_error:               meta.openAiError || null,
-        run_days_per_week:          runDays,
-        run_days_of_week:           runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
-        include_strength:           includeStrength,
-        strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
-        strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
-        last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
-        last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
-        target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
-        methodology,
-        // Mesocycle metadata
-        total_weeks:                meta.total_weeks || null,
-        total_mesocycles:           meta.total_mesocycles || null,
-        mesocycle_number:           meta.mesocycle_number || 1,
-        mesocycle_length_weeks:     meta.mesocycle_length_weeks || 5,
-        mesocycle_start_date:       meta.mesocycle_start_date || null,
-        mesocycle_end_date:         meta.mesocycle_end_date || null,
-        created_at:                 serverTimestamp(),
-      });
+      if (!meta.server_persisted) {
+        // Fallback: server didn't persist — write client-side
+        const oldPlanSnap = await getDocs(
+          query(collection(db, 'users', user.uid, 'training_plans'), where('race_id', '==', selectedRace))
+        );
+        await Promise.all(oldPlanSnap.docs.map(async oldPlan => {
+          const oldWorkoutsSnap = await getDocs(
+            query(collection(db, 'users', user.uid, 'workouts'), where('plan_id', '==', oldPlan.id))
+          );
+          await Promise.all(oldWorkoutsSnap.docs.map(w => deleteDoc(w.ref)));
+          await deleteDoc(oldPlan.ref);
+        }));
 
-      const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
-      const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
-      for (const w of functionResponse.plan) {
-        const desc: string = w.description || '';
-        const dMatch = desc.match(distRegex);
-        const tMatch = desc.match(durRegex);
-        await addDoc(collection(db, 'users', user.uid, 'workouts'), {
-          plan_id:          planRef.id,
-          workout_date:     w.date,
-          description:      desc,
-          distance_km:      dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
-          duration_min:     tMatch ? parseInt(tMatch[1], 10) : null,
-          explanation_json: w.explanation || null,
-          is_completed:     false,
-          created_at:       serverTimestamp(),
+        const planDocRef = await addDoc(collection(db, 'users', user.uid, 'training_plans'), {
+          race_id:                    selectedRace,
+          goal,
+          model:                      meta.model || null,
+          used_fallback:              meta.fallback ?? null,
+          openai_error:               meta.openAiError || null,
+          run_days_per_week:          runDays,
+          run_days_of_week:           runDaysOfWeek.length > 0 ? runDaysOfWeek : null,
+          include_strength:           includeStrength,
+          strength_days_of_week:      includeStrength && strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek : null,
+          strength_days_per_week:     includeStrength ? (strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount) : null,
+          last_race_distance_km:      hasPreviousMark ? (parseFloat(lastRaceDistance) || null) : null,
+          last_race_time_sec:         hasPreviousMark ? parseTimeToSeconds(lastRaceTime) : null,
+          target_race_time_sec:       parseTimeToSeconds(targetRaceTime),
+          methodology,
+          total_weeks:                meta.total_weeks || null,
+          total_mesocycles:           meta.total_mesocycles || null,
+          mesocycle_number:           meta.mesocycle_number || 1,
+          mesocycle_length_weeks:     meta.mesocycle_length_weeks || 5,
+          plan_start_date:            meta.plan_start_date || meta.mesocycle_start_date || null,
+          mesocycle_start_date:       meta.mesocycle_start_date || null,
+          mesocycle_end_date:         meta.mesocycle_end_date || null,
+          created_at:                 serverTimestamp(),
         });
+
+        meta.plan_id = planDocRef.id;
+
+        const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
+        const durRegex  = /(\d{1,3})\s?(?:min|mins)\b/i;
+        await Promise.all((functionResponse.plan as any[]).map(w => {
+          const desc: string = w.description || '';
+          const dMatch = desc.match(distRegex);
+          const tMatch = desc.match(durRegex);
+          return addDoc(collection(db, 'users', user.uid, 'workouts'), {
+            plan_id:          planDocRef.id,
+            workout_date:     w.date,
+            description:      desc,
+            distance_km:      dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+            duration_min:     tMatch ? parseInt(tMatch[1], 10) : null,
+            explanation_json: w.explanation || null,
+            is_completed:     false,
+            created_at:       serverTimestamp(),
+          });
+        }));
       }
 
+      const usedPlanId = meta.plan_id || selectedRace;
       await addDoc(collection(db, 'users', user.uid, 'training_plan_versions'), {
-        plan_id:       planRef.id,
+        plan_id:       usedPlanId,
         race_id:       selectedRace,
         goal,
         model:         meta.model || null,
@@ -357,19 +361,11 @@ const TrainingPlanPage = () => {
         generated_at:  serverTimestamp(),
       });
 
-      // Persist runner profile so future plans and next mesocycles inherit it
-      await setDoc(doc(db, 'users', user.uid), {
-        runner_experience_level:        experienceLevel,
-        runner_age_range:               ageRange,
-        runner_current_weekly_km:       currentWeeklyKm,
-        runner_longest_recent_run_km:   longestRecentRunKm,
-        runner_max_session_minutes:     maxSessionMinutes,
-        runner_preferred_training_time: preferredTrainingTime,
-        runner_has_recent_injury:       hasRecentInjury,
-        runner_recent_injury_detail:    hasRecentInjury ? recentInjuryDetail : null,
-        runner_injury_areas:            injuryAreas.length > 0 ? injuryAreas : [],
-        runner_profile_updated_at:      serverTimestamp(),
-      }, { merge: true });
+      await saveRunnerProfile(user.uid, {
+        experienceLevel, ageRange, currentWeeklyKm, longestRecentRunKm,
+        maxSessionMinutes, preferredTrainingTime, hasRecentInjury,
+        recentInjuryDetail, injuryAreas,
+      });
 
       await fetchPlanForRace(selectedRace);
       setPlanMeta(functionResponse.meta || null);
@@ -379,16 +375,14 @@ const TrainingPlanPage = () => {
       console.error('Error generating plan:', error);
       setResultModal({ success: false, message: `Error al generar el plan: ${error instanceof Error ? error.message : 'Error desconocido'}` });
     } finally {
-      setLoading(false);
-      setProgressModal(false);
+      stopProgress();
     }
   };
 
   const handleGenerateNextMesocycle = async () => {
     if (!user || !plan) return;
     setLoadingNextMeso(true);
-    setProgressModal(true);
-    setProgressMessageIndex(0);
+    startProgress();
     try {
       const generateNextMesocycleFn = httpsCallable(functions, 'generateNextMesocycle');
       const res = await generateNextMesocycleFn({ plan_id: plan.id });
@@ -404,15 +398,36 @@ const TrainingPlanPage = () => {
       setResultModal({ success: false, message: `Error generando mesociclo: ${err.message || err}` });
     } finally {
       setLoadingNextMeso(false);
-      setProgressModal(false);
+      stopProgress();
+    }
+  };
+
+  const handleTravelWeek = async (mode: 'travel' | 'illness') => {
+    if (!user || !plan) return;
+    setTravelLoading(true);
+    try {
+      const fn = httpsCallable(functions, 'generateTravelWeek');
+      const res = await fn({ plan_id: plan.id, mode });
+      const data = res.data as any;
+      await fetchPlanForRace(selectedRace);
+      window.dispatchEvent(new Event('workouts-changed'));
+      setShowTravelModal(false);
+      setResultModal({
+        success: true,
+        message: mode === 'illness'
+          ? `Semana de descanso configurada (${data.replaced} sesiones reemplazadas).`
+          : `Modo viaje activado: ${data.light_runs} rodaje${data.light_runs !== 1 ? 's' : ''} suave${data.light_runs !== 1 ? 's' : ''} + descansos (${data.replaced} sesiones reemplazadas).`,
+      });
+    } catch (err: any) {
+      setResultModal({ success: false, message: `Error: ${err.message || err}` });
+    } finally {
+      setTravelLoading(false);
     }
   };
 
   const handleRegenerateFromToday = async () => {
     if (!user || !plan || !selectedRace) return;
-    setLoading(true);
-    setProgressModal(true);
-    setProgressMessageIndex(0);
+    startProgress();
     try {
       const race = races.find(r => r.id === selectedRace);
       if (!race) throw new Error('Carrera no encontrada');
@@ -472,6 +487,7 @@ const TrainingPlanPage = () => {
         total_mesocycles:     meta.total_mesocycles || null,
         mesocycle_number:     meta.mesocycle_number || 1,
         mesocycle_length_weeks: meta.mesocycle_length_weeks || 5,
+        plan_start_date:      meta.plan_start_date || meta.mesocycle_start_date || null,
         mesocycle_start_date: meta.mesocycle_start_date || null,
         mesocycle_end_date:   meta.mesocycle_end_date || null,
       });
@@ -486,39 +502,35 @@ const TrainingPlanPage = () => {
           where('workout_date', '>=', tomorrowISO),
         )
       );
-      for (const w of futureSnap.docs) { await deleteDoc(w.ref); }
+      await Promise.all(futureSnap.docs.map(w => deleteDoc(w.ref)));
 
       const distRegex = /(\d+(?:[.,]\d+)?)\s?(?:km|k)\b/i;
-      const durRegex  = /(\d{1,3})\s?(?:min|mins|m)\b/i;
-      for (const w of functionResponse.plan) {
-        if (w.date <= todayISO) continue;  // skip today and past — only save from tomorrow
-        const desc: string = w.description || '';
-        const dMatch = desc.match(distRegex);
-        const tMatch = desc.match(durRegex);
-        await addDoc(collection(db, 'users', user.uid, 'workouts'), {
-          plan_id:          plan.id,
-          workout_date:     w.date,
-          description:      desc,
-          distance_km:      dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
-          duration_min:     tMatch ? parseInt(tMatch[1], 10) : null,
-          explanation_json: w.explanation || null,
-          is_completed:     false,
-          created_at:       serverTimestamp(),
-        });
-      }
+      const durRegex  = /(\d{1,3})\s?(?:min|mins)\b/i;
+      await Promise.all(
+        (functionResponse.plan as any[])
+          .filter(w => w.date > todayISO)
+          .map(w => {
+            const desc: string = w.description || '';
+            const dMatch = desc.match(distRegex);
+            const tMatch = desc.match(durRegex);
+            return addDoc(collection(db, 'users', user.uid, 'workouts'), {
+              plan_id:          plan.id,
+              workout_date:     w.date,
+              description:      desc,
+              distance_km:      dMatch ? parseFloat(dMatch[1].replace(',', '.')) : null,
+              duration_min:     tMatch ? parseInt(tMatch[1], 10) : null,
+              explanation_json: w.explanation || null,
+              is_completed:     false,
+              created_at:       serverTimestamp(),
+            });
+          })
+      );
 
-      await setDoc(doc(db, 'users', user.uid), {
-        runner_experience_level:        experienceLevel,
-        runner_age_range:               ageRange,
-        runner_current_weekly_km:       currentWeeklyKm,
-        runner_longest_recent_run_km:   longestRecentRunKm,
-        runner_max_session_minutes:     maxSessionMinutes,
-        runner_preferred_training_time: preferredTrainingTime,
-        runner_has_recent_injury:       hasRecentInjury,
-        runner_recent_injury_detail:    hasRecentInjury ? recentInjuryDetail : null,
-        runner_injury_areas:            injuryAreas.length > 0 ? injuryAreas : [],
-        runner_profile_updated_at:      serverTimestamp(),
-      }, { merge: true });
+      await saveRunnerProfile(user.uid, {
+        experienceLevel, ageRange, currentWeeklyKm, longestRecentRunKm,
+        maxSessionMinutes, preferredTrainingTime, hasRecentInjury,
+        recentInjuryDetail, injuryAreas,
+      });
 
       await fetchPlanForRace(selectedRace);
       setPlanMeta(functionResponse.meta || null);
@@ -527,8 +539,7 @@ const TrainingPlanPage = () => {
     } catch (err: any) {
       setResultModal({ success: false, message: `Error regenerando: ${err.message || err}` });
     } finally {
-      setLoading(false);
-      setProgressModal(false);
+      stopProgress();
     }
   };
 
@@ -580,9 +591,7 @@ const TrainingPlanPage = () => {
 
   const startGeneration = () => {
     if (!user || !selectedRace || loading) return;
-    setProgressMessageIndex(0);
-    setProgressModal(true);
-    setLoading(true);
+    startProgress();
     void handleGeneratePlan();
   };
 
@@ -660,6 +669,14 @@ const TrainingPlanPage = () => {
                 <button onClick={() => setShowRegenModal(true)} disabled={loading}
                   className="bg-lime-400 text-black font-semibold py-2 px-4 rounded-lg hover:bg-lime-500 transition-colors disabled:opacity-50 text-sm">
                   Regenerar plan
+                </button>
+                <button onClick={() => setShowTravelModal(true)} disabled={loading}
+                  className="bg-zinc-700 text-zinc-200 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-600 transition-colors disabled:opacity-50 text-sm border border-zinc-600">
+                  ✈️ Modo viaje
+                </button>
+                <button onClick={() => setShowShareCard(true)} disabled={loading}
+                  className="bg-zinc-700 text-zinc-200 font-semibold py-2 px-4 rounded-lg hover:bg-zinc-600 transition-colors disabled:opacity-50 text-sm border border-zinc-600">
+                  Compartir mesociclo
                 </button>
               </div>
             </div>
@@ -866,23 +883,41 @@ const TrainingPlanPage = () => {
               )}
             </div>
 
-            <WeeklyAnalysis planId={plan.id} onWorkoutsChanged={() => fetchPlanForRace(selectedRace)} />
+            <div ref={weeklyAnalysisRef} id="weekly-analysis" className={location.hash === '#weekly-analysis' ? 'ring-2 ring-lime-400/40 rounded-xl' : ''}>
+              <WeeklyAnalysis planId={plan.id} onWorkoutsChanged={() => fetchPlanForRace(selectedRace)} />
+            </div>
           </div>
         )}
 
-        {/* Plan creation form */}
+        {/* Plan creation wizard */}
         {!loadingPlan && selectedRace && !plan && (
           <div>
+            {/* Wizard header */}
             <div className="mb-6">
               <h2 className="text-2xl font-bold text-zinc-100 mb-1">Configura tu plan personalizado</h2>
-              <p className="text-sm text-zinc-500">Completa tu perfil para que el entrenador IA genere un plan completamente adaptado a ti.</p>
+              <p className="text-sm text-zinc-500 mb-4">El entrenador IA adaptará el plan a tu perfil en 5 pasos.</p>
+              {/* Step progress */}
+              <div className="flex items-center gap-1">
+                {['Perfil', 'Disponibilidad', 'Lesiones', 'Objetivo', 'Revisión'].map((label, i) => (
+                  <div key={i} className="flex items-center gap-1 flex-1 min-w-0">
+                    <div className={`flex flex-col items-center gap-1 flex-1 min-w-0 ${i <= wizardStep ? 'cursor-pointer' : 'cursor-default'}`}
+                      onClick={() => i < wizardStep && setWizardStep(i)}>
+                      <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                        i < wizardStep ? 'bg-lime-400 text-black' : i === wizardStep ? 'bg-lime-400 text-black ring-2 ring-lime-400 ring-offset-2 ring-offset-zinc-950' : 'bg-zinc-800 text-zinc-500'
+                      }`}>{i < wizardStep ? '✓' : i + 1}</div>
+                      <span className={`text-[10px] font-medium hidden sm:block truncate text-center ${i === wizardStep ? 'text-zinc-100' : 'text-zinc-500'}`}>{label}</span>
+                    </div>
+                    {i < 4 && <div className={`h-px flex-1 mx-1 transition-colors ${i < wizardStep ? 'bg-lime-400' : 'bg-zinc-700'}`} />}
+                  </div>
+                ))}
+              </div>
             </div>
-            <form onSubmit={(e) => { e.preventDefault(); startGeneration(); }} className="space-y-6">
+            <form onSubmit={(e) => { e.preventDefault(); }} className="space-y-6">
 
-              {/* SECTION 1: Perfil del corredor */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800">
+              {/* STEP 1: Perfil del corredor + volumen */}
+              {wizardStep === 0 && <>
+              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-6">
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">1</span>
                   <h3 className="text-base font-semibold text-zinc-100">Tu perfil como corredor</h3>
                 </div>
                 <div className="space-y-5">
@@ -919,12 +954,9 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
 
-              {/* SECTION 2: Volumen actual */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">2</span>
-                  <h3 className="text-base font-semibold text-zinc-100">Tu entrenamiento actual</h3>
-                </div>
+              {/* Volumen actual — still step 0 */}
+              <div>
+                <h3 className="text-base font-semibold text-zinc-100 mb-3">Tu entrenamiento actual</h3>
                 <div className="space-y-5">
                   <div>
                     <label className="block text-sm font-medium text-zinc-200 mb-1">Kilómetros por semana actualmente</label>
@@ -985,12 +1017,11 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
 
-              {/* SECTION 3: Disponibilidad semanal */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">3</span>
-                  <h3 className="text-base font-semibold text-zinc-100">Tu disponibilidad semanal</h3>
-                </div>
+              </>}
+
+              {/* STEP 2: Disponibilidad semanal */}
+              {wizardStep === 1 && <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
+                <h3 className="text-base font-semibold text-zinc-100">Tu disponibilidad semanal</h3>
 
                 {/* Running days */}
                 <fieldset className="space-y-3">
@@ -1098,12 +1129,11 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
 
-              {/* SECTION 4: Lesiones y limitaciones */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-4">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">4</span>
-                  <h3 className="text-base font-semibold text-zinc-100">Lesiones y limitaciones</h3>
-                </div>
+              }
+
+              {/* STEP 3: Lesiones y limitaciones */}
+              {wizardStep === 2 && <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-4">
+                <h3 className="text-base font-semibold text-zinc-100">Lesiones y limitaciones</h3>
                 <label className="flex items-center gap-2 text-sm cursor-pointer">
                   <input type="checkbox" checked={hasRecentInjury} onChange={e => setHasRecentInjury(e.target.checked)} className="accent-red-500" />
                   <span>Tengo o he tenido una lesión reciente (últimas 8 semanas)</span>
@@ -1133,12 +1163,11 @@ const TrainingPlanPage = () => {
                 </div>
               </div>
 
-              {/* SECTION 5: Objetivo y datos de carrera */}
-              <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
-                <div className="flex items-center gap-3">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">5</span>
-                  <h3 className="text-base font-semibold text-zinc-100">Objetivo y datos de la carrera</h3>
-                </div>
+              }
+
+              {/* STEP 4: Objetivo + metodología */}
+              {wizardStep === 3 && <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800 space-y-5">
+                <h3 className="text-base font-semibold text-zinc-100">Objetivo y datos de la carrera</h3>
 
                 {/* Terrain */}
                 <div>
@@ -1220,14 +1249,11 @@ const TrainingPlanPage = () => {
                     placeholder="Ej: Terminar mi primer maratón, mejorar 10 min mi marca, disfrutar el recorrido…"
                     required />
                 </div>
-              </div>
+              </div>}
 
-              {/* SECTION 6: Metodología */}
-              <div className="border border-zinc-700 rounded-xl p-5 bg-zinc-800">
-                <div className="flex items-center gap-3 mb-4">
-                  <span className="w-7 h-7 rounded-full bg-lime-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">6</span>
-                  <h3 className="text-base font-semibold text-zinc-100">Metodología de entrenamiento</h3>
-                </div>
+              {/* Metodología — still step 3 */}
+              {wizardStep === 3 && <div className="border border-zinc-700 rounded-xl p-5 bg-zinc-800">
+                <h3 className="text-base font-semibold text-zinc-100 mb-4">Metodología de entrenamiento</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {([
                     { value: 'polarized', label: 'Polarizado', desc: '80% fácil Z1 · 20% alta intensidad. Máxima evidencia científica (Seiler).' },
@@ -1244,40 +1270,87 @@ const TrainingPlanPage = () => {
                     </label>
                   ))}
                 </div>
-              </div>
+              </div>}
 
-              {/* Calibrated zones notice */}
-              {profileZones && (
-                <div className="p-3 bg-teal-950/40 border border-teal-800 rounded-lg text-sm">
-                  <p className="text-teal-400 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
-                  <div className="flex flex-wrap gap-3 text-xs">
-                    {[
-                      { label: 'Z1 Fácil',  sec: profileZones.z1_sec_km },
-                      { label: 'Z4 Umbral', sec: profileZones.z4_sec_km },
-                      { label: 'Z5 VO2max', sec: profileZones.z5_sec_km },
-                    ].map(z => {
-                      const mm = Math.floor(z.sec / 60);
-                      const ss = Math.round(z.sec % 60).toString().padStart(2, '0');
-                      return (
-                        <span key={z.label} className="bg-zinc-900 border border-teal-800 rounded px-2 py-1 font-mono text-teal-400">
-                          {z.label}: {mm}:{ss}/km
-                        </span>
-                      );
-                    })}
+              {/* STEP 5: Revisión */}
+              {wizardStep === 4 && (
+                <div className="space-y-4">
+                  <div className="border border-zinc-800 rounded-xl p-5 bg-zinc-800">
+                    <h3 className="text-base font-semibold text-zinc-100 mb-4">Resumen de tu plan</h3>
+                    <dl className="space-y-2 text-sm">
+                      {[
+                        { label: 'Nivel', value: { beginner: 'Principiante', intermediate: 'Intermedio', advanced: 'Avanzado', elite: 'Élite' }[experienceLevel] },
+                        { label: 'Edad', value: ageRange },
+                        { label: 'Km/semana', value: `${currentWeeklyKm} km` },
+                        { label: 'Sesión máx.', value: `${maxSessionMinutes} min` },
+                        { label: 'Días running', value: `${runDaysOfWeek.length > 0 ? runDaysOfWeek.length : runDays} días${runDaysOfWeek.length > 0 ? ` (${runDaysOfWeek.map(d => DAY_LABELS[d]).join(', ')})` : ''}` },
+                        includeStrength && { label: 'Fuerza', value: `${strengthDaysOfWeek.length > 0 ? strengthDaysOfWeek.length : strengthDaysCount} sesiones/sem` },
+                        { label: 'Terreno', value: { road: 'Asfalto', trail: 'Trail', mixed: 'Mixto', track: 'Pista' }[raceTerrain] },
+                        { label: 'Metodología', value: { polarized: 'Polarizado', norwegian: 'Noruego', classic: 'Clásico' }[methodology] },
+                        hasRecentInjury && { label: 'Lesión reciente', value: recentInjuryDetail || 'Sí' },
+                        injuryAreas.length > 0 && { label: 'Zonas de atención', value: injuryAreas.join(', ') },
+                        goal && { label: 'Objetivo', value: goal },
+                        targetRaceTime && { label: 'Tiempo objetivo', value: targetRaceTime },
+                      ].filter(Boolean).map((item: any) => (
+                        <div key={item.label} className="flex justify-between gap-4 py-1 border-b border-zinc-800 last:border-0">
+                          <dt className="text-zinc-400 shrink-0">{item.label}</dt>
+                          <dd className="text-zinc-100 font-medium text-right">{item.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+
+                  {profileZones && (
+                    <div className="p-3 bg-teal-950/40 border border-teal-800 rounded-lg text-sm">
+                      <p className="text-teal-400 font-semibold mb-1">Zonas calibradas desde tu Strava</p>
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        {[
+                          { label: 'Z1 Fácil',  sec: profileZones.z1_sec_km },
+                          { label: 'Z4 Umbral', sec: profileZones.z4_sec_km },
+                          { label: 'Z5 VO2max', sec: profileZones.z5_sec_km },
+                        ].map(z => {
+                          const mm = Math.floor(z.sec / 60);
+                          const ss = Math.round(z.sec % 60).toString().padStart(2, '0');
+                          return (
+                            <span key={z.label} className="bg-zinc-900 border border-teal-800 rounded px-2 py-1 font-mono text-teal-400">
+                              {z.label}: {mm}:{ss}/km
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="p-3 bg-indigo-950/40 border border-indigo-800 rounded-lg text-sm text-indigo-300">
+                    <p className="font-semibold mb-1">Plan por mesociclos</p>
+                    <p className="text-xs text-indigo-400">Se generará el primer mesociclo (5 semanas). Al acercarse al final de cada bloque podrás generar el siguiente, adaptado a tu progreso real.</p>
                   </div>
                 </div>
               )}
 
-              {/* Mesocycle explanation */}
-              <div className="p-3 bg-indigo-950/40 border border-indigo-800 rounded-lg text-sm text-indigo-300">
-                <p className="font-semibold mb-1">Plan por mesociclos</p>
-                <p className="text-xs text-indigo-400">Se generará el primer mesociclo (5 semanas). Al acercarse al final de cada bloque podrás generar el siguiente, adaptado a tu progreso real.</p>
-              </div>
+              {/* Wizard navigation */}
+              <div className="flex justify-between items-center pt-2">
+                {wizardStep > 0 ? (
+                  <button type="button" onClick={() => setWizardStep(s => s - 1)}
+                    className="px-5 py-2.5 rounded-xl text-sm font-semibold border border-zinc-700 text-zinc-300 hover:bg-zinc-800 transition-colors">
+                    ← Atrás
+                  </button>
+                ) : <div />}
 
-              <button type="submit" disabled={loading}
-                className="w-full bg-lime-400 text-black font-bold py-4 px-6 rounded-xl hover:bg-lime-500 transition-colors disabled:bg-gray-400 text-base shadow-md">
-                {loading ? 'Generando…' : 'Generar mi plan personalizado con IA'}
-              </button>
+                {wizardStep < 4 ? (
+                  <button type="button"
+                    onClick={() => { if (wizardStep === 3 && !goal.trim()) return; setWizardStep(s => s + 1); }}
+                    disabled={wizardStep === 3 && !goal.trim()}
+                    className="px-6 py-2.5 rounded-xl text-sm font-bold bg-zinc-700 hover:bg-zinc-600 text-zinc-100 transition-colors disabled:opacity-50">
+                    Siguiente →
+                  </button>
+                ) : (
+                  <button type="button" disabled={loading || !goal.trim()} onClick={startGeneration}
+                    className="px-8 py-3 rounded-xl text-base font-bold bg-lime-400 hover:bg-lime-500 text-black transition-colors disabled:opacity-50 shadow-lg shadow-lime-400/20">
+                    {loading ? 'Generando…' : '🤖 Generar mi plan con IA'}
+                  </button>
+                )}
+              </div>
             </form>
           </div>
         )}
@@ -1414,6 +1487,55 @@ const TrainingPlanPage = () => {
                 Confirmar y regenerar plan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showShareCard && plan && (() => {
+        const completedW = plan.workouts.filter(w => w.is_completed);
+        const totalKm    = completedW.reduce((s, w) => s + (w.distance_km || 0), 0);
+        const adherence  = plan.workouts.length ? Math.round(completedW.length / plan.workouts.length * 100) : 0;
+        return (
+          <MesocycleShareCard
+            mesocycleNumber={plan.mesocycle_number || 1}
+            totalMesocycles={plan.total_mesocycles}
+            startDate={plan.mesocycle_start_date || new Date().toISOString().substring(0, 10)}
+            endDate={plan.mesocycle_end_date || new Date().toISOString().substring(0, 10)}
+            totalKm={totalKm}
+            completedWorkouts={completedW.length}
+            totalWorkouts={plan.workouts.length}
+            adherencePct={adherence}
+            raceName={races.find(r => r.id === selectedRace)?.name}
+            onClose={() => setShowShareCard(false)}
+          />
+        );
+      })()}
+
+      {showTravelModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+          onClick={e => { if (e.target === e.currentTarget) setShowTravelModal(false); }}>
+          <div className="bg-zinc-900 border border-zinc-700 rounded-2xl shadow-2xl w-full max-w-md p-6 space-y-5">
+            <div>
+              <h2 className="text-lg font-bold text-zinc-100">✈️ Modo viaje / enfermedad</h2>
+              <p className="text-sm text-zinc-400 mt-1">Reemplaza los entrenamientos pendientes de esta semana por sesiones de carga mínima. Los entrenamientos ya completados no se tocan.</p>
+            </div>
+            <div className="space-y-3">
+              <button onClick={() => handleTravelWeek('travel')} disabled={travelLoading}
+                className="w-full flex flex-col items-start gap-0.5 p-4 rounded-xl border border-zinc-700 bg-zinc-800 hover:border-lime-400/50 hover:bg-zinc-750 transition-all disabled:opacity-50 text-left">
+                <span className="text-sm font-bold text-zinc-100">Modo viaje</span>
+                <span className="text-xs text-zinc-400">1-2 rodajes suaves de 30 min + descanso el resto de días. Mantiene el hábito aeróbico.</span>
+              </button>
+              <button onClick={() => handleTravelWeek('illness')} disabled={travelLoading}
+                className="w-full flex flex-col items-start gap-0.5 p-4 rounded-xl border border-zinc-700 bg-zinc-800 hover:border-amber-400/50 hover:bg-zinc-750 transition-all disabled:opacity-50 text-left">
+                <span className="text-sm font-bold text-zinc-100">Modo enfermedad</span>
+                <span className="text-xs text-zinc-400">Descanso completo toda la semana. Recupera al 100% antes de retomar el plan.</span>
+              </button>
+            </div>
+            <p className="text-[11px] text-zinc-500">El mesociclo completo no se modifica. La próxima semana el plan sigue tal como estaba.</p>
+            <button onClick={() => setShowTravelModal(false)} disabled={travelLoading}
+              className="w-full px-4 py-2 rounded-lg text-sm font-semibold text-zinc-400 border border-zinc-700 hover:bg-zinc-800 transition-colors">
+              Cancelar
+            </button>
           </div>
         </div>
       )}

@@ -8,6 +8,13 @@ import './index.css'
 // Only load GA4 if user has already given analytics consent in a previous visit
 if (hasAnalyticsConsent()) initAnalytics()
 
+// Register service worker for PWA offline support
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => {/* silently fail in dev */});
+  });
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <HelmetProvider>

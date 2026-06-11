@@ -177,6 +177,32 @@ const SettingsPage = () => {
     }
   };
 
+  // ── Notification preferences ──────────────────────────────────
+  const [dailyWorkoutEmailOptIn, setDailyWorkoutEmailOptIn] = useState(false);
+  const [savingNotif,            setSavingNotif]            = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    getDoc(doc(db, 'users', user.uid)).then(snap => {
+      if (snap.exists()) {
+        setDailyWorkoutEmailOptIn(!!snap.data().daily_workout_email_opt_in);
+      }
+    });
+  }, [user]);
+
+  const handleToggleDailyEmail = async (value: boolean) => {
+    if (!user) return;
+    setDailyWorkoutEmailOptIn(value);
+    setSavingNotif(true);
+    try {
+      await setDoc(doc(db, 'users', user.uid), { daily_workout_email_opt_in: value }, { merge: true });
+    } catch {
+      setDailyWorkoutEmailOptIn(!value); // revert on error
+    } finally {
+      setSavingNotif(false);
+    }
+  };
+
   // ── Password reset ─────────────────────────────────────────────
   const [passwordResetLoading, setPasswordResetLoading] = useState(false);
   const [passwordResetMsg, setPasswordResetMsg]         = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -411,6 +437,25 @@ const SettingsPage = () => {
           className="px-5 py-2.5 bg-lime-400 hover:bg-lime-500 text-black text-sm font-semibold rounded-xl transition-colors disabled:opacity-50">
           {savingPersonal ? 'Guardando…' : 'Guardar datos'}
         </button>
+      </div>
+
+      {/* ── Notificaciones ── */}
+      <div className="bg-zinc-900 p-6 rounded-xl shadow-lg space-y-4">
+        <h2 className="text-2xl font-bold text-zinc-100">Notificaciones</h2>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-sm font-semibold text-zinc-200">Email diario del entrenamiento</p>
+            <p className="text-xs text-zinc-500 mt-0.5">Recibe cada mañana a las 07:00 el detalle del entrenamiento del día. Solo días con sesión programada.</p>
+          </div>
+          <button
+            onClick={() => handleToggleDailyEmail(!dailyWorkoutEmailOptIn)}
+            disabled={savingNotif}
+            aria-pressed={dailyWorkoutEmailOptIn}
+            className={`relative shrink-0 w-11 h-6 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-lime-400 focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 ${dailyWorkoutEmailOptIn ? 'bg-lime-400' : 'bg-zinc-700'}`}
+          >
+            <span className={`block w-5 h-5 bg-white rounded-full shadow absolute top-0.5 transition-transform duration-200 ${dailyWorkoutEmailOptIn ? 'translate-x-5' : 'translate-x-0.5'}`} />
+          </button>
+        </div>
       </div>
 
       {/* ── Seguridad ── */}
