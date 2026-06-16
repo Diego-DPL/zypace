@@ -47,7 +47,7 @@ export const generatePlan = onCall(
     // E3: verify active subscription server-side before any expensive work
     const callerDoc = await db.collection('users').doc(uid).get();
     const callerData = callerDoc.exists ? callerDoc.data()! : {};
-    if (!callerData.is_exempt && callerData.subscription_status !== 'active') {
+    if (!callerData.is_exempt && callerData.subscription_status !== 'active' && callerData.subscription_status !== 'trialing') {
       throw new HttpsError('permission-denied', 'Necesitas una suscripción activa para generar un plan.');
     }
 

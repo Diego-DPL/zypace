@@ -91,7 +91,7 @@ export async function generateMesocycleCore(
   const ud = userDoc.exists ? userDoc.data()! : {};
 
   if (!options?.skipSubscriptionCheck) {
-    if (!ud.is_exempt && ud.subscription_status !== 'active') {
+    if (!ud.is_exempt && ud.subscription_status !== 'active' && ud.subscription_status !== 'trialing') {
       throw new Error('Necesitas una suscripción activa');
     }
   }
